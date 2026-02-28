@@ -1,0 +1,100 @@
+
+{
+  "name": "NeuroLynx - Deal Won Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "deal-won-webhook",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "97b372f4-8a71-45a7-9371-123456789abc"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$node[\"Webhook\"].json[\"body\"][\"event\"]}}",
+              "value2": "DEAL_WON"
+            }
+          ]
+        }
+      },
+      "name": "Is Deal Won?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Mock QuickBooks Logic\n// In production, use the QuickBooks Node here\n\nconst deal = items[0].json.body.data;\n\nreturn [\n  {\n    json: {\n      message: \"Invoice Draft Created\",\n      invoiceId: \"INV-\" + Math.floor(Math.random() * 10000),\n      customer: deal.companyName,\n      amount: deal.value,\n      status: \"Draft\"\n    }\n  }\n];"
+      },
+      "name": "Create QB Invoice (Mock)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        700,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "New Deal Won! 🎉\nCustomer: {{$node[\"Webhook\"].json[\"body\"][\"data\"][\"companyName\"]}}\nValue: ${{$node[\"Webhook\"].json[\"body\"][\"data\"][\"value\"]}}\nInvoice: {{$node[\"Create QB Invoice (Mock)\"].json[\"invoiceId\"]}}"
+      },
+      "name": "Slack Notification (Mock)",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        950,
+        200
+      ],
+      "notes": "Replace with real Slack credentials"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Is Deal Won?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Deal Won?": {
+      "main": [
+        [
+          {
+            "node": "Create QB Invoice (Mock)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create QB Invoice (Mock)": {
+      "main": [
+        [
+          {
+            "node": "Slack Notification (Mock)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

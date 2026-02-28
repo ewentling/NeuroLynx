@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroLynx</title>
+    <script type='text/javascript' nonce='k7xhI8yrQbnlJ03Hor5pXA=='
+        src='https://aistudio.google.com/EhZvHmDtiHj9WQknAdc-FJec9KFDH8oLyBnuOK7ao2jWEafV-IFGbURDJflKbCS8cIfV11chSHYKMz38jvQRZJuChwmsY1db6CNXzcZt5m-9SQ07alhND4b5sU2g1ZGmMAeHBRLex5v-KRfKflG1qAgdh40j8GZh14OeoXYfOhkAwenr3x7GgS-FBFrBtSKMzEfjB3AVWGUFj4gIn2PW1NF72vBba_iOCWKWJpIlo2sGi9rJUkRs0veM9UCOVFWyzGSEuBkizPENj8D2IWLy59xMQstl8nScJdpE7SiR7jPg7SDYXfJ8vOZnPrQVwSWYpVDUXl0IbCjOC5hh1KVRULkHfWLXFzIDkNi9GrbcntJIYeNzh1jP9YtA7xnd-JpgdYw7KjYI7imauQoiHn1qFfEnXPxMMjzjOBORaBVZQTBAiuiZidDC_aQwxyZNueLQJ1c8SIgeq7f2-pCOZx61ZGukY4d44tlKzWTWXXS2DZrXmM_XDELjR-mKedXNw5xZuRoHSaKLrbFCSvZaYleKWzBQzNMN69qkXGNBVbLQ11JX-HCVQ0J9lRHYg5x2OzjHtw4GG6nFS82VoUqLc61u1plLgJDmw0c9XRsYCUKIyLg9gqjFFQ'></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f3f4f6;
+            margin: 0;
+            overflow: hidden;
+            letter-spacing: -0.01em;
+        }
+
+        .circuit-pattern {
+            background-color: #0f172a;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(6, 182, 212, 0.04) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(249, 115, 22, 0.04) 0%, transparent 25%);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(30, 41, 59, 0.5);
+            border-color: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(32px);
+            border-right: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .neuro-gradient {
+            background: linear-gradient(135deg, #06b6d4 0%, #f97316 100%);
+        }
+
+        .neuro-text-gradient {
+            background: linear-gradient(135deg, #f8fafc 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .interactive-scale {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .interactive-scale:active {
+            transform: scale(0.96);
+        }
+
+        .glow-orange {
+            box-shadow: 0 0 25px rgba(249, 115, 22, 0.2);
+        }
+
+        .glow-cyan {
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.2);
+        }
+
+        /* Pulsing Status Badges */
+        @keyframes pulse-soft {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(249, 115, 22, 0.2);
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(249, 115, 22, 0.4);
+            background-clip: content-box;
+        }
+
+        .status-pulse {
+            animation: pulse-soft 2s infinite ease-in-out;
+        }
+
+        /* Markdown Styles */
+        .markdown-body p {
+            margin-bottom: 0.75em;
+            line-height: 1.6;
+        }
+
+        .markdown-body ul {
+            list-style-type: disc;
+            padding-left: 1.5em;
+            margin-bottom: 0.75em;
+        }
+
+        .markdown-body strong {
+            color: #f97316;
+            font-weight: 700;
+        }
+
+        .markdown-body code {
+            background: rgba(15, 23, 42, 0.8);
+            padding: 0.2em 0.5em;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            color: #22d3ee;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(249, 115, 22, 0.4);
+        }
+
+        /* Global Focus Ring */
+        *:focus-visible {
+            outline: 2px solid #f97316;
+            outline-offset: 2px;
+        }
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-markdown": "https://esm.sh/react-markdown@9?bundle",
+    "pdfjs-dist": "https://esm.sh/pdfjs-dist@^5.4.530",
+    "jspdf": "https://esm.sh/jspdf@2.5.1",
+    "jspdf-autotable": "https://esm.sh/jspdf-autotable@3.8.2",
+    "jszip": "https://esm.sh/jszip@3.10.1"
+  }
+}
+</script>
+    <!-- Libraries for Document Preview -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <link rel="stylesheet" href="/index.css">
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>

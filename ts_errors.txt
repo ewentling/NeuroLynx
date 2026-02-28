@@ -1,0 +1,1 @@
+App.tsx(1669,26): error TS2741: Property 'onSaveInvoice' is missing in type '{ companies: Company[]; invoices: Invoice[]; }' but required in type 'InvoiceBuilderProps'.

@@ -1,0 +1,110 @@
+import { CryptoService } from './cryptoService';
+
+const LICENSE_STORAGE_KEY = 'nl_sys_chk_v1';
+const VALIDATION_URL = 'https://chump.blinkyink.com/webhook/validate-key';
+
+export interface LicenseValidationResponse {
+    valid: boolean;
+    allowedUsers: number;
+}
+
+export class LicenseService {
+    private crypto: CryptoService;
+
+    constructor() {
+        this.crypto = new CryptoService();
+    }
+
+    /**
+     * Checks if a license is stored locally.
+     * @returns The license key if found, null otherwise.
+     */
+    async getStoredLicense(): Promise<string | null> {
+        const encrypted = localStorage.getItem(LICENSE_STORAGE_KEY);
+        if (!encrypted) return null;
+
+        try {
+            // Attempt to decrypt
+            const decrypted = await this.crypto.decrypt(encrypted);
+            // Basic format check
+            if (decrypted && typeof decrypted === 'string' && decrypted.length === 25) {
+                return decrypted;
+            }
+            return null;
+        } catch (e) {
+            console.error("License decryption failed", e);
+            localStorage.removeItem(LICENSE_STORAGE_KEY); // Corrupt data
+            return null;
+        }
+    }
+
+    /**
+     * Encrypts and saves the license key to local storage.
+     */
+    async saveLicense(key: string): Promise<void> {
+        try {
+            const encrypted = await this.crypto.encrypt(key);
+            localStorage.setItem(LICENSE_STORAGE_KEY, encrypted);
+        } catch (e) {
+            console.error("Failed to save license", e);
+            throw new Error("Storage failure");
+        }
+    }
+
+    /**
+     * Removes the license from storage (used on invalidation).
+     */
+    clearLicense(): void {
+        localStorage.removeItem(LICENSE_STORAGE_KEY);
+    }
+
+    /**
+     * Validates the license key against the remote webhook.
+     * Returns an object containing validity and user limit.
+     */
+    async validateLicense(key: string): Promise<LicenseValidationResponse> {
+        try {
+            // We use 'text/plain' as Content-Type to send a "Simple Request" which avoids 
+            // the CORS Preflight (OPTIONS) request. Many basic webhooks do not handle 
+            // OPTIONS requests correctly, leading to "Failed to fetch" errors.
+            // The body is still valid JSON string.
+            const response = await fetch(VALIDATION_URL, {
+                method: 'POST',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'text/plain;charset=UTF-8'
+                },
+                body: JSON.stringify({ licenseKey: key })
+            });
+
+            if (response.ok) {
+                try {
+                    const data = await response.json();
+                    // Check for valid status (handling various potential field names for robustness)
+                    const isValid = !!(data.valid || data.success || data.result);
+
+                    // Extract allowed_users, default to 2 if not present but valid.
+                    // Safely parse string "5" to number 5.
+                    let allowedUsers = 2;
+                    if (data.allowed_users !== undefined && data.allowed_users !== null) {
+                        const parsed = Number(data.allowed_users);
+                        if (!isNaN(parsed)) {
+                            allowedUsers = parsed;
+                        }
+                    }
+
+                    return { valid: isValid, allowedUsers };
+                } catch (jsonError) {
+                    console.warn("Invalid JSON response from license server", jsonError);
+                    return { valid: false, allowedUsers: 0 };
+                }
+            } else {
+                console.warn(`License validation failed with status: ${response.status} ${response.statusText}`);
+                return { valid: false, allowedUsers: 0 };
+            }
+        } catch (e) {
+            console.error("License validation network error", e);
+            throw new Error("Network Error");
+        }
+    }
+}

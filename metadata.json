@@ -1,0 +1,8 @@
+{
+  "name": "NeuroLynx",
+  "description": "An advanced AI orchestrator that integrates with your digital workspace, memory, and voice for a seamless AI-driven workflow.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
