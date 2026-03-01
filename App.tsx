@@ -92,15 +92,6 @@ import MetadataManager from './components/MetadataManager';
 configurePdfWorker();
 
 const SCRATCHPAD_AUTOSAVE_DELAY_MS = 400;
-const MCP_TOOLS = [
-    { id: 'create_task', name: 'Task Creator', description: 'Add a high-priority task with optional due date' },
-    { id: 'complete_task', name: 'Task Completer', description: 'Mark a task done by title or keyword' },
-    { id: 'list_tasks', name: 'Task Summarizer', description: 'Summarize open tasks by status' },
-    { id: 'schedule_meeting', name: 'Meeting Scheduler', description: 'Book a meeting and add it to the calendar' },
-    { id: 'summarize_client', name: 'Client Summarizer', description: 'Summarize client data and last activities' },
-    { id: 'export_deals', name: 'Deal Export', description: 'Generate a quick CSV summary of open deals' },
-];
-
 const SidebarItem = React.memo(({ active, icon, label, onClick }: { active: boolean, icon: string, label: string, onClick: () => void }) => (
     <button onClick={onClick} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${active ? 'glass-card border-orange-500/30 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
         {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-400 to-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.6)]"></div>}
@@ -538,6 +529,9 @@ export const App: React.FC = () => {
 
     const offerings = MOCK_PRODUCTS;
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const TOOL_CALL_LOG_LIMIT = 50;
+    // Transient MCP/tool call log buffer for future backend/diagnostics fan-out.
+    // Not rendered; capped to prevent unbounded growth in long sessions.
     const [toolCalls, setToolCalls] = useState<ToolCallLog[]>([]);
 
     useEffect(() => {
@@ -1124,7 +1118,10 @@ export const App: React.FC = () => {
             status: 'queued',
             timestamp: Date.now()
         };
-        setToolCalls(prev => [envelope, ...prev]);
+        setToolCalls(prev => {
+            const next = [envelope, ...prev.filter(l => l.id !== envelope.id)];
+            return next.slice(0, TOOL_CALL_LOG_LIMIT);
+        });
         return envelope;
     };
 
@@ -1141,17 +1138,15 @@ export const App: React.FC = () => {
         }
         if (toolId === 'complete_task') {
             const keyword = (payload?.title || payload?.keyword || '').toLowerCase();
-            let updatedTitle = '';
-            setTasks(prev => prev.map(t => {
-                if (updatedTitle) return t;
-                const match = keyword && t.title.toLowerCase().includes(keyword) && t.status !== 'done';
-                if (match) {
-                    updatedTitle = t.title;
-                    return { ...t, status: 'done' };
-                }
-                return t;
-            }));
-            const resultText = updatedTitle ? `Task marked done (first match only): ${updatedTitle}` : 'No matching task found to complete';
+            const taskToComplete = tasks.find(
+                t => keyword && t.title.toLowerCase().includes(keyword) && t.status !== 'done'
+            );
+            if (taskToComplete) {
+                setTasks(prev =>
+                    prev.map(t => t.id === taskToComplete.id ? { ...t, status: 'done' } : t)
+                );
+            }
+            const resultText = taskToComplete ? `Task marked done (first match only): ${taskToComplete.title}` : 'No matching task found to complete';
             return { result: resultText, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'list_tasks') {
@@ -1187,8 +1182,16 @@ export const App: React.FC = () => {
             return { result: `Clients summary: ${comps}`, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'export_deals') {
+            const escapeCsv = (value: string | number): string => {
+                const str = String(value);
+                const escaped = str.replace(/"/g, '""');
+                if (/[",\n\r]/.test(escaped)) {
+                    return `"${escaped}"`;
+                }
+                return escaped;
+            };
             const openDeals = deals.filter(d => d.stage !== 'closed_won' && d.stage !== 'closed_lost');
-            const csv = openDeals.map(d => `${d.title},${d.value},${d.stage}`).join('\n');
+            const csv = openDeals.map(d => `${escapeCsv(d.title)},${escapeCsv(d.value)},${escapeCsv(d.stage)}`).join('\n');
             return { result: `Exported ${openDeals.length} deals:\n${csv}`, log: { ...queued, status: 'success' } };
         }
         return { result: 'Unknown tool', log: { ...queued, status: 'error' } };
@@ -1197,12 +1200,12 @@ export const App: React.FC = () => {
     const detectMcpIntent = (text: string): { toolId: string; args: any } | null => {
         const lower = text.toLowerCase();
         if (lower.includes('create') && lower.includes('task')) {
-            const match = text.match(/(?:create|add|new)\s+task\s+(.*)/i);
+            const match = text.match(/(?:create|add|new)\s+(?:a\s+)?(?:new\s+)?task\s+(.*)/i);
             const title = match?.[1]?.trim() || 'Follow up';
             return { toolId: 'create_task', args: { title } };
         }
         if ((lower.includes('complete') || lower.includes('mark done') || lower.includes('finish')) && lower.includes('task')) {
-            const match = text.match(/(?:complete|finish|mark done)\s+task\s+(.*)/i);
+            const match = text.match(/(?:complete|finish|mark done)\s+(?:the\s+)?(?:a\s+)?task\s+(.*)/i);
             const keyword = match?.[1]?.trim() || text.replace(/complete|finish|mark done|task/gi, '').trim() || 'task';
             return { toolId: 'complete_task', args: { title: keyword } };
         }
@@ -1210,7 +1213,9 @@ export const App: React.FC = () => {
             return { toolId: 'list_tasks', args: {} };
         }
         if ((lower.includes('schedule') || lower.includes('book') || lower.includes('set up')) && (lower.includes('meeting') || lower.includes('call'))) {
-            return { toolId: 'schedule_meeting', args: { title: text } };
+            const match = text.match(/(?:schedule|book|set up)\s+(?:a\s+)?(?:meeting|call)(?:\s+(?:about|regarding|to discuss)\s+(.*)|\s+(.*))/i);
+            const title = (match?.[1] || match?.[2])?.trim() || 'Client Sync';
+            return { toolId: 'schedule_meeting', args: { title } };
         }
         if (lower.includes('summary') && lower.includes('client')) {
             return { toolId: 'summarize_client', args: {} };
@@ -1223,7 +1228,10 @@ export const App: React.FC = () => {
 
     const executeMcp = (toolId: string, args: any, clientContext?: string, invocationSource: 'command' | 'intent' = 'command') => {
         const { result, log } = runMcpTool(toolId, args, clientContext);
-        setToolCalls(prev => [log, ...prev.filter(l => l.id !== log.id)]);
+        setToolCalls(prev => {
+            const next = [log, ...prev.filter(l => l.id !== log.id)];
+            return next.slice(0, TOOL_CALL_LOG_LIMIT);
+        });
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: result, timestamp: Date.now(), type: 'text', toolCalls: [log], clientId: clientContext }]);
         addToast('success', `MCP ${invocationSource === 'intent' ? 'intent' : 'command'}: ${toolId}`);
         return true;
@@ -2081,18 +2089,19 @@ If the answer is not in the list above, state that you do not have that informat
                                     >
                                         {view === 'home' && (
                                             <HomeView
-                                            contracts={contracts}
-                                            deals={deals}
-                                            tasks={tasks}
-                                            users={users}
-                                            auditLogs={auditLogs}
-                                            meetings={meetings}
-                                            setView={(v: any) => setView(v)}
-                                            moveTask={(id: string, stage: any) => handleMoveTask(id, stage)}
-                                            scratchpad={scratchpad}
-                                            setScratchpad={setScratchpad}
-                                            scratchpadSavedAt={scratchpadSavedAt}
-                                        />
+                                                contracts={contracts}
+                                                deals={deals}
+                                                tasks={tasks}
+                                                users={users}
+                                                auditLogs={auditLogs}
+                                                meetings={meetings}
+                                                nextMeeting={nextMeeting}
+                                                setView={(v: any) => setView(v)}
+                                                moveTask={(id: string, stage: any) => handleMoveTask(id, stage)}
+                                                scratchpad={scratchpad}
+                                                setScratchpad={setScratchpad}
+                                                scratchpadSavedAt={scratchpadSavedAt}
+                                            />
                                         )}
 
                                         {view === 'workspace' && workspaceMode === 'internal' && (

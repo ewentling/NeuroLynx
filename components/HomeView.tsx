@@ -10,6 +10,7 @@ interface HomeViewProps {
     users: User[];
     auditLogs: AuditLog[];
     meetings: Meeting[];
+    nextMeeting?: Meeting | null;
     setView: (view: string) => void;
     moveTask: (taskId: string, status: Task['status']) => void;
     scratchpad: string;
@@ -49,18 +50,13 @@ const NeuralProgressBar = ({ label, value, target, color }: { label: string, val
 };
 
 const HomeView: React.FC<HomeViewProps> = ({
-    contracts, deals, tasks, users, auditLogs, meetings, setView, moveTask, scratchpad, setScratchpad, scratchpadSavedAt
+    contracts, deals, tasks, users, auditLogs, meetings, nextMeeting, setView, moveTask, scratchpad, setScratchpad, scratchpadSavedAt
 }) => {
     const URGENT_THRESHOLD_HOURS = 24;
-    const OVERDUE_THRESHOLD = 0;
     const activeARR = contracts.filter(c => c.status === 'active').reduce((sum, c) => sum + c.totalValue, 0);
     const activeClients = new Set(contracts.filter(c => c.status === 'active').map(c => c.companyId)).size;
     const activeTasks = tasks.filter(t => t.status !== 'done').length;
     const openDeals = deals.filter(d => !d.stage.includes('closed'));
-    const nextMeeting = meetings
-        .map(m => ({ ...m, dateObj: new Date(m.date) }))
-        .filter(m => m.dateObj.getTime() >= Date.now())
-        .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime())[0];
 
     return (
         <div className="space-y-10 pb-20">
@@ -217,7 +213,7 @@ const HomeView: React.FC<HomeViewProps> = ({
                             let urgencyText = 'No due date';
                             let urgencyTone = 'text-slate-300 bg-slate-700/50 border-slate-600/50';
                             if (hoursRemaining !== null) {
-                                if (hoursRemaining < OVERDUE_THRESHOLD) {
+                                if (hoursRemaining < 0) {
                                     urgencyText = `${-hoursRemaining}h overdue`;
                                     urgencyTone = 'text-red-300 bg-red-500/10 border-red-400/30';
                                 } else if (hoursRemaining <= URGENT_THRESHOLD_HOURS) {
