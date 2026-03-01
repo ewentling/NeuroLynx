@@ -94,6 +94,8 @@ configurePdfWorker();
 const SCRATCHPAD_AUTOSAVE_DELAY_MS = 400;
 const MCP_TOOLS = [
     { id: 'create_task', name: 'Task Creator', description: 'Add a high-priority task with optional due date' },
+    { id: 'complete_task', name: 'Task Completer', description: 'Mark a task done by title or keyword' },
+    { id: 'list_tasks', name: 'Task Summarizer', description: 'Summarize open tasks by status' },
     { id: 'schedule_meeting', name: 'Meeting Scheduler', description: 'Book a meeting and add it to the calendar' },
     { id: 'summarize_client', name: 'Client Summarizer', description: 'Summarize client data and last activities' },
     { id: 'export_deals', name: 'Deal Export', description: 'Generate a quick CSV summary of open deals' },
@@ -1114,14 +1116,52 @@ export const App: React.FC = () => {
 
     const saveClient = () => { if (!modalData.companyId) return addToast('error', 'Company Required'); const newClient: Client = { id: modalData.id || Date.now().toString(), companyId: modalData.companyId, name: modalData.name, role: modalData.role, email: modalData.email, phone: modalData.phone, status: modalData.status || 'active', avatarColor: 'bg-blue-500', notes: '', lastContactDate: new Date().toISOString(), nextActionDate: '' }; setClients(prev => { if (modalData.id) return prev.map(c => c.id === modalData.id ? newClient : c); return [...prev, newClient]; }); setActiveModal(null); addToast('success', 'Contact Saved'); triggerAutomation('CLIENT_ADDED', newClient); };
 
+    const dispatchMcpEnvelope = (toolId: string, payload: any): ToolCallLog => {
+        const envelope: ToolCallLog = {
+            id: `log-${Date.now()}`,
+            toolName: toolId,
+            args: payload,
+            status: 'queued',
+            timestamp: Date.now()
+        };
+        setToolCalls(prev => [envelope, ...prev]);
+        return envelope;
+    };
+
     const runMcpTool = (toolId: string, payload: any, clientContext?: string): { result: string, log: ToolCallLog } => {
+        const queued = dispatchMcpEnvelope(toolId, payload);
+
         if (toolId === 'create_task') {
             const title = payload?.title || 'Follow up';
             const priority = payload?.priority || 'high';
             const dueDate = payload?.dueDate || new Date(Date.now() + 86400000).toISOString().split('T')[0];
             const newTask: Task = { id: `task-${Date.now()}`, title, description: payload?.description || '', status: 'todo', priority, dueDate, clientId: clientContext };
             setTasks(prev => [newTask, ...prev]);
-            return { result: `Task created: "${title}" due ${dueDate}`, log: { id: `log-${Date.now()}`, toolName: 'create_task', args: payload, timestamp: Date.now() } };
+            return { result: `Task created: "${title}" due ${dueDate}`, log: { ...queued, status: 'success' } };
+        }
+        if (toolId === 'complete_task') {
+            const keyword = (payload?.title || payload?.keyword || '').toLowerCase();
+            let updatedTitle = '';
+            setTasks(prev => prev.map(t => {
+                if (updatedTitle) return t;
+                const match = keyword && t.title.toLowerCase().includes(keyword) && t.status !== 'done';
+                if (match) {
+                    updatedTitle = t.title;
+                    return { ...t, status: 'done' };
+                }
+                return t;
+            }));
+            const resultText = updatedTitle ? `Task marked done (first match only): ${updatedTitle}` : 'No matching task found to complete';
+            return { result: resultText, log: { ...queued, status: 'success' } };
+        }
+        if (toolId === 'list_tasks') {
+            const buckets = tasks.reduce((acc: Record<string, string[]>, t) => {
+                acc[t.status] = acc[t.status] || [];
+                acc[t.status].push(t.title);
+                return acc;
+            }, {});
+            const summary = Object.entries(buckets).map(([status, list]) => `${status}: ${(list as string[]).slice(0, 5).join(', ')}`).join(' | ');
+            return { result: `Tasks overview -> ${summary || 'no tasks yet'}`, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'schedule_meeting') {
             const title = payload?.title || 'Client Sync';
@@ -1140,18 +1180,53 @@ export const App: React.FC = () => {
                 type: 'video'
             };
             setMeetings(prev => [newMeeting, ...prev]);
-            return { result: `Meeting scheduled: ${title} on ${new Date(start).toLocaleString()}`, log: { id: `log-${Date.now()}`, toolName: 'schedule_meeting', args: payload, timestamp: Date.now() } };
+            return { result: `Meeting scheduled: ${title} on ${new Date(start).toLocaleString()}`, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'summarize_client') {
             const comps = companies.map(c => `${c.name} (${c.status})`).join(', ');
-            return { result: `Clients summary: ${comps}`, log: { id: `log-${Date.now()}`, toolName: 'summarize_client', args: payload, timestamp: Date.now() } };
+            return { result: `Clients summary: ${comps}`, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'export_deals') {
             const openDeals = deals.filter(d => d.stage !== 'closed_won' && d.stage !== 'closed_lost');
             const csv = openDeals.map(d => `${d.title},${d.value},${d.stage}`).join('\n');
-            return { result: `Exported ${openDeals.length} deals:\n${csv}`, log: { id: `log-${Date.now()}`, toolName: 'export_deals', args: payload, timestamp: Date.now() } };
+            return { result: `Exported ${openDeals.length} deals:\n${csv}`, log: { ...queued, status: 'success' } };
         }
-        return { result: 'Unknown tool', log: { id: `log-${Date.now()}`, toolName: toolId, args: payload, timestamp: Date.now() } };
+        return { result: 'Unknown tool', log: { ...queued, status: 'error' } };
+    };
+
+    const detectMcpIntent = (text: string): { toolId: string; args: any } | null => {
+        const lower = text.toLowerCase();
+        if (lower.includes('create') && lower.includes('task')) {
+            const match = text.match(/(?:create|add|new)\s+task\s+(.*)/i);
+            const title = match?.[1]?.trim() || 'Follow up';
+            return { toolId: 'create_task', args: { title } };
+        }
+        if ((lower.includes('complete') || lower.includes('mark done') || lower.includes('finish')) && lower.includes('task')) {
+            const match = text.match(/(?:complete|finish|mark done)\s+task\s+(.*)/i);
+            const keyword = match?.[1]?.trim() || text.replace(/complete|finish|mark done|task/gi, '').trim() || 'task';
+            return { toolId: 'complete_task', args: { title: keyword } };
+        }
+        if (lower.includes('list tasks') || lower.includes('show tasks') || lower.includes('open tasks')) {
+            return { toolId: 'list_tasks', args: {} };
+        }
+        if ((lower.includes('schedule') || lower.includes('book') || lower.includes('set up')) && (lower.includes('meeting') || lower.includes('call'))) {
+            return { toolId: 'schedule_meeting', args: { title: text } };
+        }
+        if (lower.includes('summary') && lower.includes('client')) {
+            return { toolId: 'summarize_client', args: {} };
+        }
+        if (lower.includes('export') && lower.includes('deal')) {
+            return { toolId: 'export_deals', args: {} };
+        }
+        return null;
+    };
+
+    const executeMcp = (toolId: string, args: any, clientContext?: string, invocationSource: 'command' | 'intent' = 'command') => {
+        const { result, log } = runMcpTool(toolId, args, clientContext);
+        setToolCalls(prev => [log, ...prev.filter(l => l.id !== log.id)]);
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: result, timestamp: Date.now(), type: 'text', toolCalls: [log], clientId: clientContext }]);
+        addToast('success', `MCP ${invocationSource === 'intent' ? 'intent' : 'command'}: ${toolId}`);
+        return true;
     };
 
     const handleMcpCommand = (text: string, clientContext?: string) => {
@@ -1167,11 +1242,7 @@ export const App: React.FC = () => {
         } catch {
             args = { prompt: parts.slice(2).join(' ') };
         }
-        const { result, log } = runMcpTool(toolId, args, clientContext);
-        setToolCalls(prev => [log, ...prev]);
-        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: result, timestamp: Date.now(), type: 'text', toolCalls: [log], clientId: clientContext }]);
-        addToast('success', `MCP executed: ${toolId}`);
-        return true;
+        return executeMcp(toolId, args, clientContext);
     };
 
     const submitMessage = async () => {
@@ -1187,6 +1258,12 @@ export const App: React.FC = () => {
         setInput('');
 
         if (handleMcpCommand(currentInput, targetClientId)) {
+            return;
+        }
+
+        const detectedIntent = detectMcpIntent(currentInput);
+        if (detectedIntent) {
+            executeMcp(detectedIntent.toolId, detectedIntent.args, targetClientId, 'intent');
             return;
         }
 
@@ -1820,9 +1897,9 @@ If the answer is not in the list above, state that you do not have that informat
                                 {isVoiceMode ? <Mic className="w-3 h-3 text-cyan-400" /> : <MicOff className="w-3 h-3 text-slate-500" />}
                                 {isVoiceMode ? 'Voice Ready' : 'Voice Off'}
                             </div>
-                            <div className="glass-chip" title="Model Context Protocol tools ready">
+                            <div className="glass-chip" title="Model Context Protocol tools ready for natural requests (e.g. 'create a task for tomorrow')">
                                 <Sparkles className="w-3 h-3 text-purple-300" />
-                                MCP Connected
+                                MCP Connected · Just ask
                             </div>
                         </div>
                         <div className="hidden lg:flex items-center gap-4 border-l border-white/5 pl-4 ml-4">

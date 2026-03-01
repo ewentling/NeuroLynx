@@ -25,6 +25,7 @@ export interface ToolCallLog {
   toolName: string;
   args: any;
   result?: string;
+  status?: 'queued' | 'success' | 'error';
   timestamp: number;
 }
 
