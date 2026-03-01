@@ -91,6 +91,7 @@ import MetadataManager from './components/MetadataManager';
 
 configurePdfWorker();
 
+const SCRATCHPAD_AUTOSAVE_DELAY_MS = 400;
 const SidebarItem = React.memo(({ active, icon, label, onClick }: { active: boolean, icon: string, label: string, onClick: () => void }) => (
     <button onClick={onClick} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${active ? 'glass-card border-orange-500/30 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
         {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-400 to-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.6)]"></div>}
@@ -422,6 +423,10 @@ export const App: React.FC = () => {
 
     // NEW IMPROVEMENTS STATE
     const [scratchpad, setScratchpad] = useState(localStorage.getItem('neurolynx_scratchpad') || '');
+    const [scratchpadSavedAt, setScratchpadSavedAt] = useState<number | null>(() => {
+        const savedTs = localStorage.getItem('neurolynx_scratchpad_ts');
+        return savedTs ? parseInt(savedTs, 10) : null;
+    });
     const [isFocusMode, setIsFocusMode] = useState(false);
     const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
     const [recentItems, setRecentItems] = useState<{ label: string, view: string, timestamp: number }[]>([]);
@@ -524,6 +529,10 @@ export const App: React.FC = () => {
 
     const offerings = MOCK_PRODUCTS;
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const TOOL_CALL_LOG_LIMIT = 50;
+    // Transient MCP/tool call log buffer for future backend/diagnostics fan-out.
+    // Not rendered; capped to prevent unbounded growth in long sessions.
+    const [toolCalls, setToolCalls] = useState<ToolCallLog[]>([]);
 
     useEffect(() => {
         const checkLicense = async () => {
@@ -790,8 +799,28 @@ export const App: React.FC = () => {
 
     // Scratchpad Persistence
     useEffect(() => {
-        localStorage.setItem('neurolynx_scratchpad', scratchpad);
+        const timer = setTimeout(() => {
+            const ts = Date.now();
+            try {
+                localStorage.setItem('neurolynx_scratchpad', scratchpad);
+                localStorage.setItem('neurolynx_scratchpad_ts', ts.toString());
+                setScratchpadSavedAt(ts);
+            } catch (e) {
+                console.error('Autosave failed', e);
+                const reason = e instanceof Error ? e.message : 'storage issue';
+                addToast('error', `Autosave failed: ${reason}. Reduce note size and retry.`);
+            }
+        }, SCRATCHPAD_AUTOSAVE_DELAY_MS);
+        return () => clearTimeout(timer);
     }, [scratchpad]);
+
+    const nextMeeting = useMemo(() => {
+        const upcoming = meetings
+            .map(m => ({ ...m, dateObj: new Date(m.date) }))
+            .filter(m => m.dateObj.getTime() >= Date.now())
+            .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+        return upcoming[0] || null;
+    }, [meetings]);
 
     // Command Palette Logic
     const handleCommand = (cmd: string) => {
@@ -1081,6 +1110,149 @@ export const App: React.FC = () => {
 
     const saveClient = () => { if (!modalData.companyId) return addToast('error', 'Company Required'); const newClient: Client = { id: modalData.id || Date.now().toString(), companyId: modalData.companyId, name: modalData.name, role: modalData.role, email: modalData.email, phone: modalData.phone, status: modalData.status || 'active', avatarColor: 'bg-blue-500', notes: '', lastContactDate: new Date().toISOString(), nextActionDate: '' }; setClients(prev => { if (modalData.id) return prev.map(c => c.id === modalData.id ? newClient : c); return [...prev, newClient]; }); setActiveModal(null); addToast('success', 'Contact Saved'); triggerAutomation('CLIENT_ADDED', newClient); };
 
+    const dispatchMcpEnvelope = (toolId: string, payload: any): ToolCallLog => {
+        const envelope: ToolCallLog = {
+            id: `log-${Date.now()}`,
+            toolName: toolId,
+            args: payload,
+            status: 'queued',
+            timestamp: Date.now()
+        };
+        setToolCalls(prev => {
+            const next = [envelope, ...prev.filter(l => l.id !== envelope.id)];
+            return next.slice(0, TOOL_CALL_LOG_LIMIT);
+        });
+        return envelope;
+    };
+
+    const runMcpTool = (toolId: string, payload: any, clientContext?: string): { result: string, log: ToolCallLog } => {
+        const queued = dispatchMcpEnvelope(toolId, payload);
+
+        if (toolId === 'create_task') {
+            const title = payload?.title || 'Follow up';
+            const priority = payload?.priority || 'high';
+            const dueDate = payload?.dueDate || new Date(Date.now() + 86400000).toISOString().split('T')[0];
+            const newTask: Task = { id: `task-${Date.now()}`, title, description: payload?.description || '', status: 'todo', priority, dueDate, clientId: clientContext };
+            setTasks(prev => [newTask, ...prev]);
+            return { result: `Task created: "${title}" due ${dueDate}`, log: { ...queued, status: 'success' } };
+        }
+        if (toolId === 'complete_task') {
+            const keyword = (payload?.title || payload?.keyword || '').toLowerCase();
+            const taskToComplete = tasks.find(
+                t => keyword && t.title.toLowerCase().includes(keyword) && t.status !== 'done'
+            );
+            if (taskToComplete) {
+                setTasks(prev =>
+                    prev.map(t => t.id === taskToComplete.id ? { ...t, status: 'done' } : t)
+                );
+            }
+            const resultText = taskToComplete ? `Task marked done (first match only): ${taskToComplete.title}` : 'No matching task found to complete';
+            return { result: resultText, log: { ...queued, status: 'success' } };
+        }
+        if (toolId === 'list_tasks') {
+            const buckets = tasks.reduce((acc: Record<string, string[]>, t) => {
+                acc[t.status] = acc[t.status] || [];
+                acc[t.status].push(t.title);
+                return acc;
+            }, {});
+            const summary = Object.entries(buckets).map(([status, list]) => `${status}: ${(list as string[]).slice(0, 5).join(', ')}`).join(' | ');
+            return { result: `Tasks overview -> ${summary || 'no tasks yet'}`, log: { ...queued, status: 'success' } };
+        }
+        if (toolId === 'schedule_meeting') {
+            const title = payload?.title || 'Client Sync';
+            const start = payload?.date ? new Date(payload.date).getTime() : Date.now() + 3600000;
+            const newMeeting: Meeting = {
+                id: `meet-${Date.now()}`,
+                title,
+                date: start,
+                duration: payload?.duration || 30,
+                summary: payload?.agenda || 'Quick sync',
+                transcript: '',
+                status: 'scheduled',
+                attendees: payload?.attendees || [],
+                clientId: clientContext,
+                link: payload?.link || 'https://meet.neurolynx.ai/room',
+                type: 'video'
+            };
+            setMeetings(prev => [newMeeting, ...prev]);
+            return { result: `Meeting scheduled: ${title} on ${new Date(start).toLocaleString()}`, log: { ...queued, status: 'success' } };
+        }
+        if (toolId === 'summarize_client') {
+            const comps = companies.map(c => `${c.name} (${c.status})`).join(', ');
+            return { result: `Clients summary: ${comps}`, log: { ...queued, status: 'success' } };
+        }
+        if (toolId === 'export_deals') {
+            const escapeCsv = (value: string | number): string => {
+                const str = String(value);
+                const escaped = str.replace(/"/g, '""');
+                if (/[",\n\r]/.test(escaped)) {
+                    return `"${escaped}"`;
+                }
+                return escaped;
+            };
+            const openDeals = deals.filter(d => d.stage !== 'closed_won' && d.stage !== 'closed_lost');
+            const csv = openDeals.map(d => `${escapeCsv(d.title)},${escapeCsv(d.value)},${escapeCsv(d.stage)}`).join('\n');
+            return { result: `Exported ${openDeals.length} deals:\n${csv}`, log: { ...queued, status: 'success' } };
+        }
+        return { result: 'Unknown tool', log: { ...queued, status: 'error' } };
+    };
+
+    const detectMcpIntent = (text: string): { toolId: string; args: any } | null => {
+        const lower = text.toLowerCase();
+        if (lower.includes('create') && lower.includes('task')) {
+            const match = text.match(/(?:create|add|new)\s+(?:a\s+)?(?:new\s+)?task\s+(.*)/i);
+            const title = match?.[1]?.trim() || 'Follow up';
+            return { toolId: 'create_task', args: { title } };
+        }
+        if ((lower.includes('complete') || lower.includes('mark done') || lower.includes('finish')) && lower.includes('task')) {
+            const match = text.match(/(?:complete|finish|mark done)\s+(?:the\s+)?(?:a\s+)?task\s+(.*)/i);
+            const keyword = match?.[1]?.trim() || text.replace(/complete|finish|mark done|task/gi, '').trim() || 'task';
+            return { toolId: 'complete_task', args: { title: keyword } };
+        }
+        if (lower.includes('list tasks') || lower.includes('show tasks') || lower.includes('open tasks')) {
+            return { toolId: 'list_tasks', args: {} };
+        }
+        if ((lower.includes('schedule') || lower.includes('book') || lower.includes('set up')) && (lower.includes('meeting') || lower.includes('call'))) {
+            const match = text.match(/(?:schedule|book|set up)\s+(?:a\s+)?(?:meeting|call)(?:\s+(?:about|regarding|to discuss)\s+(.*)|\s+(.*))/i);
+            const title = (match?.[1] || match?.[2])?.trim() || 'Client Sync';
+            return { toolId: 'schedule_meeting', args: { title } };
+        }
+        if (lower.includes('summary') && lower.includes('client')) {
+            return { toolId: 'summarize_client', args: {} };
+        }
+        if (lower.includes('export') && lower.includes('deal')) {
+            return { toolId: 'export_deals', args: {} };
+        }
+        return null;
+    };
+
+    const executeMcp = (toolId: string, args: any, clientContext?: string, invocationSource: 'command' | 'intent' = 'command') => {
+        const { result, log } = runMcpTool(toolId, args, clientContext);
+        setToolCalls(prev => {
+            const next = [log, ...prev.filter(l => l.id !== log.id)];
+            return next.slice(0, TOOL_CALL_LOG_LIMIT);
+        });
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: result, timestamp: Date.now(), type: 'text', toolCalls: [log], clientId: clientContext }]);
+        addToast('success', `MCP ${invocationSource === 'intent' ? 'intent' : 'command'}: ${toolId}`);
+        return true;
+    };
+
+    const handleMcpCommand = (text: string, clientContext?: string) => {
+        const lower = text.toLowerCase().trim();
+        if (!lower.startsWith('/tool') && !lower.startsWith('/mcp')) return false;
+        const parts = text.split(' ').filter(Boolean);
+        const toolId = parts[1];
+        if (!toolId) { addToast('error', 'Specify tool id after /tool'); return true; }
+        let args: any = {};
+        try {
+            const argText = parts.slice(2).join(' ');
+            args = argText ? JSON.parse(argText) : {};
+        } catch {
+            args = { prompt: parts.slice(2).join(' ') };
+        }
+        return executeMcp(toolId, args, clientContext);
+    };
+
     const submitMessage = async () => {
         if (!input.trim() || isLoading) return;
 
@@ -1092,6 +1264,17 @@ export const App: React.FC = () => {
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: input, timestamp: Date.now(), type: 'text', clientId: targetClientId }]);
         const currentInput = input;
         setInput('');
+
+        if (handleMcpCommand(currentInput, targetClientId)) {
+            return;
+        }
+
+        const detectedIntent = detectMcpIntent(currentInput);
+        if (detectedIntent) {
+            executeMcp(detectedIntent.toolId, detectedIntent.args, targetClientId, 'intent');
+            return;
+        }
+
         setIsLoading(true);
 
         let contextData = "";
@@ -1449,7 +1632,8 @@ If the answer is not in the list above, state that you do not have that informat
     const activeClient = getSelectedCompany();
 
     return (
-        <div className={`flex h-screen w-full transition-colors duration-1000 bg-gradient-to-br ${getViewMood()} ${isDarkMode ? 'text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+        <div className={`relative flex h-screen w-full overflow-hidden transition-colors duration-1000 bg-gradient-to-br ${getViewMood()} ${isDarkMode ? 'text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+            <div className="neuro-grid-overlay"></div>
             <AnimatePresence mode="wait">
                 {!currentUser && (
                     <motion.div
@@ -1708,6 +1892,24 @@ If the answer is not in the list above, state that you do not have that informat
                                 {!isPTTActive && <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-bold text-slate-500 bg-slate-800 border border-white/10 rounded-md">ALT</kbd>}
                             </div>
                         </div>
+                        <div className="hidden xl:flex items-center gap-2">
+                            <div className="glass-chip">
+                                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                                {licenseStatus === 'valid' ? 'License Active' : `License: ${licenseStatus}`}
+                            </div>
+                            <div className="glass-chip">
+                                <Activity className={`w-3 h-3 ${isFocusMode ? 'text-orange-400' : 'text-cyan-400'}`} />
+                                {isFocusMode ? 'Focus Mode' : 'Full UI'}
+                            </div>
+                            <div className="glass-chip">
+                                {isVoiceMode ? <Mic className="w-3 h-3 text-cyan-400" /> : <MicOff className="w-3 h-3 text-slate-500" />}
+                                {isVoiceMode ? 'Voice Ready' : 'Voice Off'}
+                            </div>
+                            <div className="glass-chip" title="Model Context Protocol tools ready for natural requests (e.g. 'create a task for tomorrow')">
+                                <Sparkles className="w-3 h-3 text-purple-300" />
+                                MCP Connected · Just ask
+                            </div>
+                        </div>
                         <div className="hidden lg:flex items-center gap-4 border-l border-white/5 pl-4 ml-4">
                             <div className="flex items-center gap-2 px-3 py-1 bg-cyan-500/5 border border-cyan-500/20 rounded-full">
                                 <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full status-pulse"></div>
@@ -1720,7 +1922,25 @@ If the answer is not in the list above, state that you do not have that informat
                         </div>
                     </div>
 
-                    <div className="flex gap-4 items-center">
+                    <div className="flex gap-3 items-center">
+                        <div className="hidden md:flex items-center gap-2">
+                            <button onClick={() => setIsFocusMode(!isFocusMode)} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                                <Target className="w-4 h-4" />
+                                {isFocusMode ? 'Exit Focus' : 'Focus'}
+                            </button>
+                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
+                                {isDarkMode ? 'Light' : 'Dark'}
+                            </button>
+                            <button onClick={() => setIsCommandPaletteOpen(true)} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                                <Sparkles className="w-4 h-4 text-cyan-400" />
+                                Command
+                            </button>
+                            <button onClick={() => setIsQuickActionOpen(!isQuickActionOpen)} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                                <PlusCircle className="w-4 h-4 text-orange-400" />
+                                Quick Add
+                            </button>
+                        </div>
                         <div className="relative">
                             <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="relative p-2 text-slate-400 hover:text-white transition-colors">
                                 <Bell className="w-5 h-5" />
@@ -1784,6 +2004,35 @@ If the answer is not in the list above, state that you do not have that informat
                     </div>
                 </header>
 
+                <div className="px-8 pt-3 pb-2 border-b border-white/5 hidden md:flex items-center gap-2 bg-gradient-to-r from-slate-900/40 to-slate-800/20 backdrop-blur-md">
+                    {[
+                        { label: 'Home', view: 'home' },
+                        { label: 'Pipeline', view: 'pipeline' },
+                        { label: 'Tasks', view: 'tasks' },
+                        { label: 'Calendar', view: 'calendar' },
+                        { label: 'Clients', view: 'clients' },
+                        { label: 'Meetings', view: 'meetings' }
+                    ].map(item => (
+                        <button
+                            key={item.view}
+                            onClick={() => setView(item.view as any)}
+                            className={`glass-chip hover:border-cyan-500/50 transition-all ${view === item.view ? 'text-orange-300 border-orange-500/40' : ''}`}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
+                    <div className="flex items-center gap-2 ml-auto">
+                        <div className="glass-chip">
+                            <Clock className="w-3 h-3 text-amber-300" />
+                            {nextMeeting ? `Next: ${new Date(nextMeeting.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'No upcoming meeting'}
+                        </div>
+                        <div className="glass-chip">
+                            <Sparkles className="w-3 h-3 text-cyan-300" />
+                            Command: Ctrl + K
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex-1 overflow-y-auto p-6 scroll-smooth relative">
                     <Suspense fallback={<div className="flex items-center justify-center h-full"><i className="fas fa-spinner fa-spin text-cyan-400 text-2xl"></i></div>}>
                         <AnimatePresence mode="wait">
@@ -1845,10 +2094,13 @@ If the answer is not in the list above, state that you do not have that informat
                                                 tasks={tasks}
                                                 users={users}
                                                 auditLogs={auditLogs}
+                                                meetings={meetings}
+                                                nextMeeting={nextMeeting}
                                                 setView={(v: any) => setView(v)}
                                                 moveTask={(id: string, stage: any) => handleMoveTask(id, stage)}
                                                 scratchpad={scratchpad}
                                                 setScratchpad={setScratchpad}
+                                                scratchpadSavedAt={scratchpadSavedAt}
                                             />
                                         )}
 

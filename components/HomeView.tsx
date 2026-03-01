@@ -1,7 +1,7 @@
 import SalesLeaderboard from './SalesLeaderboard';
-import { Company, Contract, Deal, Task, User, AuditLog } from '../types';
+import { Company, Contract, Deal, Task, User, AuditLog, Meeting } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, FileText, CheckCircle, Zap, ShieldCheck, Activity } from 'lucide-react';
+import { TrendingUp, FileText, CheckCircle, Zap, ShieldCheck, Activity, Users, Video, Calendar as CalendarIcon, ArrowUpRight, Clock } from 'lucide-react';
 
 interface HomeViewProps {
     contracts: Contract[];
@@ -9,10 +9,13 @@ interface HomeViewProps {
     tasks: Task[];
     users: User[];
     auditLogs: AuditLog[];
+    meetings: Meeting[];
+    nextMeeting?: Meeting | null;
     setView: (view: string) => void;
     moveTask: (taskId: string, status: Task['status']) => void;
     scratchpad: string;
     setScratchpad: (val: string) => void;
+    scratchpadSavedAt?: number | null;
 }
 
 const DashboardCard = ({ children, colorClass }: { children: React.ReactNode, colorClass: string }) => (
@@ -47,10 +50,13 @@ const NeuralProgressBar = ({ label, value, target, color }: { label: string, val
 };
 
 const HomeView: React.FC<HomeViewProps> = ({
-    contracts, deals, tasks, users, auditLogs, setView, moveTask, scratchpad, setScratchpad
+    contracts, deals, tasks, users, auditLogs, meetings, nextMeeting, setView, moveTask, scratchpad, setScratchpad, scratchpadSavedAt
 }) => {
+    const URGENT_THRESHOLD_HOURS = 24;
     const activeARR = contracts.filter(c => c.status === 'active').reduce((sum, c) => sum + c.totalValue, 0);
+    const activeClients = new Set(contracts.filter(c => c.status === 'active').map(c => c.companyId)).size;
     const activeTasks = tasks.filter(t => t.status !== 'done').length;
+    const openDeals = deals.filter(d => !d.stage.includes('closed'));
 
     return (
         <div className="space-y-10 pb-20">
@@ -68,6 +74,84 @@ const HomeView: React.FC<HomeViewProps> = ({
                         <span className="text-[8px] text-slate-500 font-bold uppercase mt-0.5">Neuro-Encrypted Channel</span>
                     </div>
                     <div className="ml-2 w-1.5 h-1.5 bg-green-500 rounded-full status-pulse"></div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 glass-card rounded-2xl border border-cyan-500/20 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-300">
+                        <Users className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Active Clients</div>
+                        <div className="text-xl font-black text-white">{activeClients}</div>
+                    </div>
+                </div>
+                <div className="p-4 glass-card rounded-2xl border border-orange-500/20 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-300">
+                        <TrendingUp className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Open Deals</div>
+                        <div className="text-xl font-black text-white">{openDeals.length}</div>
+                    </div>
+                </div>
+                <div className="p-4 glass-card rounded-2xl border border-emerald-500/20 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-300">
+                        <CheckCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Tasks In Motion</div>
+                        <div className="text-xl font-black text-white">{activeTasks}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="p-6 glass-card rounded-[2rem] border border-white/10 bg-gradient-to-r from-slate-900/70 to-slate-800/40 shadow-2xl relative overflow-hidden">
+                    <div className="absolute -right-10 -top-10 w-44 h-44 bg-cyan-500/10 rounded-full blur-3xl"></div>
+                    <div className="flex items-center justify-between mb-4 relative z-10">
+                        <div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Next Meeting</div>
+                            <div className="text-xl font-black text-white leading-tight">{nextMeeting ? nextMeeting.title : 'No upcoming meeting'}</div>
+                            <div className="text-xs text-slate-400 mt-1">
+                                {nextMeeting ? `${new Date(nextMeeting.date).toLocaleDateString()} • ${new Date(nextMeeting.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Schedule your next sync'}
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <button onClick={() => setView('calendar')} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                                <CalendarIcon className="w-4 h-4 text-cyan-300" />
+                                Open Calendar
+                            </button>
+                            <button onClick={() => setView('meetings')} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                                <Video className="w-4 h-4 text-emerald-300" />
+                                Join Meeting Room
+                            </button>
+                        </div>
+                    </div>
+                    <div className="mt-4 flex items-center gap-4 text-xs text-slate-400 relative z-10">
+                        <Clock className="w-4 h-4 text-amber-300" />
+                        <span>{nextMeeting ? 'Prep assets and agenda before going live.' : 'Keep the pod aligned by scheduling today.'}</span>
+                    </div>
+                </div>
+
+                <div className="p-6 glass-card rounded-[2rem] border border-white/10 bg-gradient-to-r from-orange-900/40 to-slate-900/40 shadow-2xl relative overflow-hidden">
+                    <div className="absolute -left-10 -top-10 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl"></div>
+                    <div className="flex items-center justify-between mb-4 relative z-10">
+                        <div>
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Pipeline Heat</div>
+                            <div className="text-xl font-black text-white leading-tight">${openDeals.reduce((sum, d) => sum + d.value, 0).toLocaleString()} in motion</div>
+                            <div className="text-xs text-slate-400 mt-1">Avg prob: {openDeals.length ? Math.round(openDeals.reduce((s, d) => s + (d.probability || 0), 0) / openDeals.length) : 0}%</div>
+                        </div>
+                        <button onClick={() => setView('pipeline')} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                            <ArrowUpRight className="w-4 h-4 text-orange-300" />
+                            View Pipeline
+                        </button>
+                    </div>
+                    <div className="mt-4 flex items-center gap-4 text-xs text-slate-400 relative z-10">
+                        <ShieldCheck className="w-4 h-4 text-emerald-300" />
+                        <span>Protect margin and unblock top three deals this week.</span>
+                    </div>
                 </div>
             </div>
 
@@ -123,18 +207,39 @@ const HomeView: React.FC<HomeViewProps> = ({
                         <Activity className="w-4 h-4 text-orange-500" />
                     </div>
                     <div className="space-y-4 flex-1">
-                        {tasks.filter(t => t.status !== 'done' && (t.priority === 'high' || (t.dueDate && new Date(t.dueDate) < new Date(Date.now() + 86400000 * 3)))).slice(0, 4).map(t => (
-                            <div key={t.id} className="p-4 bg-slate-800/40 rounded-2xl border border-white/5 flex justify-between items-center group hover:bg-white/5 transition-all">
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-2 h-2 rounded-full ${t.priority === 'high' ? 'bg-red-500 status-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-yellow-500'}`}></div>
-                                    <div>
-                                        <div className="font-black text-[11px] text-slate-200 uppercase tracking-tight">{t.title}</div>
-                                        <div className="text-[9px] font-bold text-slate-500 mt-0.5">{t.dueDate ? `DEADLINE: ${t.dueDate}` : 'NO DEADLINE'}</div>
+                        {tasks.filter(t => t.status !== 'done' && (t.priority === 'high' || (t.dueDate && new Date(t.dueDate) < new Date(Date.now() + 86400000 * 3)))).slice(0, 4).map(t => {
+                            const dueDate = t.dueDate ? new Date(t.dueDate) : null;
+                            const hoursRemaining = dueDate ? Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60)) : null;
+                            let urgencyText = 'No due date';
+                            let urgencyTone = 'text-slate-300 bg-slate-700/50 border-slate-600/50';
+                            if (hoursRemaining !== null) {
+                                if (hoursRemaining < 0) {
+                                    urgencyText = `${-hoursRemaining}h overdue`;
+                                    urgencyTone = 'text-red-300 bg-red-500/10 border-red-400/30';
+                                } else if (hoursRemaining <= URGENT_THRESHOLD_HOURS) {
+                                    urgencyText = hoursRemaining < 1 ? '<1h left' : `${hoursRemaining}h left`;
+                                    urgencyTone = 'text-amber-300 bg-amber-500/10 border-amber-400/30';
+                                } else {
+                                    urgencyText = `${Math.max(1, Math.ceil(hoursRemaining / 24))}d left`;
+                                    urgencyTone = 'text-cyan-300 bg-cyan-500/10 border-cyan-400/30';
+                                }
+                            }
+                            return (
+                                <div key={t.id} className="p-4 bg-slate-800/40 rounded-2xl border border-white/5 flex justify-between items-center group hover:bg-white/5 transition-all">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-2 h-2 rounded-full ${t.priority === 'high' ? 'bg-red-500 status-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-yellow-500'}`}></div>
+                                        <div>
+                                            <div className="font-black text-[11px] text-slate-200 uppercase tracking-tight flex items-center gap-2">
+                                                {t.title}
+                                                <span className={`px-2 py-1 text-[9px] font-black uppercase rounded-full border ${urgencyTone}`} title={`Urgency: ${urgencyText}`} aria-label={`Urgency: ${urgencyText}`}>{urgencyText}</span>
+                                            </div>
+                                            <div className="text-[9px] font-bold text-slate-500 mt-0.5">{t.dueDate ? `DEADLINE: ${t.dueDate}` : 'NO DEADLINE'}</div>
+                                        </div>
                                     </div>
+                                    <button onClick={() => moveTask(t.id, 'done')} className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-slate-500 hover:border-green-500 hover:text-green-400 hover:bg-green-500/10 transition-all"><i className="fas fa-check text-xs"></i></button>
                                 </div>
-                                <button onClick={() => moveTask(t.id, 'done')} className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-slate-500 hover:border-green-500 hover:text-green-400 hover:bg-green-500/10 transition-all"><i className="fas fa-check text-xs"></i></button>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                     <button onClick={() => setView('tasks')} className="mt-8 w-full py-3 bg-white/5 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-white transition-all tracking-widest">Access All Arrays</button>
                 </motion.div>
@@ -179,6 +284,10 @@ const HomeView: React.FC<HomeViewProps> = ({
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="font-black text-[10px] uppercase text-slate-500 tracking-widest">Sub-conscious Cache</h3>
                             <button onClick={() => setScratchpad('')} className="text-[9px] text-slate-600 hover:text-white uppercase font-black tracking-widest transition-colors">WIPE</button>
+                        </div>
+                        <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-3 flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-400 status-pulse"></div>
+                            Autosave {scratchpadSavedAt ? `@ ${new Date(scratchpadSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'not yet saved'}
                         </div>
                         <textarea
                             className="w-full bg-slate-800/30 rounded-2xl border border-white/5 p-6 text-xs font-mono text-slate-400 h-64 focus:outline-none focus:border-purple-500/50 resize-none transition-all placeholder-slate-700"

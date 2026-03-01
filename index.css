@@ -46,6 +46,53 @@ body {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
 }
 
+.glass-button {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 10px 14px;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 150ms ease;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.glass-button:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  color: #a5f3fc;
+  transform: translateY(-1px);
+}
+
+.glass-chip {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+
+.neuro-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0),
+    linear-gradient(135deg, rgba(6, 182, 212, 0.04), transparent 40%),
+    linear-gradient(45deg, rgba(249, 115, 22, 0.05), transparent 40%);
+  background-size: 60px 60px, 100% 100%, 100% 100%;
+  pointer-events: none;
+  opacity: 0.45;
+  mix-blend-mode: screen;
+}
+
 .glass-nav {
   background: rgba(15, 23, 42, 0.8);
   backdrop-filter: blur(24px);
@@ -73,6 +120,7 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  font-weight: 900;
 }
 
 /* Form Polish with Neon Focus Rings */
