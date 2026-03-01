@@ -422,6 +422,10 @@ export const App: React.FC = () => {
 
     // NEW IMPROVEMENTS STATE
     const [scratchpad, setScratchpad] = useState(localStorage.getItem('neurolynx_scratchpad') || '');
+    const [scratchpadSavedAt, setScratchpadSavedAt] = useState<number | null>(() => {
+        const savedTs = localStorage.getItem('neurolynx_scratchpad_ts');
+        return savedTs ? parseInt(savedTs, 10) : null;
+    });
     const [isFocusMode, setIsFocusMode] = useState(false);
     const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
     const [recentItems, setRecentItems] = useState<{ label: string, view: string, timestamp: number }[]>([]);
@@ -790,8 +794,22 @@ export const App: React.FC = () => {
 
     // Scratchpad Persistence
     useEffect(() => {
-        localStorage.setItem('neurolynx_scratchpad', scratchpad);
+        const timer = setTimeout(() => {
+            const ts = Date.now();
+            localStorage.setItem('neurolynx_scratchpad', scratchpad);
+            localStorage.setItem('neurolynx_scratchpad_ts', ts.toString());
+            setScratchpadSavedAt(ts);
+        }, 400);
+        return () => clearTimeout(timer);
     }, [scratchpad]);
+
+    const nextMeeting = useMemo(() => {
+        const upcoming = meetings
+            .map(m => ({ ...m, dateObj: new Date(m.date) }))
+            .filter(m => m.dateObj.getTime() >= Date.now())
+            .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+        return upcoming[0] || null;
+    }, [meetings]);
 
     // Command Palette Logic
     const handleCommand = (cmd: string) => {
@@ -1449,7 +1467,8 @@ If the answer is not in the list above, state that you do not have that informat
     const activeClient = getSelectedCompany();
 
     return (
-        <div className={`flex h-screen w-full transition-colors duration-1000 bg-gradient-to-br ${getViewMood()} ${isDarkMode ? 'text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+        <div className={`relative flex h-screen w-full overflow-hidden transition-colors duration-1000 bg-gradient-to-br ${getViewMood()} ${isDarkMode ? 'text-slate-200' : 'bg-slate-50 text-slate-800'}`}>
+            <div className="neuro-grid-overlay"></div>
             <AnimatePresence mode="wait">
                 {!currentUser && (
                     <motion.div
@@ -1708,6 +1727,20 @@ If the answer is not in the list above, state that you do not have that informat
                                 {!isPTTActive && <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-bold text-slate-500 bg-slate-800 border border-white/10 rounded-md">ALT</kbd>}
                             </div>
                         </div>
+                        <div className="hidden xl:flex items-center gap-2">
+                            <div className="glass-chip">
+                                <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                                {licenseStatus === 'valid' ? 'License Active' : `License: ${licenseStatus}`}
+                            </div>
+                            <div className="glass-chip">
+                                <Activity className={`w-3 h-3 ${isFocusMode ? 'text-orange-400' : 'text-cyan-400'}`} />
+                                {isFocusMode ? 'Focus Mode' : 'Full UI'}
+                            </div>
+                            <div className="glass-chip">
+                                {isVoiceMode ? <Mic className="w-3 h-3 text-cyan-400" /> : <MicOff className="w-3 h-3 text-slate-500" />}
+                                {isVoiceMode ? 'Voice Ready' : 'Voice Off'}
+                            </div>
+                        </div>
                         <div className="hidden lg:flex items-center gap-4 border-l border-white/5 pl-4 ml-4">
                             <div className="flex items-center gap-2 px-3 py-1 bg-cyan-500/5 border border-cyan-500/20 rounded-full">
                                 <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full status-pulse"></div>
@@ -1720,7 +1753,25 @@ If the answer is not in the list above, state that you do not have that informat
                         </div>
                     </div>
 
-                    <div className="flex gap-4 items-center">
+                    <div className="flex gap-3 items-center">
+                        <div className="hidden md:flex items-center gap-2">
+                            <button onClick={() => setIsFocusMode(!isFocusMode)} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                                <Target className="w-4 h-4" />
+                                {isFocusMode ? 'Exit Focus' : 'Focus'}
+                            </button>
+                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
+                                {isDarkMode ? 'Light' : 'Dark'}
+                            </button>
+                            <button onClick={() => setIsCommandPaletteOpen(true)} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                                <Sparkles className="w-4 h-4 text-cyan-400" />
+                                Command
+                            </button>
+                            <button onClick={() => setIsQuickActionOpen(!isQuickActionOpen)} className="glass-button text-[11px] font-black uppercase tracking-widest">
+                                <PlusCircle className="w-4 h-4 text-orange-400" />
+                                Quick Add
+                            </button>
+                        </div>
                         <div className="relative">
                             <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="relative p-2 text-slate-400 hover:text-white transition-colors">
                                 <Bell className="w-5 h-5" />
@@ -1784,6 +1835,35 @@ If the answer is not in the list above, state that you do not have that informat
                     </div>
                 </header>
 
+                <div className="px-8 pt-3 pb-2 border-b border-white/5 hidden md:flex items-center gap-2 bg-gradient-to-r from-slate-900/40 to-slate-800/20 backdrop-blur-md">
+                    {[
+                        { label: 'Home', view: 'home' },
+                        { label: 'Pipeline', view: 'pipeline' },
+                        { label: 'Tasks', view: 'tasks' },
+                        { label: 'Calendar', view: 'calendar' },
+                        { label: 'Clients', view: 'clients' },
+                        { label: 'Meetings', view: 'meetings' }
+                    ].map(item => (
+                        <button
+                            key={item.view}
+                            onClick={() => setView(item.view as any)}
+                            className={`glass-chip hover:border-cyan-500/50 transition-all ${view === item.view ? 'text-orange-300 border-orange-500/40' : ''}`}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
+                    <div className="flex items-center gap-2 ml-auto">
+                        <div className="glass-chip">
+                            <Clock className="w-3 h-3 text-amber-300" />
+                            {nextMeeting ? `Next: ${new Date(nextMeeting.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'No upcoming meeting'}
+                        </div>
+                        <div className="glass-chip">
+                            <Sparkles className="w-3 h-3 text-cyan-300" />
+                            Command: Ctrl + K
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex-1 overflow-y-auto p-6 scroll-smooth relative">
                     <Suspense fallback={<div className="flex items-center justify-center h-full"><i className="fas fa-spinner fa-spin text-cyan-400 text-2xl"></i></div>}>
                         <AnimatePresence mode="wait">
@@ -1840,16 +1920,18 @@ If the answer is not in the list above, state that you do not have that informat
                                     >
                                         {view === 'home' && (
                                             <HomeView
-                                                contracts={contracts}
-                                                deals={deals}
-                                                tasks={tasks}
-                                                users={users}
-                                                auditLogs={auditLogs}
-                                                setView={(v: any) => setView(v)}
-                                                moveTask={(id: string, stage: any) => handleMoveTask(id, stage)}
-                                                scratchpad={scratchpad}
-                                                setScratchpad={setScratchpad}
-                                            />
+                                            contracts={contracts}
+                                            deals={deals}
+                                            tasks={tasks}
+                                            users={users}
+                                            auditLogs={auditLogs}
+                                            meetings={meetings}
+                                            setView={(v: any) => setView(v)}
+                                            moveTask={(id: string, stage: any) => handleMoveTask(id, stage)}
+                                            scratchpad={scratchpad}
+                                            setScratchpad={setScratchpad}
+                                            scratchpadSavedAt={scratchpadSavedAt}
+                                        />
                                         )}
 
                                         {view === 'workspace' && workspaceMode === 'internal' && (
