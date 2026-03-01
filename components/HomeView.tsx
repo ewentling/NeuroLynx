@@ -51,6 +51,8 @@ const NeuralProgressBar = ({ label, value, target, color }: { label: string, val
 const HomeView: React.FC<HomeViewProps> = ({
     contracts, deals, tasks, users, auditLogs, meetings, setView, moveTask, scratchpad, setScratchpad, scratchpadSavedAt
 }) => {
+    const URGENT_THRESHOLD_HOURS = 24;
+    const OVERDUE_THRESHOLD = 0;
     const activeARR = contracts.filter(c => c.status === 'active').reduce((sum, c) => sum + c.totalValue, 0);
     const activeClients = new Set(contracts.filter(c => c.status === 'active').map(c => c.companyId)).size;
     const activeTasks = tasks.filter(t => t.status !== 'done').length;
@@ -212,17 +214,17 @@ const HomeView: React.FC<HomeViewProps> = ({
                         {tasks.filter(t => t.status !== 'done' && (t.priority === 'high' || (t.dueDate && new Date(t.dueDate) < new Date(Date.now() + 86400000 * 3)))).slice(0, 4).map(t => {
                             const dueDate = t.dueDate ? new Date(t.dueDate) : null;
                             const hoursRemaining = dueDate ? Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60)) : null;
-                            let urgencyLabel = 'No due date';
+                            let urgencyText = 'No due date';
                             let urgencyTone = 'text-slate-300 bg-slate-700/50 border-slate-600/50';
                             if (hoursRemaining !== null) {
-                                if (hoursRemaining < 0) {
-                                    urgencyLabel = `${Math.abs(hoursRemaining)}h overdue`;
+                                if (hoursRemaining < OVERDUE_THRESHOLD) {
+                                    urgencyText = `${Math.abs(hoursRemaining)}h overdue`;
                                     urgencyTone = 'text-red-300 bg-red-500/10 border-red-400/30';
-                                } else if (hoursRemaining <= 24) {
-                                    urgencyLabel = hoursRemaining < 1 ? '<1h left' : `${hoursRemaining}h left`;
+                                } else if (hoursRemaining <= URGENT_THRESHOLD_HOURS) {
+                                    urgencyText = hoursRemaining < 1 ? '<1h left' : `${hoursRemaining}h left`;
                                     urgencyTone = 'text-amber-300 bg-amber-500/10 border-amber-400/30';
                                 } else {
-                                    urgencyLabel = `${Math.max(1, Math.ceil(hoursRemaining / 24))}d left`;
+                                    urgencyText = `${Math.max(1, Math.ceil(hoursRemaining / 24))}d left`;
                                     urgencyTone = 'text-cyan-300 bg-cyan-500/10 border-cyan-400/30';
                                 }
                             }
@@ -233,7 +235,7 @@ const HomeView: React.FC<HomeViewProps> = ({
                                         <div>
                                             <div className="font-black text-[11px] text-slate-200 uppercase tracking-tight flex items-center gap-2">
                                                 {t.title}
-                                                <span className={`px-2 py-1 text-[9px] font-black uppercase rounded-full border ${urgencyTone}`} title={`Urgency: ${urgencyLabel}`} aria-label={`Urgency: ${urgencyLabel}`}>{urgencyLabel}</span>
+                                                <span className={`px-2 py-1 text-[9px] font-black uppercase rounded-full border ${urgencyTone}`} title={`Urgency: ${urgencyText}`} aria-label={`Urgency: ${urgencyText}`}>{urgencyText}</span>
                                             </div>
                                             <div className="text-[9px] font-bold text-slate-500 mt-0.5">{t.dueDate ? `DEADLINE: ${t.dueDate}` : 'NO DEADLINE'}</div>
                                         </div>

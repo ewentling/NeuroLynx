@@ -91,6 +91,8 @@ import MetadataManager from './components/MetadataManager';
 
 configurePdfWorker();
 
+const SCRATCHPAD_AUTOSAVE_DELAY_MS = 400;
+
 const SidebarItem = React.memo(({ active, icon, label, onClick }: { active: boolean, icon: string, label: string, onClick: () => void }) => (
     <button onClick={onClick} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${active ? 'glass-card border-orange-500/30 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
         {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-400 to-orange-600 shadow-[0_0_15px_rgba(249,115,22,0.6)]"></div>}
@@ -421,7 +423,6 @@ export const App: React.FC = () => {
     const { isRecording, startRecording, stopRecording, startFileRecording, stopFileRecording } = useAudio();
 
     // NEW IMPROVEMENTS STATE
-    const SCRATCHPAD_AUTOSAVE_DELAY_MS = 400;
     const [scratchpad, setScratchpad] = useState(localStorage.getItem('neurolynx_scratchpad') || '');
     const [scratchpadSavedAt, setScratchpadSavedAt] = useState<number | null>(() => {
         const savedTs = localStorage.getItem('neurolynx_scratchpad_ts');
@@ -802,7 +803,8 @@ export const App: React.FC = () => {
                 localStorage.setItem('neurolynx_scratchpad_ts', ts.toString());
                 setScratchpadSavedAt(ts);
             } catch (e) {
-                addToast('error', 'Autosave failed. Check storage/quota.');
+                console.error('Autosave failed', e);
+                addToast('error', 'Autosave failed: storage issue. Clear browser data or trim note.');
             }
         }, SCRATCHPAD_AUTOSAVE_DELAY_MS);
         return () => clearTimeout(timer);
