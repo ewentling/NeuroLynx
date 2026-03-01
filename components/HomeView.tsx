@@ -212,12 +212,20 @@ const HomeView: React.FC<HomeViewProps> = ({
                         {tasks.filter(t => t.status !== 'done' && (t.priority === 'high' || (t.dueDate && new Date(t.dueDate) < new Date(Date.now() + 86400000 * 3)))).slice(0, 4).map(t => {
                             const dueDate = t.dueDate ? new Date(t.dueDate) : null;
                             const hoursRemaining = dueDate ? Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60)) : null;
-                            const urgencyLabel = dueDate
-                                ? (hoursRemaining !== null && hoursRemaining <= 24
-                                    ? `${Math.max(1, hoursRemaining)}h left`
-                                    : `${Math.max(1, Math.ceil(hoursRemaining! / 24))}d left`)
-                                : 'No due date';
-                            const urgencyTone = hoursRemaining !== null && hoursRemaining <= 24 ? 'text-amber-300 bg-amber-500/10 border-amber-400/30' : 'text-cyan-300 bg-cyan-500/10 border-cyan-400/30';
+                            let urgencyLabel = 'No due date';
+                            let urgencyTone = 'text-slate-300 bg-slate-700/50 border-slate-600/50';
+                            if (hoursRemaining !== null) {
+                                if (hoursRemaining < 0) {
+                                    urgencyLabel = `${Math.abs(hoursRemaining)}h overdue`;
+                                    urgencyTone = 'text-red-300 bg-red-500/10 border-red-400/30';
+                                } else if (hoursRemaining <= 24) {
+                                    urgencyLabel = hoursRemaining < 1 ? '<1h left' : `${hoursRemaining}h left`;
+                                    urgencyTone = 'text-amber-300 bg-amber-500/10 border-amber-400/30';
+                                } else {
+                                    urgencyLabel = `${Math.max(1, Math.ceil(hoursRemaining / 24))}d left`;
+                                    urgencyTone = 'text-cyan-300 bg-cyan-500/10 border-cyan-400/30';
+                                }
+                            }
                             return (
                                 <div key={t.id} className="p-4 bg-slate-800/40 rounded-2xl border border-white/5 flex justify-between items-center group hover:bg-white/5 transition-all">
                                     <div className="flex items-center gap-4">
@@ -225,7 +233,7 @@ const HomeView: React.FC<HomeViewProps> = ({
                                         <div>
                                             <div className="font-black text-[11px] text-slate-200 uppercase tracking-tight flex items-center gap-2">
                                                 {t.title}
-                                                <span className={`px-2 py-1 text-[9px] font-black uppercase rounded-full border ${urgencyTone}`}>{urgencyLabel}</span>
+                                                <span className={`px-2 py-1 text-[9px] font-black uppercase rounded-full border ${urgencyTone}`} title={`Urgency: ${urgencyLabel}`} aria-label={`Urgency: ${urgencyLabel}`}>{urgencyLabel}</span>
                                             </div>
                                             <div className="text-[9px] font-bold text-slate-500 mt-0.5">{t.dueDate ? `DEADLINE: ${t.dueDate}` : 'NO DEADLINE'}</div>
                                         </div>

@@ -421,6 +421,7 @@ export const App: React.FC = () => {
     const { isRecording, startRecording, stopRecording, startFileRecording, stopFileRecording } = useAudio();
 
     // NEW IMPROVEMENTS STATE
+    const SCRATCHPAD_AUTOSAVE_DELAY_MS = 400;
     const [scratchpad, setScratchpad] = useState(localStorage.getItem('neurolynx_scratchpad') || '');
     const [scratchpadSavedAt, setScratchpadSavedAt] = useState<number | null>(() => {
         const savedTs = localStorage.getItem('neurolynx_scratchpad_ts');
@@ -796,10 +797,14 @@ export const App: React.FC = () => {
     useEffect(() => {
         const timer = setTimeout(() => {
             const ts = Date.now();
-            localStorage.setItem('neurolynx_scratchpad', scratchpad);
-            localStorage.setItem('neurolynx_scratchpad_ts', ts.toString());
-            setScratchpadSavedAt(ts);
-        }, 400);
+            try {
+                localStorage.setItem('neurolynx_scratchpad', scratchpad);
+                localStorage.setItem('neurolynx_scratchpad_ts', ts.toString());
+                setScratchpadSavedAt(ts);
+            } catch (e) {
+                addToast('error', 'Autosave failed. Check storage/quota.');
+            }
+        }, SCRATCHPAD_AUTOSAVE_DELAY_MS);
         return () => clearTimeout(timer);
     }, [scratchpad]);
 
