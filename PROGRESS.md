@@ -26,3 +26,15 @@
 
 ## Final Verification
 - [ ] Confirm all features implemented.
+
+## UI Improvement Plan
+- [ ] Add command center header bar with live status pills and CTA
+- [ ] Expose focus mode and theme toggles as quick header buttons
+- [ ] Add command palette / quick-create button in header
+- [ ] Add quick navigation chips beneath header for key workspaces
+- [ ] Add micro KPI strip on Home for clients/ARR/tasks
+- [ ] Add meeting spotlight CTA on Home with next meeting info
+- [ ] Improve task cards with urgency chips and due countdown
+- [ ] Add scratchpad save indicator and labeling polish
+- [ ] Add background grid / depth overlay styling
+- [ ] Standardize glass buttons for header actions
