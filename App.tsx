@@ -804,7 +804,8 @@ export const App: React.FC = () => {
                 setScratchpadSavedAt(ts);
             } catch (e) {
                 console.error('Autosave failed', e);
-                addToast('error', 'Autosave failed: storage issue. Clear browser data or trim note.');
+                const reason = e instanceof Error ? e.message : 'storage issue';
+                addToast('error', `Autosave failed: ${reason}. Clear browser data or trim note.`);
             }
         }, SCRATCHPAD_AUTOSAVE_DELAY_MS);
         return () => clearTimeout(timer);

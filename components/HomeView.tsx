@@ -217,7 +217,7 @@ const HomeView: React.FC<HomeViewProps> = ({
                             let urgencyText = 'No due date';
                             let urgencyTone = 'text-slate-300 bg-slate-700/50 border-slate-600/50';
                             if (hoursRemaining !== null) {
-                                if (hoursRemaining < OVERDUE_THRESHOLD) {
+                                if (hoursRemaining <= OVERDUE_THRESHOLD) {
                                     urgencyText = `${Math.abs(hoursRemaining)}h overdue`;
                                     urgencyTone = 'text-red-300 bg-red-500/10 border-red-400/30';
                                 } else if (hoursRemaining <= URGENT_THRESHOLD_HOURS) {
