@@ -805,7 +805,7 @@ export const App: React.FC = () => {
             } catch (e) {
                 console.error('Autosave failed', e);
                 const reason = e instanceof Error ? e.message : 'storage issue';
-                addToast('error', `Autosave failed: ${reason}. Clear browser data or trim note.`);
+                addToast('error', `Autosave failed: ${reason}. Reduce note size and retry.`);
             }
         }, SCRATCHPAD_AUTOSAVE_DELAY_MS);
         return () => clearTimeout(timer);

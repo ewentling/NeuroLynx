@@ -217,8 +217,8 @@ const HomeView: React.FC<HomeViewProps> = ({
                             let urgencyText = 'No due date';
                             let urgencyTone = 'text-slate-300 bg-slate-700/50 border-slate-600/50';
                             if (hoursRemaining !== null) {
-                                if (hoursRemaining <= OVERDUE_THRESHOLD) {
-                                    urgencyText = `${Math.abs(hoursRemaining)}h overdue`;
+                                if (hoursRemaining < OVERDUE_THRESHOLD) {
+                                    urgencyText = `${-hoursRemaining}h overdue`;
                                     urgencyTone = 'text-red-300 bg-red-500/10 border-red-400/30';
                                 } else if (hoursRemaining <= URGENT_THRESHOLD_HOURS) {
                                     urgencyText = hoursRemaining < 1 ? '<1h left' : `${hoursRemaining}h left`;
@@ -291,7 +291,7 @@ const HomeView: React.FC<HomeViewProps> = ({
                         </div>
                         <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-3 flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-emerald-400 status-pulse"></div>
-                            Autosave {scratchpadSavedAt ? `@ ${new Date(scratchpadSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'never saved'}
+                            Autosave {scratchpadSavedAt ? `@ ${new Date(scratchpadSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'not yet saved'}
                         </div>
                         <textarea
                             className="w-full bg-slate-800/30 rounded-2xl border border-white/5 p-6 text-xs font-mono text-slate-400 h-64 focus:outline-none focus:border-purple-500/50 resize-none transition-all placeholder-slate-700"
