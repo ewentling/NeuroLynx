@@ -92,6 +92,12 @@ import MetadataManager from './components/MetadataManager';
 configurePdfWorker();
 
 const SCRATCHPAD_AUTOSAVE_DELAY_MS = 400;
+const MCP_TOOLS = [
+    { id: 'create_task', name: 'Task Creator', description: 'Add a high-priority task with optional due date' },
+    { id: 'schedule_meeting', name: 'Meeting Scheduler', description: 'Book a meeting and add it to the calendar' },
+    { id: 'summarize_client', name: 'Client Summarizer', description: 'Summarize client data and last activities' },
+    { id: 'export_deals', name: 'Deal Export', description: 'Generate a quick CSV summary of open deals' },
+];
 
 const SidebarItem = React.memo(({ active, icon, label, onClick }: { active: boolean, icon: string, label: string, onClick: () => void }) => (
     <button onClick={onClick} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${active ? 'glass-card border-orange-500/30 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
@@ -530,6 +536,7 @@ export const App: React.FC = () => {
 
     const offerings = MOCK_PRODUCTS;
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [toolCalls, setToolCalls] = useState<ToolCallLog[]>([]);
 
     useEffect(() => {
         const checkLicense = async () => {
@@ -1107,6 +1114,66 @@ export const App: React.FC = () => {
 
     const saveClient = () => { if (!modalData.companyId) return addToast('error', 'Company Required'); const newClient: Client = { id: modalData.id || Date.now().toString(), companyId: modalData.companyId, name: modalData.name, role: modalData.role, email: modalData.email, phone: modalData.phone, status: modalData.status || 'active', avatarColor: 'bg-blue-500', notes: '', lastContactDate: new Date().toISOString(), nextActionDate: '' }; setClients(prev => { if (modalData.id) return prev.map(c => c.id === modalData.id ? newClient : c); return [...prev, newClient]; }); setActiveModal(null); addToast('success', 'Contact Saved'); triggerAutomation('CLIENT_ADDED', newClient); };
 
+    const runMcpTool = (toolId: string, payload: any, clientContext?: string): { result: string, log: ToolCallLog } => {
+        if (toolId === 'create_task') {
+            const title = payload?.title || 'Follow up';
+            const priority = payload?.priority || 'high';
+            const dueDate = payload?.dueDate || new Date(Date.now() + 86400000).toISOString().split('T')[0];
+            const newTask: Task = { id: `task-${Date.now()}`, title, description: payload?.description || '', status: 'todo', priority, dueDate, clientId: clientContext };
+            setTasks(prev => [newTask, ...prev]);
+            return { result: `Task created: "${title}" due ${dueDate}`, log: { id: `log-${Date.now()}`, toolName: 'create_task', args: payload, timestamp: Date.now() } };
+        }
+        if (toolId === 'schedule_meeting') {
+            const title = payload?.title || 'Client Sync';
+            const start = payload?.date ? new Date(payload.date).getTime() : Date.now() + 3600000;
+            const newMeeting: Meeting = {
+                id: `meet-${Date.now()}`,
+                title,
+                date: start,
+                duration: payload?.duration || 30,
+                summary: payload?.agenda || 'Quick sync',
+                transcript: '',
+                status: 'scheduled',
+                attendees: payload?.attendees || [],
+                clientId: clientContext,
+                link: payload?.link || 'https://meet.neurolynx.ai/room',
+                type: 'video'
+            };
+            setMeetings(prev => [newMeeting, ...prev]);
+            return { result: `Meeting scheduled: ${title} on ${new Date(start).toLocaleString()}`, log: { id: `log-${Date.now()}`, toolName: 'schedule_meeting', args: payload, timestamp: Date.now() } };
+        }
+        if (toolId === 'summarize_client') {
+            const comps = companies.map(c => `${c.name} (${c.status})`).join(', ');
+            return { result: `Clients summary: ${comps}`, log: { id: `log-${Date.now()}`, toolName: 'summarize_client', args: payload, timestamp: Date.now() } };
+        }
+        if (toolId === 'export_deals') {
+            const openDeals = deals.filter(d => d.stage !== 'closed_won' && d.stage !== 'closed_lost');
+            const csv = openDeals.map(d => `${d.title},${d.value},${d.stage}`).join('\n');
+            return { result: `Exported ${openDeals.length} deals:\n${csv}`, log: { id: `log-${Date.now()}`, toolName: 'export_deals', args: payload, timestamp: Date.now() } };
+        }
+        return { result: 'Unknown tool', log: { id: `log-${Date.now()}`, toolName: toolId, args: payload, timestamp: Date.now() } };
+    };
+
+    const handleMcpCommand = (text: string, clientContext?: string) => {
+        const lower = text.toLowerCase().trim();
+        if (!lower.startsWith('/tool') && !lower.startsWith('/mcp')) return false;
+        const parts = text.split(' ').filter(Boolean);
+        const toolId = parts[1];
+        if (!toolId) { addToast('error', 'Specify tool id after /tool'); return true; }
+        let args: any = {};
+        try {
+            const argText = parts.slice(2).join(' ');
+            args = argText ? JSON.parse(argText) : {};
+        } catch {
+            args = { prompt: parts.slice(2).join(' ') };
+        }
+        const { result, log } = runMcpTool(toolId, args, clientContext);
+        setToolCalls(prev => [log, ...prev]);
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: result, timestamp: Date.now(), type: 'text', toolCalls: [log], clientId: clientContext }]);
+        addToast('success', `MCP executed: ${toolId}`);
+        return true;
+    };
+
     const submitMessage = async () => {
         if (!input.trim() || isLoading) return;
 
@@ -1118,6 +1185,11 @@ export const App: React.FC = () => {
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: input, timestamp: Date.now(), type: 'text', clientId: targetClientId }]);
         const currentInput = input;
         setInput('');
+
+        if (handleMcpCommand(currentInput, targetClientId)) {
+            return;
+        }
+
         setIsLoading(true);
 
         let contextData = "";
@@ -1747,6 +1819,10 @@ If the answer is not in the list above, state that you do not have that informat
                             <div className="glass-chip">
                                 {isVoiceMode ? <Mic className="w-3 h-3 text-cyan-400" /> : <MicOff className="w-3 h-3 text-slate-500" />}
                                 {isVoiceMode ? 'Voice Ready' : 'Voice Off'}
+                            </div>
+                            <div className="glass-chip" title="Model Context Protocol tools ready">
+                                <Sparkles className="w-3 h-3 text-purple-300" />
+                                MCP Connected
                             </div>
                         </div>
                         <div className="hidden lg:flex items-center gap-4 border-l border-white/5 pl-4 ml-4">
