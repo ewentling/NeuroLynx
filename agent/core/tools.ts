@@ -272,6 +272,269 @@ export const localTools = [
             },
             required: ['competitorName']
         }
+    },
+
+    // ============ ADDITIONAL BUSINESS SKILLS ============
+
+    // 16. Create Support Ticket
+    {
+        name: 'create_support_ticket',
+        description: 'Creates a support ticket for tracking client issues, bugs, or feature requests.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Title of the support ticket.' },
+                description: { type: 'string', description: 'Detailed description of the issue.' },
+                companyId: { type: 'string', description: 'Company ID for the ticket.' },
+                priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Priority level of the ticket.' },
+                category: { type: 'string', enum: ['bug', 'feature_request', 'access', 'infrastructure', 'consulting', 'other'], description: 'Category of the issue.' },
+                assignedTo: { type: 'string', description: 'User ID to assign the ticket to.' }
+            },
+            required: ['title', 'description', 'companyId', 'priority', 'category']
+        }
+    },
+
+    // 17. Update Deal Stage
+    {
+        name: 'update_deal_stage',
+        description: 'Updates the stage of a deal in the sales pipeline.',
+        parameters: {
+            type: 'object',
+            properties: {
+                dealId: { type: 'string', description: 'ID of the deal to update.' },
+                newStage: { type: 'string', enum: ['qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost'], description: 'New stage for the deal.' },
+                probability: { type: 'number', description: 'Updated probability percentage (0-100).' },
+                notes: { type: 'string', description: 'Notes about the stage change.' },
+                lossReason: { type: 'string', description: 'Reason if moving to closed_lost.' }
+            },
+            required: ['dealId', 'newStage']
+        }
+    },
+
+    // 18. Manage Project Milestone
+    {
+        name: 'manage_project_milestone',
+        description: 'Creates, updates, or marks project milestones as complete.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'update', 'complete', 'list'], description: 'Action to perform on milestone.' },
+                projectId: { type: 'string', description: 'Project ID for the milestone.' },
+                milestoneId: { type: 'string', description: 'Milestone ID for update/complete actions.' },
+                title: { type: 'string', description: 'Title of the milestone (for create).' },
+                phase: { type: 'string', enum: ['discovery', 'design', 'build', 'test', 'deploy', 'completed'], description: 'Project phase for the milestone.' },
+                dueDate: { type: 'string', description: 'Due date in ISO format (YYYY-MM-DD).' }
+            },
+            required: ['action', 'projectId']
+        }
+    },
+
+    // 19. Create Expense
+    {
+        name: 'create_expense',
+        description: 'Logs a business expense for tracking and reimbursement.',
+        parameters: {
+            type: 'object',
+            properties: {
+                description: { type: 'string', description: 'Description of the expense.' },
+                amount: { type: 'number', description: 'Expense amount in dollars.' },
+                category: { type: 'string', enum: ['software', 'travel', 'equipment', 'training', 'hosting', 'subcontractor', 'office', 'other'], description: 'Expense category.' },
+                date: { type: 'string', description: 'Date of expense in ISO format (YYYY-MM-DD).' },
+                companyId: { type: 'string', description: 'Client/company ID if billable.' },
+                projectId: { type: 'string', description: 'Project ID if applicable.' },
+                hasReceipt: { type: 'boolean', description: 'Whether a receipt is attached.' }
+            },
+            required: ['description', 'amount', 'category', 'date']
+        }
+    },
+
+    // 20. Search Knowledge Base
+    {
+        name: 'search_knowledge_base',
+        description: 'Searches the internal knowledge base and wiki for information.',
+        parameters: {
+            type: 'object',
+            properties: {
+                query: { type: 'string', description: 'Search query text.' },
+                category: { type: 'string', enum: ['sop', 'technical', 'client_specific', 'internal', 'all'], description: 'Filter by wiki category.' },
+                companyId: { type: 'string', description: 'Filter to client-specific documentation.' }
+            },
+            required: ['query']
+        }
+    },
+
+    // 21. Calculate CSAT Score
+    {
+        name: 'calculate_csat_score',
+        description: 'Calculates customer satisfaction scores and trends.',
+        parameters: {
+            type: 'object',
+            properties: {
+                companyId: { type: 'string', description: 'Company ID to calculate CSAT for.' },
+                timeframe: { type: 'string', enum: ['30days', '90days', '1year', 'all'], description: 'Time period for CSAT calculation.' },
+                projectId: { type: 'string', description: 'Filter by specific project.' },
+                includeTrend: { type: 'boolean', description: 'Include trend analysis over time.' }
+            },
+            required: ['companyId']
+        }
+    },
+
+    // 22. Manage Contract
+    {
+        name: 'manage_contract',
+        description: 'Creates or updates contracts with clients.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'update', 'activate', 'terminate'], description: 'Action to perform.' },
+                contractId: { type: 'string', description: 'Contract ID for update/activate/terminate.' },
+                companyId: { type: 'string', description: 'Company ID for new contract.' },
+                title: { type: 'string', description: 'Contract title.' },
+                items: { type: 'string', description: 'JSON array of contract line items with productId, quantity, unitPrice.' },
+                startDate: { type: 'string', description: 'Contract start date.' },
+                endDate: { type: 'string', description: 'Contract end date.' },
+                paymentTerms: { type: 'string', enum: ['immediate', 'net15', 'net30', 'net60'], description: 'Payment terms.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 23. Track Referral
+    {
+        name: 'track_referral',
+        description: 'Tracks referral leads and their conversion status.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'update_status', 'list'], description: 'Action to perform.' },
+                referralId: { type: 'string', description: 'Referral ID for update.' },
+                referrerName: { type: 'string', description: 'Name of the person who made the referral.' },
+                referrerCompanyId: { type: 'string', description: 'Company ID of the referrer.' },
+                referredCompanyId: { type: 'string', description: 'Company ID of the referred lead.' },
+                dealValue: { type: 'number', description: 'Expected deal value.' },
+                status: { type: 'string', enum: ['pending', 'converted', 'lost'], description: 'Referral status.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 24. Update KPI Progress
+    {
+        name: 'update_kpi_progress',
+        description: 'Updates progress on KPI goals and targets.',
+        parameters: {
+            type: 'object',
+            properties: {
+                kpiId: { type: 'string', description: 'KPI goal ID to update.' },
+                action: { type: 'string', enum: ['update', 'list', 'create'], description: 'Action to perform.' },
+                currentValue: { type: 'number', description: 'New current value for the KPI.' },
+                metric: { type: 'string', enum: ['revenue', 'new_clients', 'meetings_held', 'contracts_signed', 'deals_won', 'tickets_resolved'], description: 'KPI metric type (for create).' },
+                target: { type: 'number', description: 'Target value (for create).' },
+                period: { type: 'string', enum: ['monthly', 'quarterly', 'yearly'], description: 'Tracking period (for create).' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 25. Manage Email Sequence
+    {
+        name: 'manage_email_sequence',
+        description: 'Manages automated email sequences for nurturing leads.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'pause', 'resume', 'list', 'add_step'], description: 'Action to perform.' },
+                sequenceId: { type: 'string', description: 'Sequence ID for update actions.' },
+                name: { type: 'string', description: 'Name of the sequence (for create).' },
+                stepSubject: { type: 'string', description: 'Email subject for new step.' },
+                stepBody: { type: 'string', description: 'Email body for new step.' },
+                delayDays: { type: 'number', description: 'Days to wait before sending this step.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 26. Find Vendor
+    {
+        name: 'find_vendor',
+        description: 'Searches for vendors and subcontractors based on skills and availability.',
+        parameters: {
+            type: 'object',
+            properties: {
+                skills: { type: 'string', description: 'Comma-separated list of required skills.' },
+                maxRate: { type: 'number', description: 'Maximum hourly rate.' },
+                minRating: { type: 'number', description: 'Minimum rating (1-5).' },
+                status: { type: 'string', enum: ['active', 'preferred', 'all'], description: 'Filter by vendor status.' }
+            },
+            required: ['skills']
+        }
+    },
+
+    // 27. Create Feature Request
+    {
+        name: 'create_feature_request',
+        description: 'Logs a feature request from a client for product roadmap.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Title of the feature request.' },
+                description: { type: 'string', description: 'Detailed description of the requested feature.' },
+                companyId: { type: 'string', description: 'Company ID making the request.' },
+                priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Priority of the request.' }
+            },
+            required: ['title', 'description', 'companyId', 'priority']
+        }
+    },
+
+    // 28. Check Compliance Status
+    {
+        name: 'check_compliance_status',
+        description: 'Checks compliance status for various regulatory frameworks.',
+        parameters: {
+            type: 'object',
+            properties: {
+                framework: { type: 'string', enum: ['SOC2', 'HIPAA', 'GDPR', 'ISO27001', 'PCI-DSS', 'NIST', 'all'], description: 'Compliance framework to check.' },
+                statusFilter: { type: 'string', enum: ['compliant', 'in_progress', 'non_compliant', 'all'], description: 'Filter by compliance status.' },
+                includeOverdue: { type: 'boolean', description: 'Include overdue items in results.' }
+            },
+            required: ['framework']
+        }
+    },
+
+    // 29. Manage Partner
+    {
+        name: 'manage_partner',
+        description: 'Manages partner and affiliate records including referral tracking.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'update', 'list', 'record_referral'], description: 'Action to perform.' },
+                partnerId: { type: 'string', description: 'Partner ID for update actions.' },
+                name: { type: 'string', description: 'Partner name (for create).' },
+                type: { type: 'string', enum: ['technology', 'referral', 'reseller', 'implementation'], description: 'Partner type.' },
+                commissionRate: { type: 'number', description: 'Commission percentage.' },
+                contactName: { type: 'string', description: 'Partner contact name.' },
+                contactEmail: { type: 'string', description: 'Partner contact email.' },
+                referralAmount: { type: 'number', description: 'Amount for recording a referral payout.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 30. Calculate Project Budget
+    {
+        name: 'calculate_project_budget',
+        description: 'Calculates project budget, tracks spending, and forecasts remaining budget.',
+        parameters: {
+            type: 'object',
+            properties: {
+                projectId: { type: 'string', description: 'Project ID to analyze.' },
+                includeTimeEntries: { type: 'boolean', description: 'Include time tracking costs in calculation.' },
+                includeExpenses: { type: 'boolean', description: 'Include expense records in calculation.' },
+                forecastCompletion: { type: 'boolean', description: 'Forecast budget at project completion.' }
+            },
+            required: ['projectId']
+        }
     }
 ];
 
@@ -794,6 +1057,573 @@ export async function executeLocalTool(call: any): Promise<any> {
         return { 
             success: true, 
             competitorAnalysis: result 
+        };
+    }
+
+    // ============ ADDITIONAL BUSINESS SKILLS ============
+
+    // 16. Create Support Ticket
+    if (name === 'create_support_ticket') {
+        const slaHours: Record<string, number> = {
+            critical: 4,
+            high: 24,
+            medium: 72,
+            low: 168
+        };
+
+        const ticket = {
+            id: generateId('ticket'),
+            title: args.title,
+            description: args.description,
+            companyId: args.companyId,
+            priority: args.priority,
+            category: args.category,
+            status: 'open',
+            assignedTo: args.assignedTo || null,
+            slaDeadline: new Date(Date.now() + slaHours[args.priority] * 60 * 60 * 1000).toISOString(),
+            createdAt: new Date().toISOString()
+        };
+
+        memoryManager.addMemory(JSON.stringify(ticket), 'support_ticket');
+        return {
+            success: true,
+            message: `Support ticket "${args.title}" created with ${args.priority} priority.`,
+            ticket
+        };
+    }
+
+    // 17. Update Deal Stage
+    if (name === 'update_deal_stage') {
+        const stageProbabilities: Record<string, number> = {
+            qualification: 20,
+            proposal: 40,
+            negotiation: 60,
+            closed_won: 100,
+            closed_lost: 0
+        };
+
+        const dealUpdate = {
+            id: generateId('deal_update'),
+            dealId: args.dealId,
+            previousStage: 'unknown', // Would fetch from DB in production
+            newStage: args.newStage,
+            probability: args.probability ?? stageProbabilities[args.newStage],
+            notes: args.notes || '',
+            lossReason: args.newStage === 'closed_lost' ? args.lossReason : null,
+            updatedAt: new Date().toISOString()
+        };
+
+        memoryManager.addMemory(JSON.stringify(dealUpdate), 'deal_update');
+        return {
+            success: true,
+            message: `Deal ${args.dealId} moved to ${args.newStage} stage.`,
+            update: dealUpdate
+        };
+    }
+
+    // 18. Manage Project Milestone
+    if (name === 'manage_project_milestone') {
+        if (args.action === 'list') {
+            // Return mock milestones for the project
+            const milestones = [
+                { id: 'ms1', title: 'Project Kickoff', phase: 'discovery', completed: true, dueDate: '2026-01-15' },
+                { id: 'ms2', title: 'Requirements Complete', phase: 'discovery', completed: true, dueDate: '2026-02-01' },
+                { id: 'ms3', title: 'Design Approval', phase: 'design', completed: false, dueDate: '2026-02-28' }
+            ];
+            return { success: true, projectId: args.projectId, milestones };
+        }
+
+        if (args.action === 'create') {
+            const milestone = {
+                id: generateId('milestone'),
+                projectId: args.projectId,
+                title: args.title,
+                phase: args.phase || 'build',
+                dueDate: args.dueDate || null,
+                completed: false,
+                createdAt: new Date().toISOString()
+            };
+            memoryManager.addMemory(JSON.stringify(milestone), 'milestone');
+            return { success: true, message: `Milestone "${args.title}" created.`, milestone };
+        }
+
+        if (args.action === 'complete') {
+            return {
+                success: true,
+                message: `Milestone ${args.milestoneId} marked as complete.`,
+                milestoneId: args.milestoneId,
+                completedAt: new Date().toISOString()
+            };
+        }
+
+        if (args.action === 'update') {
+            return {
+                success: true,
+                message: `Milestone ${args.milestoneId} updated.`,
+                milestoneId: args.milestoneId,
+                updates: { title: args.title, phase: args.phase, dueDate: args.dueDate }
+            };
+        }
+
+        return { success: false, error: 'Invalid action specified.' };
+    }
+
+    // 19. Create Expense
+    if (name === 'create_expense') {
+        const expense = {
+            id: generateId('expense'),
+            description: args.description,
+            amount: args.amount,
+            category: args.category,
+            date: args.date,
+            companyId: args.companyId || null,
+            projectId: args.projectId || null,
+            hasReceipt: args.hasReceipt || false,
+            status: 'pending',
+            createdAt: new Date().toISOString()
+        };
+
+        memoryManager.addMemory(JSON.stringify(expense), 'expense');
+        return {
+            success: true,
+            message: `Expense of $${args.amount.toFixed(2)} for "${args.description}" logged.`,
+            expense
+        };
+    }
+
+    // 20. Search Knowledge Base
+    if (name === 'search_knowledge_base') {
+        // Mock knowledge base search results
+        const allArticles = [
+            { id: 'kb1', title: 'Onboarding Process SOP', category: 'sop', snippet: 'Standard process for new client onboarding...', relevance: 0.95 },
+            { id: 'kb2', title: 'API Integration Guide', category: 'technical', snippet: 'Technical documentation for API integrations...', relevance: 0.85 },
+            { id: 'kb3', title: 'Support Escalation Procedures', category: 'internal', snippet: 'Steps for escalating critical support tickets...', relevance: 0.78 }
+        ];
+
+        let results = allArticles;
+        if (args.category && args.category !== 'all') {
+            results = results.filter(a => a.category === args.category);
+        }
+
+        return {
+            success: true,
+            query: args.query,
+            resultCount: results.length,
+            results
+        };
+    }
+
+    // 21. Calculate CSAT Score
+    if (name === 'calculate_csat_score') {
+        // Mock CSAT data
+        const csatData = {
+            companyId: args.companyId,
+            timeframe: args.timeframe || 'all',
+            averageScore: 8.2,
+            responseCount: 45,
+            npsScore: 42,
+            breakdown: {
+                promoters: 28,
+                passives: 12,
+                detractors: 5
+            },
+            trend: args.includeTrend ? {
+                previousPeriod: 7.8,
+                change: '+0.4',
+                direction: 'improving'
+            } : null,
+            topFeedback: [
+                'Great response time on support tickets',
+                'Would like more proactive communication',
+                'Product is reliable and stable'
+            ]
+        };
+
+        return {
+            success: true,
+            csatAnalysis: csatData
+        };
+    }
+
+    // 22. Manage Contract
+    if (name === 'manage_contract') {
+        if (args.action === 'create') {
+            let items: Array<{ productId: string; quantity: number; unitPrice: number }> = [];
+            if (args.items) {
+                try {
+                    items = JSON.parse(args.items);
+                } catch {
+                    return { success: false, error: 'Invalid items JSON format.' };
+                }
+            }
+
+            const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+            const contract = {
+                id: generateId('contract'),
+                companyId: args.companyId,
+                title: args.title,
+                items,
+                totalValue,
+                startDate: args.startDate || formatDate(new Date()),
+                endDate: args.endDate || null,
+                paymentTerms: args.paymentTerms || 'net30',
+                status: 'draft',
+                createdAt: new Date().toISOString()
+            };
+
+            memoryManager.addMemory(JSON.stringify(contract), 'contract');
+            return { success: true, message: `Contract "${args.title}" created.`, contract };
+        }
+
+        if (args.action === 'activate') {
+            return {
+                success: true,
+                message: `Contract ${args.contractId} activated.`,
+                contractId: args.contractId,
+                status: 'active',
+                activatedAt: new Date().toISOString()
+            };
+        }
+
+        if (args.action === 'terminate') {
+            return {
+                success: true,
+                message: `Contract ${args.contractId} terminated.`,
+                contractId: args.contractId,
+                status: 'terminated',
+                terminatedAt: new Date().toISOString()
+            };
+        }
+
+        return { success: false, error: 'Invalid action specified.' };
+    }
+
+    // 23. Track Referral
+    if (name === 'track_referral') {
+        if (args.action === 'list') {
+            const referrals = [
+                { id: 'ref1', referrerName: 'John Smith', referredCompany: 'Acme Corp', status: 'converted', dealValue: 50000 },
+                { id: 'ref2', referrerName: 'Jane Doe', referredCompany: 'Tech Inc', status: 'pending', dealValue: 75000 }
+            ];
+            return { success: true, referrals };
+        }
+
+        if (args.action === 'create') {
+            const referral = {
+                id: generateId('referral'),
+                referrerName: args.referrerName,
+                referrerCompanyId: args.referrerCompanyId || null,
+                referredCompanyId: args.referredCompanyId,
+                dealValue: args.dealValue || 0,
+                status: 'pending',
+                date: formatDate(new Date())
+            };
+
+            memoryManager.addMemory(JSON.stringify(referral), 'referral');
+            return { success: true, message: `Referral from ${args.referrerName} tracked.`, referral };
+        }
+
+        if (args.action === 'update_status') {
+            return {
+                success: true,
+                message: `Referral ${args.referralId} updated to ${args.status}.`,
+                referralId: args.referralId,
+                newStatus: args.status,
+                updatedAt: new Date().toISOString()
+            };
+        }
+
+        return { success: false, error: 'Invalid action specified.' };
+    }
+
+    // 24. Update KPI Progress
+    if (name === 'update_kpi_progress') {
+        if (args.action === 'list') {
+            const kpis = [
+                { id: 'kpi1', label: 'Monthly Revenue', metric: 'revenue', target: 100000, current: 78500, progress: '78.5%' },
+                { id: 'kpi2', label: 'New Clients Q1', metric: 'new_clients', target: 10, current: 7, progress: '70%' },
+                { id: 'kpi3', label: 'Deals Won', metric: 'deals_won', target: 15, current: 12, progress: '80%' }
+            ];
+            return { success: true, kpis };
+        }
+
+        if (args.action === 'create') {
+            const kpi = {
+                id: generateId('kpi'),
+                label: `${args.metric} Goal`,
+                metric: args.metric,
+                target: args.target,
+                current: 0,
+                period: args.period || 'monthly',
+                startDate: formatDate(new Date()),
+                createdAt: new Date().toISOString()
+            };
+
+            memoryManager.addMemory(JSON.stringify(kpi), 'kpi');
+            return { success: true, message: `KPI goal created for ${args.metric}.`, kpi };
+        }
+
+        if (args.action === 'update') {
+            return {
+                success: true,
+                message: `KPI ${args.kpiId} updated to ${args.currentValue}.`,
+                kpiId: args.kpiId,
+                newValue: args.currentValue,
+                updatedAt: new Date().toISOString()
+            };
+        }
+
+        return { success: false, error: 'Invalid action specified.' };
+    }
+
+    // 25. Manage Email Sequence
+    if (name === 'manage_email_sequence') {
+        if (args.action === 'list') {
+            const sequences = [
+                { id: 'seq1', name: 'New Lead Nurture', status: 'active', steps: 5, enrolled: 24, completed: 18 },
+                { id: 'seq2', name: 'Post-Demo Follow-up', status: 'active', steps: 3, enrolled: 12, completed: 8 },
+                { id: 'seq3', name: 'Win-Back Campaign', status: 'paused', steps: 4, enrolled: 15, completed: 5 }
+            ];
+            return { success: true, sequences };
+        }
+
+        if (args.action === 'create') {
+            const sequence = {
+                id: generateId('sequence'),
+                name: args.name,
+                status: 'draft',
+                steps: [],
+                enrolledCount: 0,
+                completedCount: 0,
+                createdAt: new Date().toISOString()
+            };
+
+            memoryManager.addMemory(JSON.stringify(sequence), 'email_sequence');
+            return { success: true, message: `Email sequence "${args.name}" created.`, sequence };
+        }
+
+        if (args.action === 'pause' || args.action === 'resume') {
+            return {
+                success: true,
+                message: `Sequence ${args.sequenceId} ${args.action}d.`,
+                sequenceId: args.sequenceId,
+                newStatus: args.action === 'pause' ? 'paused' : 'active',
+                updatedAt: new Date().toISOString()
+            };
+        }
+
+        if (args.action === 'add_step') {
+            const step = {
+                id: generateId('step'),
+                sequenceId: args.sequenceId,
+                subject: args.stepSubject,
+                body: args.stepBody,
+                delayDays: args.delayDays || 1
+            };
+            return { success: true, message: `Step added to sequence ${args.sequenceId}.`, step };
+        }
+
+        return { success: false, error: 'Invalid action specified.' };
+    }
+
+    // 26. Find Vendor
+    if (name === 'find_vendor') {
+        const requestedSkills = args.skills.split(',').map((s: string) => s.trim().toLowerCase());
+        
+        // Mock vendor data
+        const allVendors = [
+            { id: 'v1', name: 'CloudOps Consulting', skills: ['AWS', 'Azure', 'Terraform', 'Kubernetes'], hourlyRate: 140, rating: 4.5, status: 'preferred' },
+            { id: 'v2', name: 'SecureNet Analysts', skills: ['Penetration Testing', 'SOC 2', 'HIPAA'], hourlyRate: 160, rating: 4.0, status: 'active' },
+            { id: 'v3', name: 'DataFlow Engineers', skills: ['Data Engineering', 'Snowflake', 'dbt', 'Python'], hourlyRate: 130, rating: 3.5, status: 'active' },
+            { id: 'v4', name: 'UX Studio', skills: ['UI/UX', 'Figma', 'User Research'], hourlyRate: 120, rating: 4.8, status: 'active' }
+        ];
+
+        let results = allVendors.filter(v => 
+            requestedSkills.some(skill => 
+                v.skills.some(vs => vs.toLowerCase().includes(skill))
+            )
+        );
+
+        if (args.maxRate) {
+            results = results.filter(v => v.hourlyRate <= args.maxRate);
+        }
+        if (args.minRating) {
+            results = results.filter(v => v.rating >= args.minRating);
+        }
+        if (args.status && args.status !== 'all') {
+            results = results.filter(v => v.status === args.status);
+        }
+
+        return {
+            success: true,
+            searchCriteria: { skills: requestedSkills, maxRate: args.maxRate, minRating: args.minRating },
+            resultCount: results.length,
+            vendors: results
+        };
+    }
+
+    // 27. Create Feature Request
+    if (name === 'create_feature_request') {
+        const featureRequest = {
+            id: generateId('feature'),
+            title: args.title,
+            description: args.description,
+            companyId: args.companyId,
+            priority: args.priority,
+            status: 'backlog',
+            voteCount: 1,
+            createdAt: new Date().toISOString()
+        };
+
+        memoryManager.addMemory(JSON.stringify(featureRequest), 'feature_request');
+        return {
+            success: true,
+            message: `Feature request "${args.title}" logged from company ${args.companyId}.`,
+            featureRequest
+        };
+    }
+
+    // 28. Check Compliance Status
+    if (name === 'check_compliance_status') {
+        // Mock compliance data
+        const complianceData: Record<string, any[]> = {
+            SOC2: [
+                { control: 'CC6.1', description: 'Access Controls', status: 'compliant', lastAudit: '2026-01-15' },
+                { control: 'CC7.1', description: 'Change Management', status: 'in_progress', dueDate: '2026-03-01' }
+            ],
+            HIPAA: [
+                { control: '164.312(a)', description: 'Access Control', status: 'compliant', lastAudit: '2025-12-01' },
+                { control: '164.312(e)', description: 'Transmission Security', status: 'in_progress', dueDate: '2026-03-15' }
+            ],
+            GDPR: [
+                { control: 'Art. 25', description: 'Data Protection by Design', status: 'non_compliant', dueDate: '2026-04-01' },
+                { control: 'Art. 30', description: 'Records of Processing', status: 'in_progress', dueDate: '2026-03-20' }
+            ]
+        };
+
+        let results: any[] = [];
+        if (args.framework === 'all') {
+            Object.values(complianceData).forEach(items => results.push(...items));
+        } else {
+            results = complianceData[args.framework] || [];
+        }
+
+        if (args.statusFilter && args.statusFilter !== 'all') {
+            results = results.filter(item => item.status === args.statusFilter);
+        }
+
+        if (args.includeOverdue) {
+            const today = new Date();
+            results = results.filter(item => 
+                item.dueDate && new Date(item.dueDate) < today && item.status !== 'compliant'
+            );
+        }
+
+        const summary = {
+            compliant: results.filter(r => r.status === 'compliant').length,
+            inProgress: results.filter(r => r.status === 'in_progress').length,
+            nonCompliant: results.filter(r => r.status === 'non_compliant').length
+        };
+
+        return {
+            success: true,
+            framework: args.framework,
+            summary,
+            items: results
+        };
+    }
+
+    // 29. Manage Partner
+    if (name === 'manage_partner') {
+        if (args.action === 'list') {
+            const partners = [
+                { id: 'p1', name: 'Tech Alliance Inc', type: 'technology', commissionRate: 15, totalReferrals: 12, status: 'active' },
+                { id: 'p2', name: 'Sales Network Pro', type: 'referral', commissionRate: 10, totalReferrals: 28, status: 'active' },
+                { id: 'p3', name: 'Implementation Experts', type: 'implementation', commissionRate: 20, totalReferrals: 5, status: 'inactive' }
+            ];
+            return { success: true, partners };
+        }
+
+        if (args.action === 'create') {
+            const partner = {
+                id: generateId('partner'),
+                name: args.name,
+                type: args.type,
+                commissionRate: args.commissionRate || 10,
+                contactName: args.contactName,
+                contactEmail: args.contactEmail,
+                totalReferrals: 0,
+                totalPayout: 0,
+                status: 'active',
+                createdAt: new Date().toISOString()
+            };
+
+            memoryManager.addMemory(JSON.stringify(partner), 'partner');
+            return { success: true, message: `Partner "${args.name}" created.`, partner };
+        }
+
+        if (args.action === 'record_referral') {
+            const payout = args.referralAmount || 0;
+            return {
+                success: true,
+                message: `Referral recorded for partner ${args.partnerId}. Payout: $${payout.toFixed(2)}`,
+                partnerId: args.partnerId,
+                payoutAmount: payout,
+                recordedAt: new Date().toISOString()
+            };
+        }
+
+        if (args.action === 'update') {
+            return {
+                success: true,
+                message: `Partner ${args.partnerId} updated.`,
+                partnerId: args.partnerId,
+                updatedAt: new Date().toISOString()
+            };
+        }
+
+        return { success: false, error: 'Invalid action specified.' };
+    }
+
+    // 30. Calculate Project Budget
+    if (name === 'calculate_project_budget') {
+        // Mock project budget data
+        const projectBudget = {
+            projectId: args.projectId,
+            allocatedBudget: 150000,
+            timeEntryCosts: args.includeTimeEntries ? {
+                totalHours: 420,
+                averageRate: 125,
+                totalCost: 52500
+            } : null,
+            expenseCosts: args.includeExpenses ? {
+                software: 5200,
+                travel: 3800,
+                equipment: 8500,
+                other: 1200,
+                totalCost: 18700
+            } : null
+        };
+
+        const totalSpent = (projectBudget.timeEntryCosts?.totalCost || 0) + (projectBudget.expenseCosts?.totalCost || 0);
+        const remaining = projectBudget.allocatedBudget - totalSpent;
+        const utilizationPercent = ((totalSpent / projectBudget.allocatedBudget) * 100).toFixed(1);
+
+        const forecast = args.forecastCompletion ? {
+            estimatedTotalCost: totalSpent * 1.3, // Assume 30% more to completion
+            projectedOverUnder: remaining - (totalSpent * 0.3),
+            riskLevel: remaining < (projectBudget.allocatedBudget * 0.2) ? 'high' : 'low'
+        } : null;
+
+        return {
+            success: true,
+            budget: {
+                ...projectBudget,
+                totalSpent,
+                remaining,
+                utilizationPercent: `${utilizationPercent}%`,
+                forecast
+            }
         };
     }
 
