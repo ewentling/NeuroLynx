@@ -413,12 +413,13 @@ export async function executeLocalTool(call: any): Promise<any> {
             ? deals.reduce((sum, d) => sum + (d.value * d.probability / 100), 0)
             : null;
 
+        const dealCount = deals.length;
         return { 
             success: true, 
             totalValue,
             weightedValue,
-            dealCount: deals.length,
-            averageDealSize: totalValue / deals.length
+            dealCount,
+            averageDealSize: dealCount > 0 ? totalValue / dealCount : 0
         };
     }
 
@@ -492,7 +493,7 @@ export async function executeLocalTool(call: any): Promise<any> {
 
         const invoice = {
             id: generateId('inv'),
-            invoiceNumber: `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+            invoiceNumber: `INV-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`,
             clientId: args.clientId,
             items,
             subtotal,
@@ -515,6 +516,8 @@ export async function executeLocalTool(call: any): Promise<any> {
 
     // 9. Track Time Entry
     if (name === 'track_time_entry') {
+        const isBillable = args.billable !== false;
+        const hourlyRate = args.rate || 0;
         const entry = {
             id: generateId('time'),
             description: args.description,
@@ -522,9 +525,9 @@ export async function executeLocalTool(call: any): Promise<any> {
             date: args.date,
             clientId: args.clientId || null,
             projectId: args.projectId || null,
-            billable: args.billable !== false,
-            rate: args.rate || 0,
-            totalValue: args.billable !== false ? args.hours * (args.rate || 0) : 0,
+            billable: isBillable,
+            rate: hourlyRate,
+            totalValue: isBillable ? args.hours * hourlyRate : 0,
             createdAt: new Date().toISOString()
         };
 
@@ -740,11 +743,20 @@ export async function executeLocalTool(call: any): Promise<any> {
             }
         }
 
+        // Pre-compute timestamps for efficient sorting
+        const sortedDeadlines = results
+            .map(item => ({
+                ...item,
+                _sortTime: new Date(item.dueDate || item.slaDeadline).getTime()
+            }))
+            .sort((a, b) => a._sortTime - b._sortTime)
+            .map(({ _sortTime, ...item }) => item);
+
         return { 
             success: true, 
             daysAhead,
             count: results.length,
-            deadlines: results.sort((a, b) => new Date(a.dueDate || a.slaDeadline).getTime() - new Date(b.dueDate || b.slaDeadline).getTime())
+            deadlines: sortedDeadlines
         };
     }
 
