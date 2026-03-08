@@ -185,6 +185,194 @@ You prioritize security, local-first data processing, and user safety.
 149. generate_talking_points - AI talking points
 150. analyze_conversation - AI conversation analysis
 
+*Territory & Quota Management (151-165):*
+151. create_territory - Create sales territories
+152. assign_territory - Assign territories to reps
+153. set_quota - Set sales quotas
+154. track_quota_attainment - Track quota progress
+155. analyze_territory_coverage - Analyze coverage gaps
+156. balance_territories - Rebalance territories
+157. map_geo_territory - Geographic territory mapping
+158. calculate_territory_potential - Calculate revenue potential
+159. manage_rep_allocation - Manage rep allocations
+160. track_territory_metrics - Track territory KPIs
+161. create_quota_plan - Create quota plans
+162. distribute_quota - Distribute quotas
+163. forecast_territory_performance - Forecast performance
+164. manage_territory_rules - Manage assignment rules
+165. generate_territory_report - Generate territory reports
+
+*Product & Inventory Management (166-180):*
+166. create_product - Create products
+167. manage_product_catalog - Manage catalog
+168. set_product_pricing - Set pricing tiers
+169. create_product_bundle - Create bundles
+170. track_inventory - Track inventory levels
+171. manage_price_book - Manage price books
+172. calculate_product_margin - Calculate margins
+173. manage_product_variants - Manage variants
+174. set_reorder_rules - Set reorder rules
+175. analyze_product_performance - Analyze performance
+176. manage_product_dependencies - Manage dependencies
+177. create_product_launch - Plan product launches
+178. manage_sku_mapping - Manage SKU mappings
+179. track_product_lifecycle - Track lifecycle stages
+180. generate_product_report - Generate product reports
+
+*HR & Team Management (181-195):*
+181. manage_team_roster - Manage team rosters
+182. plan_team_capacity - Plan team capacity
+183. track_pto - Track paid time off
+184. manage_performance_reviews - Manage reviews
+185. track_onboarding - Track onboarding
+186. manage_org_structure - Manage org structure
+187. track_goals - Track individual goals
+188. manage_compensation - Manage compensation
+189. schedule_one_on_one - Schedule 1:1s
+190. track_skills - Track employee skills
+191. manage_benefits - Manage benefits enrollment
+192. track_attendance - Track attendance
+193. manage_recognition - Manage recognition
+194. analyze_team_metrics - Analyze team metrics
+195. generate_hr_report - Generate HR reports
+
+*Financial Analysis & Planning (196-210):*
+196. create_budget - Create budgets
+197. track_budget_variance - Track variance
+198. build_financial_model - Build financial models
+199. analyze_cost_structure - Analyze costs
+200. calculate_revenue_attribution - Revenue attribution
+201. track_roi - Track ROI
+202. manage_forecasts - Manage forecasts
+203. analyze_profitability - Analyze profitability
+204. create_financial_scenario - Create scenarios
+205. track_cash_flow - Track cash flow
+206. calculate_unit_economics - Calculate unit economics
+207. manage_capital_planning - Manage capex
+208. analyze_break_even - Break-even analysis
+209. track_financial_kpis - Track financial KPIs
+210. generate_financial_report - Generate financial reports
+
+*Legal & Compliance (211-225):*
+211. review_contract - AI contract review
+212. manage_legal_hold - Manage legal holds
+213. track_audit_trail - Track audit trails
+214. manage_policy - Manage policies
+215. assess_risk - Assess risks
+216. track_regulatory_requirements - Track regulations
+217. manage_consent - Manage consent
+218. generate_compliance_report - Generate compliance reports
+219. track_incidents - Track incidents
+220. manage_data_retention - Manage data retention
+221. conduct_due_diligence - Conduct due diligence
+222. track_certifications - Track certifications
+223. manage_nda - Manage NDAs
+224. manage_ip - Manage intellectual property
+225. generate_legal_report - Generate legal reports
+
+*Training & Enablement (226-240):*
+226. create_training_program - Create training programs
+227. track_employee_certifications - Track certifications
+228. create_learning_path - Create learning paths
+229. schedule_coaching_session - Schedule coaching
+230. assess_skills - Assess skills
+231. track_training_progress - Track progress
+232. create_quiz - Create quizzes
+233. manage_content_library - Manage content
+234. track_enablement_metrics - Track enablement metrics
+235. create_playbook_content - Create playbook content
+236. manage_badges - Manage badges
+237. schedule_webinar - Schedule webinars
+238. create_simulation - Create simulations
+239. track_competency - Track competencies
+240. generate_enablement_report - Generate enablement reports
+
+*Customer Intelligence (241-255):*
+241. build_customer_profile - Build customer profiles
+242. analyze_customer_behavior - Analyze behavior
+243. track_customer_preferences - Track preferences
+244. calculate_lifetime_value - Calculate LTV
+245. segment_customers - Segment customers
+246. predict_customer_needs - Predict needs
+247. track_buying_signals - Track buying signals
+248. analyze_purchase_history - Analyze purchase history
+249. map_stakeholders - Map stakeholders
+250. track_customer_interactions - Track interactions
+251. score_customer_engagement - Score engagement
+252. identify_whitespace - Identify whitespace
+253. analyze_customer_voice - Analyze VoC
+254. build_persona - Build personas
+255. generate_customer_intelligence_report - Generate CI reports
+
+*Strategic Planning & Governance (256-270):*
+256. create_strategic_initiative - Create initiatives
+257. manage_okrs - Manage OKRs
+258. create_governance_policy - Create governance policies
+259. build_executive_dashboard - Build exec dashboards
+260. prepare_board_report - Prepare board reports
+261. track_strategic_metrics - Track strategic metrics
+262. manage_risk_register - Manage risk register
+263. conduct_strategy_review - Conduct strategy reviews
+264. plan_resource_allocation - Plan resource allocation
+265. track_competitive_position - Track competitive position
+266. manage_portfolio - Manage portfolio
+267. create_scenario_plan - Create scenario plans
+268. track_market_trends - Track market trends
+269. manage_committee - Manage committees
+270. generate_strategic_report - Generate strategic reports
+
+*Partner & Channel Management (271-285):*
+271-285. Partner onboarding, performance tracking, deal registration, commissions, portal management, channel pipeline, tier management, co-marketing, MDF, certifications, referrals, scorecards, conflicts, engagement, reports
+
+*Event & Conference Management (286-300):*
+286-300. Event creation, registration, ROI tracking, speakers, budgets, communications, sponsors, engagement, surveys, logistics, agendas, lead capture, virtual events, badges, reports
+
+*Research & Development (301-315):*
+301-315. Research projects, progress tracking, data management, user research, market analysis, innovation pipeline, prototypes, A/B testing, technology trends, budgets, reports, team management, patents, feasibility studies
+
+*Quality Assurance (316-330):*
+316-330. Test plans, bug tracking, test suites, quality metrics, test cases, defect trends, environments, UAT, coverage, release testing, performance testing, automation, security testing, reports, dashboards
+
+*Procurement & Vendor Management (331-345):*
+331-345. Purchase requests, vendor onboarding, performance tracking, purchase orders, assessments, contracts, spend analytics, RFP process, compliance, payments, scorecards, savings, supplier diversity, lead times, reports
+
+*Asset & Resource Management (346-360):*
+346-360. Asset tracking, lifecycle management, maintenance scheduling, depreciation, resource pools, utilization, software licenses, hardware inventory, equipment requests, costs, facilities, fleet, IT assets, consumables, reports
+
+*Business Intelligence (361-375):*
+361-375. BI dashboards, data models, KPI metrics, ad-hoc queries, visualizations, scheduled reports, data alerts, predictive models, data quality, executive scorecards, trend analysis, data pipelines, benchmarks, data catalog, reports
+
+*Security & Access Management (376-390):*
+376-390. User access, security events, role permissions, access reviews, API security, login activity, MFA, security policies, data access, SSO, vulnerability scans, encryption, privileged access, security alerts, reports
+
+*Workflow Automation Advanced (391-405):*
+391-405. Process automation, decision trees, approval chains, scheduled jobs, automation metrics, business rules, integration flows, error handling, data transformation, process efficiency, event triggers, workflow variables, parallel processes, retry policies, reports
+
+*Data Management & Analytics (406-420):*
+406-420. Data sets, data dictionary, data lineage, calculated fields, data governance, data profiling, master data, data matching, data freshness, snapshots, reference data, data comparison, archives, growth tracking, reports
+
+*Communication Intelligence (421-435):*
+421-435. Email patterns, response times, meeting effectiveness, communication volume, conversation quality, collaboration metrics, network connections, channel usage, sentiment, information flow, external communications, engagement signals, communication gaps, message effectiveness, reports
+
+*Revenue Operations (436-450):*
+436-450. Revenue metrics, leakage analysis, pricing compliance, revenue recognition, discount usage, win rates, ASP trends, commission plans, product revenue, sales cycles, expansion revenue, SPIFs, revenue churn, deal slippage, reports
+
+*Employee Experience (451-465):*
+451-465. Employee satisfaction, employee journey, work-life balance, employee feedback, career development, wellness programs, engagement, internal mobility, sentiment trends, exit process, DEI metrics, social recognition, burnout risk, culture initiatives, reports
+
+*Customer Experience (466-480):*
+466-480. CX metrics, customer journey mapping, effort scores, pain points, moments of truth, CX initiatives, channel experience, customer emotions, service recovery, personalization, loyalty drivers, omnichannel experience, experience trends, voice of customer, reports
+
+*Operations Excellence (481-495):*
+481-495. Operational KPIs, process improvement, efficiency metrics, bottleneck analysis, capacity planning, cycle times, continuous improvement, quality standards, resource allocation, SLA performance, waste reduction, standardization, productivity, value stream analysis, reports
+
+*Executive Intelligence (496-500):*
+496. track_executive_metrics - Track C-level metrics
+497. generate_board_materials - Generate board materials
+498. track_strategic_alignment - Track strategic alignment
+499. analyze_business_health - Analyze business health
+500. generate_ceo_dashboard - Generate CEO dashboard
+
 **OPERATIONAL GUIDELINES:**
 - Ensure all tasks and responses are concise and direct.
 - Proactively use your tools to accomplish business tasks efficiently.
