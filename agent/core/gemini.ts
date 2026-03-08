@@ -322,49 +322,259 @@ You prioritize security, local-first data processing, and user safety.
 270. generate_strategic_report - Generate strategic reports
 
 *Partner & Channel Management (271-285):*
-271-285. Partner onboarding, performance tracking, deal registration, commissions, portal management, channel pipeline, tier management, co-marketing, MDF, certifications, referrals, scorecards, conflicts, engagement, reports
+271. onboard_partner - Onboard new partners
+272. track_partner_performance - Track partner metrics
+273. manage_deal_registration - Manage deal registrations
+274. calculate_partner_commission - Calculate commissions
+275. manage_partner_portal - Manage partner portal
+276. track_channel_pipeline - Track channel pipeline
+277. manage_partner_tiers - Manage partner tiers
+278. create_co_marketing_campaign - Create co-marketing
+279. manage_mdf - Manage MDF funds
+280. track_partner_certifications - Track certifications
+281. manage_referral_program - Manage referrals
+282. create_partner_scorecard - Create scorecards
+283. manage_partner_conflicts - Manage conflicts
+284. track_partner_engagement - Track engagement
+285. generate_partner_report - Generate partner reports
 
 *Event & Conference Management (286-300):*
-286-300. Event creation, registration, ROI tracking, speakers, budgets, communications, sponsors, engagement, surveys, logistics, agendas, lead capture, virtual events, badges, reports
+286. create_event - Create events
+287. manage_event_registration - Manage registrations
+288. track_event_roi - Track event ROI
+289. manage_event_speakers - Manage speakers
+290. create_event_budget - Create event budgets
+291. send_event_communications - Send communications
+292. manage_event_sponsors - Manage sponsors
+293. track_event_engagement - Track engagement
+294. create_event_survey - Create surveys
+295. manage_event_logistics - Manage logistics
+296. create_event_agenda - Create agendas
+297. track_event_leads - Track event leads
+298. manage_virtual_event - Manage virtual events
+299. create_event_badge - Create badges
+300. generate_event_report - Generate event reports
 
 *Research & Development (301-315):*
-301-315. Research projects, progress tracking, data management, user research, market analysis, innovation pipeline, prototypes, A/B testing, technology trends, budgets, reports, team management, patents, feasibility studies
+301. create_research_project - Create research projects
+302. track_research_progress - Track progress
+303. manage_research_data - Manage research data
+304. conduct_user_research - Conduct user research
+305. analyze_market_research - Analyze market research
+306. track_innovation_pipeline - Track innovation
+307. manage_prototype - Manage prototypes
+308. conduct_ab_test - Conduct A/B tests
+309. track_technology_trends - Track tech trends
+310. manage_research_budget - Manage R&D budgets
+311. create_research_report - Create research reports
+312. manage_research_team - Manage research teams
+313. track_patents - Track patents
+314. conduct_feasibility_study - Conduct feasibility studies
+315. generate_rd_report - Generate R&D reports
 
 *Quality Assurance (316-330):*
-316-330. Test plans, bug tracking, test suites, quality metrics, test cases, defect trends, environments, UAT, coverage, release testing, performance testing, automation, security testing, reports, dashboards
+316. create_qa_test_plan - Create test plans
+317. track_bug_reports - Track bugs
+318. run_test_suite - Run test suites
+319. track_quality_metrics - Track quality metrics
+320. manage_test_cases - Manage test cases
+321. track_defect_trends - Track defect trends
+322. manage_test_environments - Manage environments
+323. create_uat_plan - Create UAT plans
+324. track_test_coverage - Track coverage
+325. manage_release_testing - Manage release testing
+326. run_performance_test - Run performance tests
+327. track_test_automation - Track automation
+328. manage_security_testing - Manage security testing
+329. create_test_report - Create test reports
+330. generate_qa_dashboard - Generate QA dashboards
 
 *Procurement & Vendor Management (331-345):*
-331-345. Purchase requests, vendor onboarding, performance tracking, purchase orders, assessments, contracts, spend analytics, RFP process, compliance, payments, scorecards, savings, supplier diversity, lead times, reports
+331. create_purchase_request - Create purchase requests
+332. manage_vendor_onboarding - Onboard vendors
+333. track_vendor_performance - Track vendor performance
+334. manage_purchase_orders - Manage purchase orders
+335. conduct_vendor_assessment - Assess vendors
+336. manage_vendor_contracts - Manage vendor contracts
+337. track_spend_analytics - Track spend analytics
+338. manage_rfp_process - Manage RFP process
+339. track_vendor_compliance - Track compliance
+340. manage_vendor_payments - Manage payments
+341. create_vendor_scorecard - Create scorecards
+342. track_procurement_savings - Track savings
+343. manage_supplier_diversity - Manage diversity
+344. track_lead_times - Track lead times
+345. generate_procurement_report - Generate reports
 
 *Asset & Resource Management (346-360):*
-346-360. Asset tracking, lifecycle management, maintenance scheduling, depreciation, resource pools, utilization, software licenses, hardware inventory, equipment requests, costs, facilities, fleet, IT assets, consumables, reports
+346. track_assets - Track assets
+347. manage_asset_lifecycle - Manage lifecycle
+348. schedule_maintenance - Schedule maintenance
+349. track_asset_depreciation - Track depreciation
+350. manage_resource_pool - Manage resource pools
+351. track_resource_utilization - Track utilization
+352. manage_software_licenses - Manage licenses
+353. track_hardware_inventory - Track hardware
+354. manage_equipment_requests - Manage requests
+355. track_asset_costs - Track asset costs
+356. manage_facility_resources - Manage facilities
+357. track_vehicle_fleet - Track fleet
+358. manage_it_assets - Manage IT assets
+359. track_consumables - Track consumables
+360. generate_asset_report - Generate asset reports
 
 *Business Intelligence (361-375):*
-361-375. BI dashboards, data models, KPI metrics, ad-hoc queries, visualizations, scheduled reports, data alerts, predictive models, data quality, executive scorecards, trend analysis, data pipelines, benchmarks, data catalog, reports
+361. create_bi_dashboard - Create BI dashboards
+362. build_data_model - Build data models
+363. create_kpi_metric - Create KPI metrics
+364. run_adhoc_query - Run ad-hoc queries
+365. create_data_visualization - Create visualizations
+366. schedule_report_delivery - Schedule reports
+367. create_data_alert - Create data alerts
+368. build_predictive_model - Build predictive models
+369. track_data_quality - Track data quality
+370. create_executive_scorecard - Create scorecards
+371. analyze_trends - Analyze trends
+372. build_data_pipeline - Build pipelines
+373. create_benchmark_report - Create benchmarks
+374. manage_data_catalog - Manage data catalog
+375. generate_bi_report - Generate BI reports
 
 *Security & Access Management (376-390):*
-376-390. User access, security events, role permissions, access reviews, API security, login activity, MFA, security policies, data access, SSO, vulnerability scans, encryption, privileged access, security alerts, reports
+376. manage_user_access - Manage user access
+377. track_security_events - Track security events
+378. manage_role_permissions - Manage permissions
+379. conduct_access_review - Conduct access reviews
+380. manage_api_security - Manage API security
+381. track_login_activity - Track login activity
+382. manage_mfa - Manage MFA
+383. create_security_policy - Create security policies
+384. track_data_access - Track data access
+385. manage_sso - Manage SSO
+386. run_vulnerability_scan - Run vulnerability scans
+387. manage_encryption - Manage encryption
+388. track_privileged_access - Track privileged access
+389. manage_security_alerts - Manage security alerts
+390. generate_security_report - Generate security reports
 
 *Workflow Automation Advanced (391-405):*
-391-405. Process automation, decision trees, approval chains, scheduled jobs, automation metrics, business rules, integration flows, error handling, data transformation, process efficiency, event triggers, workflow variables, parallel processes, retry policies, reports
+391. create_process_automation - Create automations
+392. build_decision_tree - Build decision trees
+393. create_approval_chain - Create approval chains
+394. manage_scheduled_jobs - Manage scheduled jobs
+395. track_automation_metrics - Track automation metrics
+396. create_business_rule - Create business rules
+397. build_integration_flow - Build integration flows
+398. manage_error_handling - Manage error handling
+399. create_data_transformation - Create transformations
+400. track_process_efficiency - Track efficiency
+401. create_event_trigger - Create event triggers
+402. manage_workflow_variables - Manage variables
+403. build_parallel_process - Build parallel processes
+404. create_retry_policy - Create retry policies
+405. generate_automation_report - Generate reports
 
 *Data Management & Analytics (406-420):*
-406-420. Data sets, data dictionary, data lineage, calculated fields, data governance, data profiling, master data, data matching, data freshness, snapshots, reference data, data comparison, archives, growth tracking, reports
+406. create_data_set - Create data sets
+407. manage_data_dictionary - Manage dictionary
+408. track_data_lineage - Track data lineage
+409. create_calculated_field - Create calculated fields
+410. manage_data_governance - Manage governance
+411. run_data_profiling - Run data profiling
+412. create_master_data - Create master data
+413. manage_data_matching - Manage data matching
+414. track_data_freshness - Track freshness
+415. create_data_snapshot - Create snapshots
+416. manage_reference_data - Manage reference data
+417. run_data_comparison - Run comparisons
+418. create_data_archive - Create archives
+419. track_data_growth - Track data growth
+420. generate_data_report - Generate data reports
 
 *Communication Intelligence (421-435):*
-421-435. Email patterns, response times, meeting effectiveness, communication volume, conversation quality, collaboration metrics, network connections, channel usage, sentiment, information flow, external communications, engagement signals, communication gaps, message effectiveness, reports
+421. analyze_email_patterns - Analyze email patterns
+422. track_response_times - Track response times
+423. analyze_meeting_effectiveness - Analyze meetings
+424. track_communication_volume - Track volume
+425. analyze_conversation_quality - Analyze quality
+426. track_collaboration_metrics - Track collaboration
+427. analyze_network_connections - Analyze networks
+428. track_channel_usage - Track channel usage
+429. analyze_communication_sentiment - Analyze sentiment
+430. track_information_flow - Track information flow
+431. analyze_external_communications - Analyze external
+432. track_engagement_signals - Track signals
+433. analyze_communication_gaps - Analyze gaps
+434. track_message_effectiveness - Track effectiveness
+435. generate_communication_report - Generate reports
 
 *Revenue Operations (436-450):*
-436-450. Revenue metrics, leakage analysis, pricing compliance, revenue recognition, discount usage, win rates, ASP trends, commission plans, product revenue, sales cycles, expansion revenue, SPIFs, revenue churn, deal slippage, reports
+436. track_revenue_metrics - Track revenue metrics
+437. analyze_revenue_leakage - Analyze leakage
+438. track_pricing_compliance - Track pricing compliance
+439. manage_revenue_recognition - Manage recognition
+440. track_discount_usage - Track discounts
+441. analyze_win_rate - Analyze win rates
+442. track_asp_trends - Track ASP trends
+443. manage_commission_plans - Manage commissions
+444. track_revenue_by_product - Track by product
+445. analyze_sales_cycle - Analyze sales cycles
+446. track_expansion_revenue - Track expansion
+447. manage_spifs - Manage SPIFs
+448. track_revenue_churn - Track churn
+449. analyze_deal_slippage - Analyze slippage
+450. generate_revops_report - Generate RevOps reports
 
 *Employee Experience (451-465):*
-451-465. Employee satisfaction, employee journey, work-life balance, employee feedback, career development, wellness programs, engagement, internal mobility, sentiment trends, exit process, DEI metrics, social recognition, burnout risk, culture initiatives, reports
+451. track_employee_satisfaction - Track satisfaction
+452. manage_employee_journey - Manage journey
+453. track_work_life_balance - Track work-life balance
+454. manage_employee_feedback - Manage feedback
+455. track_career_development - Track development
+456. manage_wellness_programs - Manage wellness
+457. track_employee_engagement - Track engagement
+458. manage_internal_mobility - Manage mobility
+459. track_sentiment_trends - Track sentiment
+460. manage_exit_process - Manage exit process
+461. track_dei_metrics - Track DEI metrics
+462. manage_social_recognition - Manage recognition
+463. track_burnout_risk - Track burnout risk
+464. manage_culture_initiatives - Manage culture
+465. generate_ex_report - Generate EX reports
 
 *Customer Experience (466-480):*
-466-480. CX metrics, customer journey mapping, effort scores, pain points, moments of truth, CX initiatives, channel experience, customer emotions, service recovery, personalization, loyalty drivers, omnichannel experience, experience trends, voice of customer, reports
+466. track_cx_metrics - Track CX metrics
+467. map_customer_journey - Map customer journey
+468. track_effort_score - Track effort scores
+469. analyze_pain_points - Analyze pain points
+470. track_moments_of_truth - Track key moments
+471. manage_cx_initiatives - Manage CX initiatives
+472. track_channel_experience - Track channel experience
+473. analyze_customer_emotions - Analyze emotions
+474. track_service_recovery - Track recovery
+475. manage_cx_personalization - Manage personalization
+476. track_loyalty_drivers - Track loyalty drivers
+477. analyze_omnichannel_experience - Analyze omnichannel
+478. track_experience_trends - Track trends
+479. manage_voice_of_customer - Manage VoC
+480. generate_cx_report - Generate CX reports
 
 *Operations Excellence (481-495):*
-481-495. Operational KPIs, process improvement, efficiency metrics, bottleneck analysis, capacity planning, cycle times, continuous improvement, quality standards, resource allocation, SLA performance, waste reduction, standardization, productivity, value stream analysis, reports
+481. track_operational_kpis - Track operational KPIs
+482. manage_process_improvement - Manage improvement
+483. track_efficiency_metrics - Track efficiency
+484. analyze_bottlenecks - Analyze bottlenecks
+485. manage_capacity_planning - Manage capacity
+486. track_cycle_times - Track cycle times
+487. manage_continuous_improvement - Manage CI
+488. track_quality_standards - Track standards
+489. analyze_resource_allocation - Analyze allocation
+490. manage_sla_performance - Manage SLA performance
+491. track_waste_reduction - Track waste reduction
+492. manage_standardization - Manage standardization
+493. track_productivity - Track productivity
+494. analyze_value_stream - Analyze value stream
+495. generate_ops_excellence_report - Generate reports
 
 *Executive Intelligence (496-500):*
 496. track_executive_metrics - Track C-level metrics
