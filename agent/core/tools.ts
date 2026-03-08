@@ -1581,6 +1581,1075 @@ export const localTools = [
             },
             required: ['reportType', 'timeframe']
         }
+    },
+
+    // ============ ROUND 5: DOCUMENT & CONTENT MANAGEMENT (91-105) ============
+
+    // 91. Create Document
+    {
+        name: 'create_document',
+        description: 'Creates a business document with structured content.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Document title.' },
+                type: { type: 'string', enum: ['memo', 'report', 'brief', 'summary', 'letter', 'policy'], description: 'Document type.' },
+                content: { type: 'string', description: 'Document content in markdown or plain text.' },
+                templateId: { type: 'string', description: 'Template ID to use.' },
+                folderId: { type: 'string', description: 'Folder to save document in.' },
+                tags: { type: 'string', description: 'Comma-separated tags.' }
+            },
+            required: ['title', 'type', 'content']
+        }
+    },
+
+    // 92. Generate Proposal
+    {
+        name: 'generate_proposal',
+        description: 'Generates a complete business proposal document.',
+        parameters: {
+            type: 'object',
+            properties: {
+                clientId: { type: 'string', description: 'Client/company ID.' },
+                dealId: { type: 'string', description: 'Associated deal ID.' },
+                proposalType: { type: 'string', enum: ['standard', 'enterprise', 'custom', 'renewal'], description: 'Proposal type.' },
+                sections: { type: 'string', description: 'Comma-separated sections to include.' },
+                includeTerms: { type: 'boolean', description: 'Include terms and conditions.' },
+                includePricing: { type: 'boolean', description: 'Include pricing details.' }
+            },
+            required: ['clientId', 'proposalType']
+        }
+    },
+
+    // 93. Create Presentation
+    {
+        name: 'create_presentation',
+        description: 'Creates a slide presentation from template or content.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Presentation title.' },
+                type: { type: 'string', enum: ['sales_deck', 'product_demo', 'quarterly_review', 'training', 'custom'], description: 'Presentation type.' },
+                slides: { type: 'string', description: 'JSON array of slide content.' },
+                templateId: { type: 'string', description: 'Template ID to use.' },
+                clientId: { type: 'string', description: 'Client ID for customization.' }
+            },
+            required: ['title', 'type']
+        }
+    },
+
+    // 94. Manage Template
+    {
+        name: 'manage_template',
+        description: 'Manages document and email templates.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'update', 'delete', 'list', 'get'], description: 'Action to perform.' },
+                templateId: { type: 'string', description: 'Template ID.' },
+                name: { type: 'string', description: 'Template name.' },
+                type: { type: 'string', enum: ['document', 'email', 'proposal', 'contract', 'presentation'], description: 'Template type.' },
+                content: { type: 'string', description: 'Template content with merge fields.' },
+                category: { type: 'string', description: 'Template category.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 95. Sign Document
+    {
+        name: 'sign_document',
+        description: 'Manages e-signature workflows for documents.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['send_for_signature', 'sign', 'get_status', 'remind', 'void'], description: 'Action to perform.' },
+                documentId: { type: 'string', description: 'Document ID.' },
+                signers: { type: 'string', description: 'Comma-separated signer contact IDs.' },
+                signerOrder: { type: 'string', enum: ['parallel', 'sequential'], description: 'Signing order.' },
+                expirationDays: { type: 'number', description: 'Days until signature request expires.' }
+            },
+            required: ['action', 'documentId']
+        }
+    },
+
+    // 96. Version Document
+    {
+        name: 'version_document',
+        description: 'Manages document version control and history.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create_version', 'get_history', 'compare', 'restore', 'lock'], description: 'Action to perform.' },
+                documentId: { type: 'string', description: 'Document ID.' },
+                versionId: { type: 'string', description: 'Specific version ID.' },
+                versionNotes: { type: 'string', description: 'Notes for new version.' },
+                compareVersionId: { type: 'string', description: 'Version ID to compare against.' }
+            },
+            required: ['action', 'documentId']
+        }
+    },
+
+    // 97. Share Document
+    {
+        name: 'share_document',
+        description: 'Shares documents with configurable permissions.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['share', 'update_access', 'revoke', 'get_shared', 'create_link'], description: 'Action to perform.' },
+                documentId: { type: 'string', description: 'Document ID.' },
+                userIds: { type: 'string', description: 'Comma-separated user IDs to share with.' },
+                permission: { type: 'string', enum: ['view', 'comment', 'edit', 'admin'], description: 'Permission level.' },
+                expiresIn: { type: 'number', description: 'Days until access expires.' },
+                notifyUsers: { type: 'boolean', description: 'Send notification to users.' }
+            },
+            required: ['action', 'documentId']
+        }
+    },
+
+    // 98. Create Folder
+    {
+        name: 'create_folder',
+        description: 'Organizes documents in folder hierarchies.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'rename', 'move', 'delete', 'list'], description: 'Action to perform.' },
+                name: { type: 'string', description: 'Folder name.' },
+                parentFolderId: { type: 'string', description: 'Parent folder ID.' },
+                folderId: { type: 'string', description: 'Folder ID for operations.' },
+                inheritPermissions: { type: 'boolean', description: 'Inherit parent permissions.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 99. Search Documents
+    {
+        name: 'search_documents',
+        description: 'Searches document content and metadata.',
+        parameters: {
+            type: 'object',
+            properties: {
+                query: { type: 'string', description: 'Search query.' },
+                searchType: { type: 'string', enum: ['content', 'metadata', 'all'], description: 'Search scope.' },
+                documentType: { type: 'string', description: 'Filter by document type.' },
+                folderId: { type: 'string', description: 'Limit search to folder.' },
+                dateRange: { type: 'string', description: 'Date range filter (YYYY-MM-DD,YYYY-MM-DD).' },
+                owner: { type: 'string', description: 'Filter by owner.' }
+            },
+            required: ['query']
+        }
+    },
+
+    // 100. Annotate Document
+    {
+        name: 'annotate_document',
+        description: 'Adds annotations, comments, and highlights to documents.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['add', 'update', 'delete', 'get_all', 'resolve'], description: 'Action to perform.' },
+                documentId: { type: 'string', description: 'Document ID.' },
+                annotationId: { type: 'string', description: 'Annotation ID.' },
+                type: { type: 'string', enum: ['comment', 'highlight', 'note', 'suggestion'], description: 'Annotation type.' },
+                content: { type: 'string', description: 'Annotation content.' },
+                position: { type: 'string', description: 'JSON object with position info.' }
+            },
+            required: ['action', 'documentId']
+        }
+    },
+
+    // 101. Convert Document
+    {
+        name: 'convert_document',
+        description: 'Converts documents between formats.',
+        parameters: {
+            type: 'object',
+            properties: {
+                documentId: { type: 'string', description: 'Document ID to convert.' },
+                sourceFormat: { type: 'string', enum: ['docx', 'pdf', 'html', 'markdown', 'txt'], description: 'Source format.' },
+                targetFormat: { type: 'string', enum: ['docx', 'pdf', 'html', 'markdown', 'txt'], description: 'Target format.' },
+                preserveFormatting: { type: 'boolean', description: 'Preserve formatting in conversion.' },
+                createNewDocument: { type: 'boolean', description: 'Create as new document.' }
+            },
+            required: ['documentId', 'targetFormat']
+        }
+    },
+
+    // 102. Merge Documents
+    {
+        name: 'merge_documents',
+        description: 'Merges multiple documents into one.',
+        parameters: {
+            type: 'object',
+            properties: {
+                documentIds: { type: 'string', description: 'Comma-separated document IDs to merge.' },
+                mergeOrder: { type: 'string', description: 'Comma-separated order of documents.' },
+                outputTitle: { type: 'string', description: 'Title of merged document.' },
+                outputFormat: { type: 'string', enum: ['docx', 'pdf'], description: 'Output format.' },
+                includePageBreaks: { type: 'boolean', description: 'Add page breaks between documents.' }
+            },
+            required: ['documentIds', 'outputTitle']
+        }
+    },
+
+    // 103. Extract Document Data
+    {
+        name: 'extract_document_data',
+        description: 'Extracts structured data from documents using AI.',
+        parameters: {
+            type: 'object',
+            properties: {
+                documentId: { type: 'string', description: 'Document ID.' },
+                extractionType: { type: 'string', enum: ['tables', 'key_values', 'entities', 'contacts', 'all'], description: 'Type of data to extract.' },
+                outputFormat: { type: 'string', enum: ['json', 'csv'], description: 'Output format.' },
+                mappingTemplate: { type: 'string', description: 'JSON mapping template for extraction.' }
+            },
+            required: ['documentId', 'extractionType']
+        }
+    },
+
+    // 104. Create Contract Template
+    {
+        name: 'create_contract_template',
+        description: 'Creates legal contract templates with merge fields.',
+        parameters: {
+            type: 'object',
+            properties: {
+                name: { type: 'string', description: 'Contract template name.' },
+                type: { type: 'string', enum: ['nda', 'msa', 'sow', 'sla', 'license', 'custom'], description: 'Contract type.' },
+                content: { type: 'string', description: 'Contract content with {{merge_fields}}.' },
+                requiredFields: { type: 'string', description: 'Comma-separated required merge fields.' },
+                approvalRequired: { type: 'boolean', description: 'Requires legal approval.' }
+            },
+            required: ['name', 'type', 'content']
+        }
+    },
+
+    // 105. Track Document Views
+    {
+        name: 'track_document_views',
+        description: 'Tracks document engagement and view analytics.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['log_view', 'get_analytics', 'get_viewers'], description: 'Action to perform.' },
+                documentId: { type: 'string', description: 'Document ID.' },
+                viewerId: { type: 'string', description: 'Viewer ID (for log_view).' },
+                timeframe: { type: 'string', enum: ['24hours', '7days', '30days', 'all'], description: 'Analytics timeframe.' }
+            },
+            required: ['action', 'documentId']
+        }
+    },
+
+    // ============ ROUND 6: COMMUNICATION & COLLABORATION (106-120) ============
+
+    // 106. Send Bulk Email
+    {
+        name: 'send_bulk_email',
+        description: 'Sends mass emails to lists or segments.',
+        parameters: {
+            type: 'object',
+            properties: {
+                listId: { type: 'string', description: 'Marketing list ID.' },
+                contactIds: { type: 'string', description: 'Comma-separated contact IDs (alternative to list).' },
+                templateId: { type: 'string', description: 'Email template ID.' },
+                subject: { type: 'string', description: 'Email subject line.' },
+                content: { type: 'string', description: 'Email content (if no template).' },
+                scheduledTime: { type: 'string', description: 'Scheduled send time (ISO format).' },
+                trackOpens: { type: 'boolean', description: 'Track email opens.' },
+                trackClicks: { type: 'boolean', description: 'Track link clicks.' }
+            },
+            required: ['subject']
+        }
+    },
+
+    // 107. Create Email Template
+    {
+        name: 'create_email_template',
+        description: 'Creates reusable email templates.',
+        parameters: {
+            type: 'object',
+            properties: {
+                name: { type: 'string', description: 'Template name.' },
+                subject: { type: 'string', description: 'Default subject line.' },
+                htmlContent: { type: 'string', description: 'HTML email content.' },
+                plainTextContent: { type: 'string', description: 'Plain text version.' },
+                category: { type: 'string', enum: ['sales', 'marketing', 'support', 'transactional', 'newsletter'], description: 'Template category.' },
+                mergeFields: { type: 'string', description: 'Comma-separated merge field names.' }
+            },
+            required: ['name', 'subject', 'htmlContent']
+        }
+    },
+
+    // 108. Schedule Meeting
+    {
+        name: 'schedule_meeting',
+        description: 'Schedules meetings with availability checking.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Meeting title.' },
+                attendeeIds: { type: 'string', description: 'Comma-separated attendee contact/user IDs.' },
+                dateTime: { type: 'string', description: 'Meeting date/time (ISO format).' },
+                duration: { type: 'number', description: 'Duration in minutes.' },
+                type: { type: 'string', enum: ['video', 'phone', 'in_person'], description: 'Meeting type.' },
+                location: { type: 'string', description: 'Location or video link.' },
+                agenda: { type: 'string', description: 'Meeting agenda.' },
+                sendInvites: { type: 'boolean', description: 'Send calendar invites.' }
+            },
+            required: ['title', 'attendeeIds', 'dateTime', 'duration']
+        }
+    },
+
+    // 109. Create Meeting Agenda
+    {
+        name: 'create_meeting_agenda',
+        description: 'Creates structured meeting agendas.',
+        parameters: {
+            type: 'object',
+            properties: {
+                meetingId: { type: 'string', description: 'Associated meeting ID.' },
+                title: { type: 'string', description: 'Agenda title.' },
+                items: { type: 'string', description: 'JSON array of agenda items with topic, duration, owner.' },
+                objectives: { type: 'string', description: 'Meeting objectives.' },
+                prework: { type: 'string', description: 'Required pre-work for attendees.' },
+                distributeToAttendees: { type: 'boolean', description: 'Send agenda to attendees.' }
+            },
+            required: ['title', 'items']
+        }
+    },
+
+    // 110. Send SMS
+    {
+        name: 'send_sms',
+        description: 'Sends SMS text notifications to contacts.',
+        parameters: {
+            type: 'object',
+            properties: {
+                contactId: { type: 'string', description: 'Contact ID to send to.' },
+                phoneNumber: { type: 'string', description: 'Phone number (alternative to contact).' },
+                message: { type: 'string', description: 'SMS message content (160 char limit).' },
+                templateId: { type: 'string', description: 'SMS template ID.' },
+                scheduledTime: { type: 'string', description: 'Scheduled send time (ISO format).' }
+            },
+            required: ['message']
+        }
+    },
+
+    // 111. Create Announcement
+    {
+        name: 'create_announcement',
+        description: 'Creates team or company-wide announcements.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Announcement title.' },
+                content: { type: 'string', description: 'Announcement content.' },
+                audience: { type: 'string', enum: ['all', 'team', 'department', 'custom'], description: 'Target audience.' },
+                audienceIds: { type: 'string', description: 'Specific audience IDs if custom.' },
+                priority: { type: 'string', enum: ['low', 'normal', 'high', 'urgent'], description: 'Priority level.' },
+                expiresAt: { type: 'string', description: 'Expiration date (ISO format).' },
+                requireAcknowledgment: { type: 'boolean', description: 'Require user acknowledgment.' }
+            },
+            required: ['title', 'content', 'audience']
+        }
+    },
+
+    // 112. Manage Distribution List
+    {
+        name: 'manage_distribution_list',
+        description: 'Manages email distribution lists.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'update', 'delete', 'add_members', 'remove_members', 'list'], description: 'Action to perform.' },
+                listId: { type: 'string', description: 'Distribution list ID.' },
+                name: { type: 'string', description: 'List name.' },
+                description: { type: 'string', description: 'List description.' },
+                memberIds: { type: 'string', description: 'Comma-separated member contact/user IDs.' },
+                type: { type: 'string', enum: ['internal', 'external', 'mixed'], description: 'List type.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 113. Track Email Engagement
+    {
+        name: 'track_email_engagement',
+        description: 'Tracks detailed email engagement metrics.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['get_campaign_stats', 'get_contact_history', 'get_best_times'], description: 'Action to perform.' },
+                campaignId: { type: 'string', description: 'Email campaign ID.' },
+                contactId: { type: 'string', description: 'Contact ID.' },
+                timeframe: { type: 'string', enum: ['7days', '30days', '90days', '1year'], description: 'Analysis timeframe.' },
+                includeDetails: { type: 'boolean', description: 'Include detailed event log.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 114. Create Chat Channel
+    {
+        name: 'create_chat_channel',
+        description: 'Creates collaboration chat channels.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'archive', 'add_members', 'remove_members', 'list'], description: 'Action to perform.' },
+                name: { type: 'string', description: 'Channel name.' },
+                channelId: { type: 'string', description: 'Channel ID for operations.' },
+                type: { type: 'string', enum: ['public', 'private', 'deal', 'account', 'project'], description: 'Channel type.' },
+                memberIds: { type: 'string', description: 'Comma-separated member IDs.' },
+                linkedEntityId: { type: 'string', description: 'Linked deal/account/project ID.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 115. Assign Team Task
+    {
+        name: 'assign_team_task',
+        description: 'Assigns tasks to team members with tracking.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Task title.' },
+                description: { type: 'string', description: 'Task description.' },
+                assigneeId: { type: 'string', description: 'User ID to assign to.' },
+                dueDate: { type: 'string', description: 'Due date (YYYY-MM-DD).' },
+                priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Task priority.' },
+                relatedEntityType: { type: 'string', enum: ['deal', 'contact', 'account', 'project'], description: 'Related entity type.' },
+                relatedEntityId: { type: 'string', description: 'Related entity ID.' },
+                notifyAssignee: { type: 'boolean', description: 'Send notification to assignee.' }
+            },
+            required: ['title', 'assigneeId', 'dueDate']
+        }
+    },
+
+    // 116. Request Feedback
+    {
+        name: 'request_feedback',
+        description: 'Requests feedback from stakeholders.',
+        parameters: {
+            type: 'object',
+            properties: {
+                type: { type: 'string', enum: ['document_review', 'deal_approval', 'proposal_review', 'general'], description: 'Feedback type.' },
+                title: { type: 'string', description: 'Feedback request title.' },
+                description: { type: 'string', description: 'What feedback is needed.' },
+                reviewerIds: { type: 'string', description: 'Comma-separated reviewer user IDs.' },
+                entityId: { type: 'string', description: 'Related entity ID.' },
+                dueDate: { type: 'string', description: 'Feedback due date (YYYY-MM-DD).' },
+                reminderDays: { type: 'number', description: 'Days before due to send reminder.' }
+            },
+            required: ['type', 'title', 'reviewerIds']
+        }
+    },
+
+    // 117. Create Poll
+    {
+        name: 'create_poll',
+        description: 'Creates polls and surveys for feedback collection.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Poll title.' },
+                type: { type: 'string', enum: ['single_choice', 'multiple_choice', 'rating', 'open_ended'], description: 'Poll type.' },
+                options: { type: 'string', description: 'JSON array of options (for choice types).' },
+                audienceIds: { type: 'string', description: 'Comma-separated audience user/contact IDs.' },
+                anonymous: { type: 'boolean', description: 'Allow anonymous responses.' },
+                expiresAt: { type: 'string', description: 'Poll expiration (ISO format).' }
+            },
+            required: ['title', 'type']
+        }
+    },
+
+    // 118. Manage Notification Rules
+    {
+        name: 'manage_notification_rules',
+        description: 'Configures notification rules and preferences.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'update', 'delete', 'list', 'test'], description: 'Action to perform.' },
+                ruleId: { type: 'string', description: 'Rule ID.' },
+                name: { type: 'string', description: 'Rule name.' },
+                triggerEvent: { type: 'string', description: 'Event that triggers notification.' },
+                conditions: { type: 'string', description: 'JSON conditions for triggering.' },
+                channels: { type: 'string', description: 'Comma-separated channels (email, sms, push, slack).' },
+                recipients: { type: 'string', description: 'Recipient user IDs or roles.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 119. Log Communication
+    {
+        name: 'log_communication',
+        description: 'Logs all communications for audit and history.',
+        parameters: {
+            type: 'object',
+            properties: {
+                type: { type: 'string', enum: ['email', 'call', 'meeting', 'sms', 'chat', 'letter'], description: 'Communication type.' },
+                direction: { type: 'string', enum: ['inbound', 'outbound'], description: 'Direction.' },
+                contactId: { type: 'string', description: 'Contact ID.' },
+                subject: { type: 'string', description: 'Communication subject.' },
+                content: { type: 'string', description: 'Communication content/notes.' },
+                duration: { type: 'number', description: 'Duration in minutes (for calls/meetings).' },
+                outcome: { type: 'string', description: 'Outcome or next steps.' },
+                relatedDealId: { type: 'string', description: 'Related deal ID.' }
+            },
+            required: ['type', 'direction', 'contactId']
+        }
+    },
+
+    // 120. Translate Message
+    {
+        name: 'translate_message',
+        description: 'Translates communications to different languages.',
+        parameters: {
+            type: 'object',
+            properties: {
+                text: { type: 'string', description: 'Text to translate.' },
+                sourceLanguage: { type: 'string', description: 'Source language code (e.g., en).' },
+                targetLanguage: { type: 'string', description: 'Target language code (e.g., es, fr, de).' },
+                preserveTone: { type: 'boolean', description: 'Preserve professional tone.' },
+                type: { type: 'string', enum: ['email', 'chat', 'document', 'general'], description: 'Content type for context.' }
+            },
+            required: ['text', 'targetLanguage']
+        }
+    },
+
+    // ============ ROUND 7: CUSTOMER SUCCESS & SUPPORT (121-135) ============
+
+    // 121. Create Success Plan
+    {
+        name: 'create_success_plan',
+        description: 'Creates customer success plans with milestones.',
+        parameters: {
+            type: 'object',
+            properties: {
+                companyId: { type: 'string', description: 'Company/account ID.' },
+                name: { type: 'string', description: 'Success plan name.' },
+                objectives: { type: 'string', description: 'JSON array of success objectives.' },
+                milestones: { type: 'string', description: 'JSON array of milestones with dates.' },
+                ownerId: { type: 'string', description: 'CSM owner user ID.' },
+                template: { type: 'string', enum: ['onboarding', 'adoption', 'expansion', 'renewal', 'custom'], description: 'Plan template.' }
+            },
+            required: ['companyId', 'name', 'objectives']
+        }
+    },
+
+    // 122. Track Health Score
+    {
+        name: 'track_health_score',
+        description: 'Tracks and calculates customer health scores.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['calculate', 'get_history', 'get_factors', 'update_weights'], description: 'Action to perform.' },
+                companyId: { type: 'string', description: 'Company/account ID.' },
+                includeFactorBreakdown: { type: 'boolean', description: 'Include factor-by-factor breakdown.' },
+                timeframe: { type: 'string', enum: ['current', '30days', '90days', '1year'], description: 'Timeframe for history.' }
+            },
+            required: ['action', 'companyId']
+        }
+    },
+
+    // 123. Schedule QBR
+    {
+        name: 'schedule_qbr',
+        description: 'Schedules quarterly business reviews with customers.',
+        parameters: {
+            type: 'object',
+            properties: {
+                companyId: { type: 'string', description: 'Company/account ID.' },
+                dateTime: { type: 'string', description: 'QBR date/time (ISO format).' },
+                attendeeIds: { type: 'string', description: 'Comma-separated attendee contact IDs.' },
+                agenda: { type: 'string', description: 'QBR agenda items.' },
+                includeMetrics: { type: 'string', description: 'Comma-separated metrics to include.' },
+                generateDeck: { type: 'boolean', description: 'Auto-generate presentation deck.' }
+            },
+            required: ['companyId', 'dateTime']
+        }
+    },
+
+    // 124. Create Playbook
+    {
+        name: 'create_playbook',
+        description: 'Creates customer success playbooks.',
+        parameters: {
+            type: 'object',
+            properties: {
+                name: { type: 'string', description: 'Playbook name.' },
+                type: { type: 'string', enum: ['onboarding', 'adoption', 'expansion', 'risk_mitigation', 'renewal', 'custom'], description: 'Playbook type.' },
+                trigger: { type: 'string', description: 'Trigger condition for playbook.' },
+                steps: { type: 'string', description: 'JSON array of playbook steps.' },
+                automationEnabled: { type: 'boolean', description: 'Enable automatic execution.' },
+                targetSegment: { type: 'string', description: 'Target customer segment.' }
+            },
+            required: ['name', 'type', 'steps']
+        }
+    },
+
+    // 125. Track Adoption Metrics
+    {
+        name: 'track_adoption_metrics',
+        description: 'Tracks product adoption and usage metrics.',
+        parameters: {
+            type: 'object',
+            properties: {
+                companyId: { type: 'string', description: 'Company/account ID.' },
+                metrics: { type: 'string', description: 'Comma-separated metrics (logins, features, api_calls).' },
+                timeframe: { type: 'string', enum: ['7days', '30days', '90days', 'custom'], description: 'Timeframe.' },
+                compareToBaseline: { type: 'boolean', description: 'Compare to baseline/target.' },
+                includeUserBreakdown: { type: 'boolean', description: 'Include per-user breakdown.' }
+            },
+            required: ['companyId']
+        }
+    },
+
+    // 126. Identify Risk Signals
+    {
+        name: 'identify_risk_signals',
+        description: 'Identifies early warning signs for at-risk customers.',
+        parameters: {
+            type: 'object',
+            properties: {
+                companyId: { type: 'string', description: 'Company ID (or "all" for portfolio).' },
+                signalTypes: { type: 'string', description: 'Comma-separated signal types to check.' },
+                sensitivity: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Detection sensitivity.' },
+                includeRecommendations: { type: 'boolean', description: 'Include mitigation recommendations.' },
+                autoCreateTasks: { type: 'boolean', description: 'Auto-create follow-up tasks.' }
+            },
+            required: ['companyId']
+        }
+    },
+
+    // 127. Create Escalation
+    {
+        name: 'create_escalation',
+        description: 'Creates escalation tickets for critical issues.',
+        parameters: {
+            type: 'object',
+            properties: {
+                companyId: { type: 'string', description: 'Company/account ID.' },
+                type: { type: 'string', enum: ['technical', 'billing', 'relationship', 'churn_risk', 'executive'], description: 'Escalation type.' },
+                severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'], description: 'Severity level.' },
+                title: { type: 'string', description: 'Escalation title.' },
+                description: { type: 'string', description: 'Detailed description.' },
+                assignTo: { type: 'string', description: 'User ID to assign escalation.' },
+                notifyExecutives: { type: 'boolean', description: 'Notify executive team.' }
+            },
+            required: ['companyId', 'type', 'severity', 'title', 'description']
+        }
+    },
+
+    // 128. Manage Renewal
+    {
+        name: 'manage_renewal',
+        description: 'Manages contract renewal processes.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['get_upcoming', 'start_process', 'update_status', 'generate_quote', 'forecast'], description: 'Action to perform.' },
+                companyId: { type: 'string', description: 'Company/account ID.' },
+                contractId: { type: 'string', description: 'Contract ID.' },
+                daysAhead: { type: 'number', description: 'Days ahead to look for renewals.' },
+                newTerms: { type: 'string', description: 'JSON object with proposed new terms.' },
+                includeUpsell: { type: 'boolean', description: 'Include upsell opportunities.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 129. Calculate NPS
+    {
+        name: 'calculate_nps',
+        description: 'Calculates Net Promoter Score and trends.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['calculate', 'get_responses', 'send_survey', 'get_trends'], description: 'Action to perform.' },
+                companyId: { type: 'string', description: 'Company ID (or "all" for overall).' },
+                surveyId: { type: 'string', description: 'Survey ID.' },
+                timeframe: { type: 'string', enum: ['30days', '90days', '1year', 'all'], description: 'Analysis timeframe.' },
+                segmentBy: { type: 'string', enum: ['industry', 'size', 'plan', 'region'], description: 'Segmentation.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 130. Create Case Study
+    {
+        name: 'create_case_study',
+        description: 'Creates customer success case studies.',
+        parameters: {
+            type: 'object',
+            properties: {
+                companyId: { type: 'string', description: 'Company/account ID.' },
+                title: { type: 'string', description: 'Case study title.' },
+                challenge: { type: 'string', description: 'Customer challenge description.' },
+                solution: { type: 'string', description: 'Solution implemented.' },
+                results: { type: 'string', description: 'JSON object with metrics and results.' },
+                testimonial: { type: 'string', description: 'Customer testimonial quote.' },
+                generateFromData: { type: 'boolean', description: 'Auto-generate from CRM data.' }
+            },
+            required: ['companyId', 'title']
+        }
+    },
+
+    // 131. Track Support Metrics
+    {
+        name: 'track_support_metrics',
+        description: 'Tracks support SLAs and performance metrics.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['get_metrics', 'check_sla', 'get_trends', 'compare'], description: 'Action to perform.' },
+                companyId: { type: 'string', description: 'Company ID (or "all").' },
+                timeframe: { type: 'string', enum: ['7days', '30days', '90days', 'custom'], description: 'Timeframe.' },
+                metrics: { type: 'string', description: 'Comma-separated metrics (response_time, resolution_time, csat).' },
+                groupBy: { type: 'string', enum: ['agent', 'category', 'priority'], description: 'Grouping dimension.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 132. Create Knowledge Article
+    {
+        name: 'create_knowledge_article',
+        description: 'Creates knowledge base articles.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Article title.' },
+                category: { type: 'string', description: 'Article category.' },
+                content: { type: 'string', description: 'Article content in markdown.' },
+                visibility: { type: 'string', enum: ['internal', 'customer', 'public'], description: 'Article visibility.' },
+                tags: { type: 'string', description: 'Comma-separated tags.' },
+                relatedArticleIds: { type: 'string', description: 'Comma-separated related article IDs.' },
+                attachments: { type: 'string', description: 'Comma-separated attachment IDs.' }
+            },
+            required: ['title', 'category', 'content', 'visibility']
+        }
+    },
+
+    // 133. Manage SLA
+    {
+        name: 'manage_sla',
+        description: 'Manages service level agreements.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['create', 'update', 'get', 'check_compliance', 'get_breaches'], description: 'Action to perform.' },
+                slaId: { type: 'string', description: 'SLA ID.' },
+                companyId: { type: 'string', description: 'Company/account ID.' },
+                name: { type: 'string', description: 'SLA name.' },
+                terms: { type: 'string', description: 'JSON object with SLA terms and thresholds.' },
+                tier: { type: 'string', enum: ['standard', 'premium', 'enterprise'], description: 'SLA tier.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // 134. Create Customer Portal
+    {
+        name: 'create_customer_portal',
+        description: 'Sets up and manages customer portal access.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['setup', 'invite_user', 'configure', 'get_analytics'], description: 'Action to perform.' },
+                companyId: { type: 'string', description: 'Company/account ID.' },
+                contactId: { type: 'string', description: 'Contact ID for user operations.' },
+                features: { type: 'string', description: 'Comma-separated enabled features.' },
+                branding: { type: 'string', description: 'JSON object with branding settings.' },
+                permissions: { type: 'string', description: 'JSON object with permission settings.' }
+            },
+            required: ['action', 'companyId']
+        }
+    },
+
+    // 135. Track Customer Feedback
+    {
+        name: 'track_customer_feedback',
+        description: 'Tracks and analyzes customer feedback.',
+        parameters: {
+            type: 'object',
+            properties: {
+                action: { type: 'string', enum: ['log', 'get_summary', 'get_trends', 'categorize'], description: 'Action to perform.' },
+                companyId: { type: 'string', description: 'Company ID.' },
+                contactId: { type: 'string', description: 'Contact ID.' },
+                feedbackType: { type: 'string', enum: ['praise', 'complaint', 'suggestion', 'question'], description: 'Feedback type.' },
+                content: { type: 'string', description: 'Feedback content.' },
+                source: { type: 'string', enum: ['call', 'email', 'survey', 'meeting', 'social'], description: 'Feedback source.' },
+                sentiment: { type: 'string', enum: ['positive', 'neutral', 'negative'], description: 'Sentiment.' }
+            },
+            required: ['action']
+        }
+    },
+
+    // ============ ROUND 8: ADVANCED OPERATIONS & AI (136-150) ============
+
+    // 136. Predict Deal Outcome
+    {
+        name: 'predict_deal_outcome',
+        description: 'AI-powered prediction of deal win probability.',
+        parameters: {
+            type: 'object',
+            properties: {
+                dealId: { type: 'string', description: 'Deal ID to analyze.' },
+                includeFactors: { type: 'boolean', description: 'Include contributing factors.' },
+                includeRecommendations: { type: 'boolean', description: 'Include improvement recommendations.' },
+                compareToSimilar: { type: 'boolean', description: 'Compare to similar historical deals.' },
+                confidenceThreshold: { type: 'number', description: 'Minimum confidence threshold.' }
+            },
+            required: ['dealId']
+        }
+    },
+
+    // 137. Recommend Next Action
+    {
+        name: 'recommend_next_action',
+        description: 'AI-powered next best action recommendations.',
+        parameters: {
+            type: 'object',
+            properties: {
+                context: { type: 'string', enum: ['deal', 'contact', 'account', 'support_ticket', 'general'], description: 'Context for recommendations.' },
+                entityId: { type: 'string', description: 'Entity ID for context.' },
+                userId: { type: 'string', description: 'User ID for personalization.' },
+                maxRecommendations: { type: 'number', description: 'Maximum recommendations.' },
+                urgencyFilter: { type: 'string', enum: ['all', 'urgent', 'important'], description: 'Filter by urgency.' }
+            },
+            required: ['context']
+        }
+    },
+
+    // 138. Auto Classify Lead
+    {
+        name: 'auto_classify_lead',
+        description: 'AI automatic lead classification and routing.',
+        parameters: {
+            type: 'object',
+            properties: {
+                contactId: { type: 'string', description: 'Contact/lead ID.' },
+                inputData: { type: 'string', description: 'JSON object with lead data.' },
+                classifyBy: { type: 'string', description: 'Comma-separated classification criteria.' },
+                autoAssign: { type: 'boolean', description: 'Automatically assign to appropriate rep.' },
+                autoScore: { type: 'boolean', description: 'Automatically calculate lead score.' }
+            },
+            required: ['contactId']
+        }
+    },
+
+    // 139. Generate Summary
+    {
+        name: 'generate_summary',
+        description: 'AI generation of summaries from data.',
+        parameters: {
+            type: 'object',
+            properties: {
+                entityType: { type: 'string', enum: ['deal', 'account', 'contact', 'meeting', 'call', 'email_thread'], description: 'Entity type to summarize.' },
+                entityId: { type: 'string', description: 'Entity ID.' },
+                summaryType: { type: 'string', enum: ['brief', 'detailed', 'executive', 'action_items'], description: 'Summary type.' },
+                timeframe: { type: 'string', description: 'Timeframe for activity summary.' },
+                includeMetrics: { type: 'boolean', description: 'Include key metrics.' }
+            },
+            required: ['entityType', 'entityId', 'summaryType']
+        }
+    },
+
+    // 140. Extract Insights
+    {
+        name: 'extract_insights',
+        description: 'AI extraction of insights from data.',
+        parameters: {
+            type: 'object',
+            properties: {
+                dataSource: { type: 'string', enum: ['emails', 'calls', 'meetings', 'deals', 'all_activities'], description: 'Data source.' },
+                entityId: { type: 'string', description: 'Entity ID to analyze.' },
+                insightTypes: { type: 'string', description: 'Comma-separated insight types (sentiment, topics, trends, risks).' },
+                timeframe: { type: 'string', enum: ['7days', '30days', '90days', '1year'], description: 'Analysis timeframe.' }
+            },
+            required: ['dataSource', 'insightTypes']
+        }
+    },
+
+    // 141. Detect Duplicates
+    {
+        name: 'detect_duplicates',
+        description: 'AI-powered duplicate detection across records.',
+        parameters: {
+            type: 'object',
+            properties: {
+                objectType: { type: 'string', enum: ['contact', 'company', 'deal', 'all'], description: 'Object type to check.' },
+                recordId: { type: 'string', description: 'Specific record to check.' },
+                matchThreshold: { type: 'number', description: 'Match confidence threshold (0-100).' },
+                matchFields: { type: 'string', description: 'Comma-separated fields to match on.' },
+                autoMerge: { type: 'boolean', description: 'Automatically merge high-confidence matches.' }
+            },
+            required: ['objectType']
+        }
+    },
+
+    // 142. Enrich Data
+    {
+        name: 'enrich_data',
+        description: 'AI data enrichment from external sources.',
+        parameters: {
+            type: 'object',
+            properties: {
+                objectType: { type: 'string', enum: ['contact', 'company'], description: 'Object type to enrich.' },
+                recordId: { type: 'string', description: 'Record ID to enrich.' },
+                enrichmentSources: { type: 'string', description: 'Comma-separated sources (linkedin, clearbit, zoominfo).' },
+                fieldsToEnrich: { type: 'string', description: 'Comma-separated fields to enrich.' },
+                overwriteExisting: { type: 'boolean', description: 'Overwrite existing data.' }
+            },
+            required: ['objectType', 'recordId']
+        }
+    },
+
+    // 143. Score Sentiment
+    {
+        name: 'score_sentiment',
+        description: 'AI sentiment scoring for communications.',
+        parameters: {
+            type: 'object',
+            properties: {
+                text: { type: 'string', description: 'Text to analyze.' },
+                entityId: { type: 'string', description: 'Entity ID for context.' },
+                entityType: { type: 'string', enum: ['email', 'call_transcript', 'chat', 'feedback'], description: 'Content type.' },
+                includeEmotions: { type: 'boolean', description: 'Include emotion breakdown.' },
+                includeTopics: { type: 'boolean', description: 'Include topic extraction.' }
+            },
+            required: ['text']
+        }
+    },
+
+    // 144. Predict Revenue
+    {
+        name: 'predict_revenue',
+        description: 'AI revenue prediction and modeling.',
+        parameters: {
+            type: 'object',
+            properties: {
+                period: { type: 'string', enum: ['monthly', 'quarterly', 'yearly'], description: 'Prediction period.' },
+                model: { type: 'string', enum: ['conservative', 'moderate', 'optimistic', 'ai_ensemble'], description: 'Prediction model.' },
+                segmentBy: { type: 'string', description: 'Comma-separated segmentation (product, region, rep).' },
+                includeScenarios: { type: 'boolean', description: 'Include multiple scenarios.' },
+                includeDrivers: { type: 'boolean', description: 'Include key revenue drivers.' }
+            },
+            required: ['period', 'model']
+        }
+    },
+
+    // 145. Optimize Pricing
+    {
+        name: 'optimize_pricing',
+        description: 'AI pricing optimization recommendations.',
+        parameters: {
+            type: 'object',
+            properties: {
+                dealId: { type: 'string', description: 'Deal ID for pricing.' },
+                productIds: { type: 'string', description: 'Comma-separated product IDs.' },
+                customerSegment: { type: 'string', description: 'Customer segment.' },
+                competitorContext: { type: 'string', description: 'Competitor information.' },
+                objective: { type: 'string', enum: ['maximize_revenue', 'maximize_profit', 'win_deal', 'strategic'], description: 'Optimization objective.' }
+            },
+            required: ['objective']
+        }
+    },
+
+    // 146. Forecast Demand
+    {
+        name: 'forecast_demand',
+        description: 'AI demand forecasting for products/services.',
+        parameters: {
+            type: 'object',
+            properties: {
+                productId: { type: 'string', description: 'Product ID.' },
+                period: { type: 'string', enum: ['monthly', 'quarterly', 'yearly'], description: 'Forecast period.' },
+                horizon: { type: 'number', description: 'Forecast horizon in periods.' },
+                includeSeasonality: { type: 'boolean', description: 'Include seasonal patterns.' },
+                externalFactors: { type: 'string', description: 'JSON object with external factors.' }
+            },
+            required: ['period', 'horizon']
+        }
+    },
+
+    // 147. Personalize Content
+    {
+        name: 'personalize_content',
+        description: 'AI content personalization for contacts.',
+        parameters: {
+            type: 'object',
+            properties: {
+                contentId: { type: 'string', description: 'Base content/template ID.' },
+                contactId: { type: 'string', description: 'Contact ID for personalization.' },
+                contentType: { type: 'string', enum: ['email', 'landing_page', 'proposal', 'presentation'], description: 'Content type.' },
+                personalizationLevel: { type: 'string', enum: ['light', 'moderate', 'heavy'], description: 'Personalization depth.' },
+                includeRecommendations: { type: 'boolean', description: 'Include product recommendations.' }
+            },
+            required: ['contentId', 'contactId', 'contentType']
+        }
+    },
+
+    // 148. Auto Categorize
+    {
+        name: 'auto_categorize',
+        description: 'AI automatic categorization of records.',
+        parameters: {
+            type: 'object',
+            properties: {
+                objectType: { type: 'string', enum: ['email', 'ticket', 'feedback', 'document', 'lead'], description: 'Object type.' },
+                recordId: { type: 'string', description: 'Record ID.' },
+                categories: { type: 'string', description: 'Comma-separated available categories.' },
+                multiCategory: { type: 'boolean', description: 'Allow multiple categories.' },
+                confidenceThreshold: { type: 'number', description: 'Minimum confidence for auto-categorization.' }
+            },
+            required: ['objectType', 'recordId']
+        }
+    },
+
+    // 149. Generate Talking Points
+    {
+        name: 'generate_talking_points',
+        description: 'AI generation of meeting/call talking points.',
+        parameters: {
+            type: 'object',
+            properties: {
+                context: { type: 'string', enum: ['discovery_call', 'demo', 'negotiation', 'qbr', 'check_in', 'escalation'], description: 'Meeting context.' },
+                contactId: { type: 'string', description: 'Contact ID.' },
+                dealId: { type: 'string', description: 'Deal ID.' },
+                accountId: { type: 'string', description: 'Account ID.' },
+                includeObjections: { type: 'boolean', description: 'Include objection handling.' },
+                includeCompetitive: { type: 'boolean', description: 'Include competitive positioning.' }
+            },
+            required: ['context']
+        }
+    },
+
+    // 150. Analyze Conversation
+    {
+        name: 'analyze_conversation',
+        description: 'AI analysis of conversation transcripts.',
+        parameters: {
+            type: 'object',
+            properties: {
+                transcript: { type: 'string', description: 'Conversation transcript.' },
+                callId: { type: 'string', description: 'Call ID (alternative to transcript).' },
+                analysisTypes: { type: 'string', description: 'Comma-separated analysis types (sentiment, topics, action_items, objections).' },
+                extractEntities: { type: 'boolean', description: 'Extract named entities.' },
+                generateSummary: { type: 'boolean', description: 'Generate conversation summary.' },
+                identifyNextSteps: { type: 'boolean', description: 'Identify action items.' }
+            },
+            required: ['analysisTypes']
+        }
     }
 ];
 
@@ -4480,6 +5549,1771 @@ export async function executeLocalTool(call: any): Promise<any> {
                     'Add error alerting for critical failures'
                 ] : null,
                 generatedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // ============ ROUND 5: DOCUMENT & CONTENT MANAGEMENT (91-105) ============
+
+    // 91. Create Document
+    if (name === 'create_document') {
+        const document = {
+            id: generateId('doc'),
+            title: args.title,
+            type: args.type,
+            content: args.content,
+            templateId: args.templateId || null,
+            folderId: args.folderId || 'root',
+            tags: args.tags ? args.tags.split(',').map((t: string) => t.trim()) : [],
+            version: 1,
+            status: 'draft',
+            createdAt: new Date().toISOString()
+        };
+
+        memoryManager.addMemory(JSON.stringify(document), 'document');
+        return {
+            success: true,
+            message: `Document "${args.title}" created successfully.`,
+            document
+        };
+    }
+
+    // 92. Generate Proposal
+    if (name === 'generate_proposal') {
+        const proposal = {
+            id: generateId('proposal'),
+            clientId: args.clientId,
+            dealId: args.dealId || null,
+            proposalType: args.proposalType,
+            sections: args.sections ? args.sections.split(',') : ['executive_summary', 'solution', 'pricing', 'timeline'],
+            status: 'draft',
+            content: {
+                executiveSummary: 'Auto-generated executive summary based on client needs...',
+                proposedSolution: 'Comprehensive solution tailored to requirements...',
+                pricing: args.includePricing ? {
+                    subtotal: 125000,
+                    discount: 10,
+                    total: 112500
+                } : null,
+                terms: args.includeTerms ? 'Standard terms and conditions apply...' : null
+            },
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Proposal generated for client ${args.clientId}.`,
+            proposal
+        };
+    }
+
+    // 93. Create Presentation
+    if (name === 'create_presentation') {
+        const presentation = {
+            id: generateId('pres'),
+            title: args.title,
+            type: args.type,
+            templateId: args.templateId || null,
+            clientId: args.clientId || null,
+            slideCount: args.slides ? JSON.parse(args.slides).length : 10,
+            slides: args.slides ? JSON.parse(args.slides) : [
+                { title: 'Introduction', type: 'title' },
+                { title: 'Overview', type: 'content' },
+                { title: 'Solution', type: 'content' },
+                { title: 'Next Steps', type: 'content' }
+            ],
+            status: 'draft',
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Presentation "${args.title}" created.`,
+            presentation
+        };
+    }
+
+    // 94. Manage Template
+    if (name === 'manage_template') {
+        if (args.action === 'create') {
+            const template = {
+                id: generateId('template'),
+                name: args.name,
+                type: args.type,
+                content: args.content,
+                category: args.category || 'general',
+                createdAt: new Date().toISOString()
+            };
+            return { success: true, message: `Template "${args.name}" created.`, template };
+        }
+
+        if (args.action === 'list') {
+            return {
+                success: true,
+                templates: [
+                    { id: 'tpl_1', name: 'Sales Proposal', type: 'proposal', category: 'sales' },
+                    { id: 'tpl_2', name: 'NDA Agreement', type: 'contract', category: 'legal' },
+                    { id: 'tpl_3', name: 'Welcome Email', type: 'email', category: 'onboarding' }
+                ]
+            };
+        }
+
+        return { success: true, message: `Template action "${args.action}" completed.` };
+    }
+
+    // 95. Sign Document
+    if (name === 'sign_document') {
+        if (args.action === 'send_for_signature') {
+            const signers = args.signers ? args.signers.split(',') : [];
+            return {
+                success: true,
+                message: `Document sent for signature to ${signers.length} signers.`,
+                signatureRequest: {
+                    id: generateId('sig'),
+                    documentId: args.documentId,
+                    signers: signers.map((s: string, i: number) => ({
+                        id: s.trim(),
+                        order: args.signerOrder === 'sequential' ? i + 1 : 1,
+                        status: 'pending'
+                    })),
+                    expiresAt: args.expirationDays ?
+                        new Date(Date.now() + args.expirationDays * 24 * 60 * 60 * 1000).toISOString() : null,
+                    createdAt: new Date().toISOString()
+                }
+            };
+        }
+
+        if (args.action === 'get_status') {
+            return {
+                success: true,
+                status: {
+                    documentId: args.documentId,
+                    status: 'partially_signed',
+                    signers: [
+                        { id: 'signer_1', status: 'signed', signedAt: '2026-03-07T10:00:00Z' },
+                        { id: 'signer_2', status: 'pending' }
+                    ]
+                }
+            };
+        }
+
+        return { success: true, message: `Signature action "${args.action}" completed.` };
+    }
+
+    // 96. Version Document
+    if (name === 'version_document') {
+        if (args.action === 'create_version') {
+            return {
+                success: true,
+                message: 'New document version created.',
+                version: {
+                    versionId: generateId('ver'),
+                    documentId: args.documentId,
+                    versionNumber: 3,
+                    notes: args.versionNotes || null,
+                    createdAt: new Date().toISOString()
+                }
+            };
+        }
+
+        if (args.action === 'get_history') {
+            return {
+                success: true,
+                history: {
+                    documentId: args.documentId,
+                    versions: [
+                        { versionId: 'ver_3', number: 3, createdAt: '2026-03-07', createdBy: 'John Smith' },
+                        { versionId: 'ver_2', number: 2, createdAt: '2026-03-05', createdBy: 'Jane Doe' },
+                        { versionId: 'ver_1', number: 1, createdAt: '2026-03-01', createdBy: 'John Smith' }
+                    ]
+                }
+            };
+        }
+
+        if (args.action === 'compare') {
+            return {
+                success: true,
+                comparison: {
+                    documentId: args.documentId,
+                    version1: args.versionId,
+                    version2: args.compareVersionId,
+                    changes: {
+                        additions: 15,
+                        deletions: 8,
+                        modifications: 12
+                    }
+                }
+            };
+        }
+
+        return { success: true, message: `Version action "${args.action}" completed.` };
+    }
+
+    // 97. Share Document
+    if (name === 'share_document') {
+        if (args.action === 'share') {
+            const userIds = args.userIds ? args.userIds.split(',') : [];
+            return {
+                success: true,
+                message: `Document shared with ${userIds.length} users.`,
+                share: {
+                    documentId: args.documentId,
+                    sharedWith: userIds.map((u: string) => ({
+                        userId: u.trim(),
+                        permission: args.permission || 'view',
+                        expiresAt: args.expiresIn ?
+                            new Date(Date.now() + args.expiresIn * 24 * 60 * 60 * 1000).toISOString() : null
+                    })),
+                    notificationsSent: args.notifyUsers || false,
+                    sharedAt: new Date().toISOString()
+                }
+            };
+        }
+
+        if (args.action === 'create_link') {
+            return {
+                success: true,
+                link: {
+                    url: `https://app.neurolynx.com/docs/${args.documentId}/share/${generateId('link')}`,
+                    permission: args.permission || 'view',
+                    expiresAt: args.expiresIn ?
+                        new Date(Date.now() + args.expiresIn * 24 * 60 * 60 * 1000).toISOString() : null
+                }
+            };
+        }
+
+        return { success: true, message: `Share action "${args.action}" completed.` };
+    }
+
+    // 98. Create Folder
+    if (name === 'create_folder') {
+        if (args.action === 'create') {
+            const folder = {
+                id: generateId('folder'),
+                name: args.name,
+                parentFolderId: args.parentFolderId || 'root',
+                inheritPermissions: args.inheritPermissions ?? true,
+                createdAt: new Date().toISOString()
+            };
+            return { success: true, message: `Folder "${args.name}" created.`, folder };
+        }
+
+        if (args.action === 'list') {
+            return {
+                success: true,
+                folders: [
+                    { id: 'folder_1', name: 'Sales Documents', parentId: 'root', documentCount: 45 },
+                    { id: 'folder_2', name: 'Contracts', parentId: 'root', documentCount: 28 },
+                    { id: 'folder_3', name: 'Proposals', parentId: 'folder_1', documentCount: 15 }
+                ]
+            };
+        }
+
+        return { success: true, message: `Folder action "${args.action}" completed.` };
+    }
+
+    // 99. Search Documents
+    if (name === 'search_documents') {
+        return {
+            success: true,
+            results: {
+                query: args.query,
+                searchType: args.searchType || 'all',
+                totalResults: 23,
+                documents: [
+                    { id: 'doc_1', title: 'Q1 Sales Proposal', type: 'proposal', relevance: 0.95, folder: 'Sales' },
+                    { id: 'doc_2', title: 'Enterprise Agreement', type: 'contract', relevance: 0.88, folder: 'Contracts' },
+                    { id: 'doc_3', title: 'Product Overview', type: 'presentation', relevance: 0.82, folder: 'Marketing' }
+                ]
+            }
+        };
+    }
+
+    // 100. Annotate Document
+    if (name === 'annotate_document') {
+        if (args.action === 'add') {
+            const annotation = {
+                id: generateId('annotation'),
+                documentId: args.documentId,
+                type: args.type || 'comment',
+                content: args.content,
+                position: args.position ? JSON.parse(args.position) : null,
+                createdAt: new Date().toISOString()
+            };
+            return { success: true, message: 'Annotation added.', annotation };
+        }
+
+        if (args.action === 'get_all') {
+            return {
+                success: true,
+                annotations: [
+                    { id: 'ann_1', type: 'comment', content: 'Review pricing section', resolved: false },
+                    { id: 'ann_2', type: 'highlight', content: 'Key terms', resolved: true }
+                ]
+            };
+        }
+
+        return { success: true, message: `Annotation action "${args.action}" completed.` };
+    }
+
+    // 101. Convert Document
+    if (name === 'convert_document') {
+        return {
+            success: true,
+            message: `Document converted to ${args.targetFormat}.`,
+            conversion: {
+                sourceDocumentId: args.documentId,
+                sourceFormat: args.sourceFormat || 'docx',
+                targetFormat: args.targetFormat,
+                newDocumentId: args.createNewDocument ? generateId('doc') : args.documentId,
+                preservedFormatting: args.preserveFormatting ?? true,
+                convertedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 102. Merge Documents
+    if (name === 'merge_documents') {
+        const docIds = args.documentIds.split(',').map((d: string) => d.trim());
+        return {
+            success: true,
+            message: `${docIds.length} documents merged.`,
+            mergedDocument: {
+                id: generateId('doc'),
+                title: args.outputTitle,
+                format: args.outputFormat || 'docx',
+                sourceDocuments: docIds,
+                pageBreaks: args.includePageBreaks || false,
+                pageCount: docIds.length * 5,
+                createdAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 103. Extract Document Data
+    if (name === 'extract_document_data') {
+        return {
+            success: true,
+            extraction: {
+                documentId: args.documentId,
+                extractionType: args.extractionType,
+                outputFormat: args.outputFormat || 'json',
+                data: args.extractionType === 'tables' ? {
+                    tables: [
+                        { name: 'Pricing Table', rows: 5, columns: 4 },
+                        { name: 'Timeline', rows: 8, columns: 3 }
+                    ]
+                } : args.extractionType === 'key_values' ? {
+                    pairs: [
+                        { key: 'Contract Value', value: '$150,000' },
+                        { key: 'Start Date', value: '2026-04-01' },
+                        { key: 'Duration', value: '12 months' }
+                    ]
+                } : args.extractionType === 'contacts' ? {
+                    contacts: [
+                        { name: 'John Smith', email: 'john@example.com', role: 'Signer' }
+                    ]
+                } : { extracted: true },
+                extractedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 104. Create Contract Template
+    if (name === 'create_contract_template') {
+        const template = {
+            id: generateId('contract_tpl'),
+            name: args.name,
+            type: args.type,
+            content: args.content,
+            requiredFields: args.requiredFields ? args.requiredFields.split(',') : [],
+            approvalRequired: args.approvalRequired || false,
+            status: 'active',
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Contract template "${args.name}" created.`,
+            template
+        };
+    }
+
+    // 105. Track Document Views
+    if (name === 'track_document_views') {
+        if (args.action === 'log_view') {
+            return {
+                success: true,
+                message: 'Document view logged.',
+                view: {
+                    documentId: args.documentId,
+                    viewerId: args.viewerId,
+                    viewedAt: new Date().toISOString()
+                }
+            };
+        }
+
+        if (args.action === 'get_analytics') {
+            return {
+                success: true,
+                analytics: {
+                    documentId: args.documentId,
+                    timeframe: args.timeframe || '30days',
+                    totalViews: 156,
+                    uniqueViewers: 42,
+                    avgViewDuration: '3:45',
+                    viewsByDate: [
+                        { date: '2026-03-07', views: 12 },
+                        { date: '2026-03-06', views: 18 },
+                        { date: '2026-03-05', views: 15 }
+                    ]
+                }
+            };
+        }
+
+        return { success: true, message: `Document tracking action "${args.action}" completed.` };
+    }
+
+    // ============ ROUND 6: COMMUNICATION & COLLABORATION (106-120) ============
+
+    // 106. Send Bulk Email
+    if (name === 'send_bulk_email') {
+        const recipientCount = args.listId ? 500 : (args.contactIds ? args.contactIds.split(',').length : 0);
+        return {
+            success: true,
+            message: `Bulk email ${args.scheduledTime ? 'scheduled' : 'sent'}.`,
+            emailBatch: {
+                id: generateId('batch'),
+                subject: args.subject,
+                recipientCount,
+                templateId: args.templateId || null,
+                scheduledTime: args.scheduledTime || null,
+                status: args.scheduledTime ? 'scheduled' : 'sending',
+                trackOpens: args.trackOpens ?? true,
+                trackClicks: args.trackClicks ?? true,
+                createdAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 107. Create Email Template
+    if (name === 'create_email_template') {
+        const template = {
+            id: generateId('email_tpl'),
+            name: args.name,
+            subject: args.subject,
+            htmlContent: args.htmlContent,
+            plainTextContent: args.plainTextContent || null,
+            category: args.category || 'general',
+            mergeFields: args.mergeFields ? args.mergeFields.split(',') : [],
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Email template "${args.name}" created.`,
+            template
+        };
+    }
+
+    // 108. Schedule Meeting
+    if (name === 'schedule_meeting') {
+        const attendees = args.attendeeIds.split(',').map((a: string) => a.trim());
+        const meeting = {
+            id: generateId('meeting'),
+            title: args.title,
+            attendees,
+            dateTime: args.dateTime,
+            duration: args.duration,
+            type: args.type || 'video',
+            location: args.location || null,
+            agenda: args.agenda || null,
+            invitesSent: args.sendInvites ?? true,
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Meeting "${args.title}" scheduled.`,
+            meeting
+        };
+    }
+
+    // 109. Create Meeting Agenda
+    if (name === 'create_meeting_agenda') {
+        let items: any[];
+        try {
+            items = JSON.parse(args.items);
+        } catch {
+            items = [];
+        }
+
+        const agenda = {
+            id: generateId('agenda'),
+            meetingId: args.meetingId || null,
+            title: args.title,
+            items,
+            objectives: args.objectives || null,
+            prework: args.prework || null,
+            distributed: args.distributeToAttendees || false,
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: 'Meeting agenda created.',
+            agenda
+        };
+    }
+
+    // 110. Send SMS
+    if (name === 'send_sms') {
+        return {
+            success: true,
+            message: args.scheduledTime ? 'SMS scheduled.' : 'SMS sent.',
+            sms: {
+                id: generateId('sms'),
+                contactId: args.contactId || null,
+                phoneNumber: args.phoneNumber || null,
+                message: args.message.substring(0, 160),
+                scheduledTime: args.scheduledTime || null,
+                status: args.scheduledTime ? 'scheduled' : 'sent',
+                sentAt: args.scheduledTime ? null : new Date().toISOString()
+            }
+        };
+    }
+
+    // 111. Create Announcement
+    if (name === 'create_announcement') {
+        const announcement = {
+            id: generateId('announcement'),
+            title: args.title,
+            content: args.content,
+            audience: args.audience,
+            audienceIds: args.audienceIds ? args.audienceIds.split(',') : null,
+            priority: args.priority || 'normal',
+            expiresAt: args.expiresAt || null,
+            requireAcknowledgment: args.requireAcknowledgment || false,
+            acknowledgments: 0,
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Announcement "${args.title}" created.`,
+            announcement
+        };
+    }
+
+    // 112. Manage Distribution List
+    if (name === 'manage_distribution_list') {
+        if (args.action === 'create') {
+            const list = {
+                id: generateId('distlist'),
+                name: args.name,
+                description: args.description || null,
+                type: args.type || 'internal',
+                memberCount: args.memberIds ? args.memberIds.split(',').length : 0,
+                createdAt: new Date().toISOString()
+            };
+            return { success: true, message: `Distribution list "${args.name}" created.`, list };
+        }
+
+        if (args.action === 'list') {
+            return {
+                success: true,
+                lists: [
+                    { id: 'dl_1', name: 'Sales Team', type: 'internal', memberCount: 15 },
+                    { id: 'dl_2', name: 'Customer Advisory Board', type: 'external', memberCount: 25 }
+                ]
+            };
+        }
+
+        return { success: true, message: `Distribution list action "${args.action}" completed.` };
+    }
+
+    // 113. Track Email Engagement
+    if (name === 'track_email_engagement') {
+        if (args.action === 'get_campaign_stats') {
+            return {
+                success: true,
+                stats: {
+                    campaignId: args.campaignId,
+                    sent: 1250,
+                    delivered: 1235,
+                    opened: 485,
+                    clicked: 125,
+                    bounced: 15,
+                    unsubscribed: 8,
+                    openRate: '39.3%',
+                    clickRate: '25.8%'
+                }
+            };
+        }
+
+        if (args.action === 'get_contact_history') {
+            return {
+                success: true,
+                history: {
+                    contactId: args.contactId,
+                    totalEmails: 45,
+                    avgOpenRate: '52%',
+                    lastOpened: '2026-03-07T10:30:00Z',
+                    recentActivity: [
+                        { email: 'Q1 Newsletter', action: 'opened', timestamp: '2026-03-07' },
+                        { email: 'Product Update', action: 'clicked', timestamp: '2026-03-05' }
+                    ]
+                }
+            };
+        }
+
+        if (args.action === 'get_best_times') {
+            return {
+                success: true,
+                bestTimes: {
+                    dayOfWeek: 'Tuesday',
+                    timeOfDay: '10:00 AM',
+                    timezone: 'EST',
+                    openRateByHour: [
+                        { hour: '9AM', rate: '38%' },
+                        { hour: '10AM', rate: '45%' },
+                        { hour: '11AM', rate: '42%' }
+                    ]
+                }
+            };
+        }
+
+        return { success: true, message: `Email engagement action "${args.action}" completed.` };
+    }
+
+    // 114. Create Chat Channel
+    if (name === 'create_chat_channel') {
+        if (args.action === 'create') {
+            const channel = {
+                id: generateId('channel'),
+                name: args.name,
+                type: args.type || 'public',
+                memberCount: args.memberIds ? args.memberIds.split(',').length : 0,
+                linkedEntityId: args.linkedEntityId || null,
+                createdAt: new Date().toISOString()
+            };
+            return { success: true, message: `Channel #${args.name} created.`, channel };
+        }
+
+        if (args.action === 'list') {
+            return {
+                success: true,
+                channels: [
+                    { id: 'ch_1', name: 'sales-team', type: 'public', memberCount: 15 },
+                    { id: 'ch_2', name: 'acme-deal', type: 'deal', memberCount: 5, dealId: 'deal_123' }
+                ]
+            };
+        }
+
+        return { success: true, message: `Channel action "${args.action}" completed.` };
+    }
+
+    // 115. Assign Team Task
+    if (name === 'assign_team_task') {
+        const task = {
+            id: generateId('team_task'),
+            title: args.title,
+            description: args.description || null,
+            assigneeId: args.assigneeId,
+            dueDate: args.dueDate,
+            priority: args.priority || 'medium',
+            relatedEntityType: args.relatedEntityType || null,
+            relatedEntityId: args.relatedEntityId || null,
+            status: 'assigned',
+            notificationSent: args.notifyAssignee ?? true,
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Task assigned to ${args.assigneeId}.`,
+            task
+        };
+    }
+
+    // 116. Request Feedback
+    if (name === 'request_feedback') {
+        const reviewers = args.reviewerIds.split(',').map((r: string) => r.trim());
+        const request = {
+            id: generateId('feedback_req'),
+            type: args.type,
+            title: args.title,
+            description: args.description || null,
+            reviewers: reviewers.map(r => ({ userId: r, status: 'pending' })),
+            entityId: args.entityId || null,
+            dueDate: args.dueDate || null,
+            reminderDays: args.reminderDays || null,
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Feedback requested from ${reviewers.length} reviewers.`,
+            request
+        };
+    }
+
+    // 117. Create Poll
+    if (name === 'create_poll') {
+        let options: any[] = [];
+        if (args.options) {
+            try {
+                options = JSON.parse(args.options);
+            } catch {
+                options = args.options.split(',').map((o: string) => ({ text: o.trim(), votes: 0 }));
+            }
+        }
+
+        const poll = {
+            id: generateId('poll'),
+            title: args.title,
+            type: args.type,
+            options,
+            audienceIds: args.audienceIds ? args.audienceIds.split(',') : [],
+            anonymous: args.anonymous || false,
+            expiresAt: args.expiresAt || null,
+            responses: 0,
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Poll "${args.title}" created.`,
+            poll
+        };
+    }
+
+    // 118. Manage Notification Rules
+    if (name === 'manage_notification_rules') {
+        if (args.action === 'create') {
+            const rule = {
+                id: generateId('notif_rule'),
+                name: args.name,
+                triggerEvent: args.triggerEvent,
+                conditions: args.conditions ? JSON.parse(args.conditions) : null,
+                channels: args.channels ? args.channels.split(',') : ['email'],
+                recipients: args.recipients || null,
+                active: true,
+                createdAt: new Date().toISOString()
+            };
+            return { success: true, message: `Notification rule "${args.name}" created.`, rule };
+        }
+
+        if (args.action === 'list') {
+            return {
+                success: true,
+                rules: [
+                    { id: 'rule_1', name: 'Deal Won Alert', triggerEvent: 'deal.won', channels: ['email', 'slack'] },
+                    { id: 'rule_2', name: 'High Priority Ticket', triggerEvent: 'ticket.created', channels: ['email', 'push'] }
+                ]
+            };
+        }
+
+        return { success: true, message: `Notification rule action "${args.action}" completed.` };
+    }
+
+    // 119. Log Communication
+    if (name === 'log_communication') {
+        const communication = {
+            id: generateId('comm'),
+            type: args.type,
+            direction: args.direction,
+            contactId: args.contactId,
+            subject: args.subject || null,
+            content: args.content || null,
+            duration: args.duration || null,
+            outcome: args.outcome || null,
+            relatedDealId: args.relatedDealId || null,
+            loggedAt: new Date().toISOString()
+        };
+
+        memoryManager.addMemory(JSON.stringify(communication), 'communication');
+        return {
+            success: true,
+            message: `${args.type} logged.`,
+            communication
+        };
+    }
+
+    // 120. Translate Message
+    if (name === 'translate_message') {
+        return {
+            success: true,
+            translation: {
+                sourceText: args.text,
+                sourceLanguage: args.sourceLanguage || 'auto',
+                targetLanguage: args.targetLanguage,
+                translatedText: `[Translated to ${args.targetLanguage}]: ${args.text}`,
+                preservedTone: args.preserveTone ?? true,
+                contentType: args.type || 'general',
+                confidence: 0.95
+            }
+        };
+    }
+
+    // ============ ROUND 7: CUSTOMER SUCCESS & SUPPORT (121-135) ============
+
+    // 121. Create Success Plan
+    if (name === 'create_success_plan') {
+        let objectives: any[], milestones: any[];
+        try {
+            objectives = JSON.parse(args.objectives);
+        } catch {
+            objectives = [{ objective: args.objectives }];
+        }
+        try {
+            milestones = args.milestones ? JSON.parse(args.milestones) : [];
+        } catch {
+            milestones = [];
+        }
+
+        const plan = {
+            id: generateId('success_plan'),
+            companyId: args.companyId,
+            name: args.name,
+            objectives,
+            milestones,
+            ownerId: args.ownerId || null,
+            template: args.template || 'custom',
+            status: 'active',
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Success plan "${args.name}" created.`,
+            plan
+        };
+    }
+
+    // 122. Track Health Score
+    if (name === 'track_health_score') {
+        if (args.action === 'calculate') {
+            return {
+                success: true,
+                healthScore: {
+                    companyId: args.companyId,
+                    score: 78,
+                    grade: 'B+',
+                    trend: 'improving',
+                    factorBreakdown: args.includeFactorBreakdown ? {
+                        productUsage: 82,
+                        supportHealth: 75,
+                        engagementLevel: 80,
+                        paymentHistory: 95,
+                        sentimentScore: 72
+                    } : null,
+                    calculatedAt: new Date().toISOString()
+                }
+            };
+        }
+
+        if (args.action === 'get_history') {
+            return {
+                success: true,
+                history: {
+                    companyId: args.companyId,
+                    timeframe: args.timeframe || '90days',
+                    scores: [
+                        { date: '2026-03-01', score: 78 },
+                        { date: '2026-02-01', score: 72 },
+                        { date: '2026-01-01', score: 68 }
+                    ]
+                }
+            };
+        }
+
+        return { success: true, message: `Health score action "${args.action}" completed.` };
+    }
+
+    // 123. Schedule QBR
+    if (name === 'schedule_qbr') {
+        const qbr = {
+            id: generateId('qbr'),
+            companyId: args.companyId,
+            dateTime: args.dateTime,
+            attendeeIds: args.attendeeIds ? args.attendeeIds.split(',') : [],
+            agenda: args.agenda || null,
+            metrics: args.includeMetrics ? args.includeMetrics.split(',') : ['usage', 'health', 'roi'],
+            deckGenerated: args.generateDeck || false,
+            status: 'scheduled',
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: 'QBR scheduled.',
+            qbr
+        };
+    }
+
+    // 124. Create Playbook
+    if (name === 'create_playbook') {
+        let steps: any[];
+        try {
+            steps = JSON.parse(args.steps);
+        } catch {
+            steps = [];
+        }
+
+        const playbook = {
+            id: generateId('playbook'),
+            name: args.name,
+            type: args.type,
+            trigger: args.trigger || null,
+            steps,
+            automationEnabled: args.automationEnabled || false,
+            targetSegment: args.targetSegment || 'all',
+            status: 'active',
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Playbook "${args.name}" created.`,
+            playbook
+        };
+    }
+
+    // 125. Track Adoption Metrics
+    if (name === 'track_adoption_metrics') {
+        return {
+            success: true,
+            adoption: {
+                companyId: args.companyId,
+                timeframe: args.timeframe || '30days',
+                metrics: {
+                    activeUsers: 45,
+                    totalUsers: 60,
+                    adoptionRate: '75%',
+                    avgSessionsPerUser: 12,
+                    topFeatures: ['Dashboard', 'Reports', 'Automation'],
+                    underutilizedFeatures: ['API', 'Integrations']
+                },
+                baseline: args.compareToBaseline ? {
+                    targetAdoptionRate: '80%',
+                    variance: '-5%',
+                    status: 'slightly_below'
+                } : null,
+                userBreakdown: args.includeUserBreakdown ? [
+                    { userId: 'user_1', sessions: 25, lastActive: '2026-03-07' },
+                    { userId: 'user_2', sessions: 18, lastActive: '2026-03-06' }
+                ] : null
+            }
+        };
+    }
+
+    // 126. Identify Risk Signals
+    if (name === 'identify_risk_signals') {
+        return {
+            success: true,
+            riskAnalysis: {
+                companyId: args.companyId,
+                overallRisk: 'medium',
+                signals: [
+                    { signal: 'Decreased logins', severity: 'high', trend: 'down 40%' },
+                    { signal: 'Support ticket spike', severity: 'medium', count: 8 },
+                    { signal: 'Key contact left', severity: 'low', impact: 'champion departed' }
+                ],
+                recommendations: args.includeRecommendations ? [
+                    'Schedule check-in call with account',
+                    'Offer training session',
+                    'Identify new champion'
+                ] : null,
+                tasksCreated: args.autoCreateTasks ? 2 : 0
+            }
+        };
+    }
+
+    // 127. Create Escalation
+    if (name === 'create_escalation') {
+        const escalation = {
+            id: generateId('escalation'),
+            companyId: args.companyId,
+            type: args.type,
+            severity: args.severity,
+            title: args.title,
+            description: args.description,
+            assignedTo: args.assignTo || null,
+            executivesNotified: args.notifyExecutives || false,
+            status: 'open',
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Escalation created: ${args.title}`,
+            escalation
+        };
+    }
+
+    // 128. Manage Renewal
+    if (name === 'manage_renewal') {
+        if (args.action === 'get_upcoming') {
+            return {
+                success: true,
+                renewals: {
+                    daysAhead: args.daysAhead || 90,
+                    count: 12,
+                    totalValue: 450000,
+                    items: [
+                        { companyId: 'comp_1', company: 'Acme Corp', renewalDate: '2026-04-15', value: 85000, health: 'good' },
+                        { companyId: 'comp_2', company: 'TechStart', renewalDate: '2026-05-01', value: 45000, health: 'at_risk' }
+                    ]
+                }
+            };
+        }
+
+        if (args.action === 'generate_quote') {
+            return {
+                success: true,
+                renewalQuote: {
+                    companyId: args.companyId,
+                    contractId: args.contractId,
+                    currentValue: 80000,
+                    proposedValue: args.newTerms ? JSON.parse(args.newTerms).value : 84000,
+                    change: '+5%',
+                    upsellOpportunities: args.includeUpsell ? [
+                        { product: 'Enterprise Add-on', value: 15000 }
+                    ] : null
+                }
+            };
+        }
+
+        return { success: true, message: `Renewal action "${args.action}" completed.` };
+    }
+
+    // 129. Calculate NPS
+    if (name === 'calculate_nps') {
+        if (args.action === 'calculate') {
+            return {
+                success: true,
+                nps: {
+                    companyId: args.companyId || 'overall',
+                    score: 42,
+                    promoters: 55,
+                    passives: 30,
+                    detractors: 15,
+                    responses: 100,
+                    benchmark: 'above_average',
+                    calculatedAt: new Date().toISOString()
+                }
+            };
+        }
+
+        if (args.action === 'get_trends') {
+            return {
+                success: true,
+                trends: {
+                    timeframe: args.timeframe || '1year',
+                    scores: [
+                        { period: 'Q1 2026', score: 42 },
+                        { period: 'Q4 2025', score: 38 },
+                        { period: 'Q3 2025', score: 35 }
+                    ],
+                    trend: 'improving',
+                    segmentedBy: args.segmentBy || null
+                }
+            };
+        }
+
+        return { success: true, message: `NPS action "${args.action}" completed.` };
+    }
+
+    // 130. Create Case Study
+    if (name === 'create_case_study') {
+        const caseStudy = {
+            id: generateId('case_study'),
+            companyId: args.companyId,
+            title: args.title,
+            challenge: args.challenge || (args.generateFromData ? 'Auto-generated challenge...' : null),
+            solution: args.solution || (args.generateFromData ? 'Auto-generated solution...' : null),
+            results: args.results ? JSON.parse(args.results) : (args.generateFromData ? {
+                roi: '250%',
+                timeSaved: '40 hours/month',
+                revenueIncrease: '25%'
+            } : null),
+            testimonial: args.testimonial || null,
+            status: 'draft',
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Case study "${args.title}" created.`,
+            caseStudy
+        };
+    }
+
+    // 131. Track Support Metrics
+    if (name === 'track_support_metrics') {
+        if (args.action === 'get_metrics') {
+            return {
+                success: true,
+                metrics: {
+                    companyId: args.companyId || 'all',
+                    timeframe: args.timeframe || '30days',
+                    ticketVolume: 245,
+                    avgResponseTime: '2.5 hours',
+                    avgResolutionTime: '18 hours',
+                    csat: 4.2,
+                    firstContactResolution: '68%',
+                    slaCompliance: '94%'
+                }
+            };
+        }
+
+        if (args.action === 'check_sla') {
+            return {
+                success: true,
+                slaStatus: {
+                    companyId: args.companyId,
+                    currentSLA: 'premium',
+                    compliance: '94%',
+                    breaches: 3,
+                    atRiskTickets: 2
+                }
+            };
+        }
+
+        return { success: true, message: `Support metrics action "${args.action}" completed.` };
+    }
+
+    // 132. Create Knowledge Article
+    if (name === 'create_knowledge_article') {
+        const article = {
+            id: generateId('kb_article'),
+            title: args.title,
+            category: args.category,
+            content: args.content,
+            visibility: args.visibility,
+            tags: args.tags ? args.tags.split(',').map((t: string) => t.trim()) : [],
+            relatedArticles: args.relatedArticleIds ? args.relatedArticleIds.split(',') : [],
+            attachments: args.attachments ? args.attachments.split(',') : [],
+            status: 'draft',
+            createdAt: new Date().toISOString()
+        };
+
+        return {
+            success: true,
+            message: `Knowledge article "${args.title}" created.`,
+            article
+        };
+    }
+
+    // 133. Manage SLA
+    if (name === 'manage_sla') {
+        if (args.action === 'create') {
+            const sla = {
+                id: generateId('sla'),
+                companyId: args.companyId,
+                name: args.name,
+                tier: args.tier || 'standard',
+                terms: args.terms ? JSON.parse(args.terms) : {
+                    responseTime: '4 hours',
+                    resolutionTime: '24 hours',
+                    availability: '99.9%'
+                },
+                status: 'active',
+                createdAt: new Date().toISOString()
+            };
+            return { success: true, message: `SLA "${args.name}" created.`, sla };
+        }
+
+        if (args.action === 'check_compliance') {
+            return {
+                success: true,
+                compliance: {
+                    slaId: args.slaId,
+                    companyId: args.companyId,
+                    overallCompliance: '94%',
+                    metrics: {
+                        responseTime: { target: '4 hours', actual: '3.2 hours', compliant: true },
+                        resolutionTime: { target: '24 hours', actual: '18 hours', compliant: true },
+                        uptime: { target: '99.9%', actual: '99.95%', compliant: true }
+                    }
+                }
+            };
+        }
+
+        return { success: true, message: `SLA action "${args.action}" completed.` };
+    }
+
+    // 134. Create Customer Portal
+    if (name === 'create_customer_portal') {
+        if (args.action === 'setup') {
+            return {
+                success: true,
+                portal: {
+                    id: generateId('portal'),
+                    companyId: args.companyId,
+                    url: `https://portal.neurolynx.com/${args.companyId}`,
+                    features: args.features ? args.features.split(',') : ['support', 'knowledge_base', 'billing'],
+                    branding: args.branding ? JSON.parse(args.branding) : null,
+                    status: 'active',
+                    createdAt: new Date().toISOString()
+                }
+            };
+        }
+
+        if (args.action === 'invite_user') {
+            return {
+                success: true,
+                message: `Portal invitation sent to contact ${args.contactId}.`,
+                invitation: {
+                    contactId: args.contactId,
+                    portalUrl: `https://portal.neurolynx.com/${args.companyId}`,
+                    invitedAt: new Date().toISOString()
+                }
+            };
+        }
+
+        if (args.action === 'get_analytics') {
+            return {
+                success: true,
+                analytics: {
+                    companyId: args.companyId,
+                    activeUsers: 12,
+                    totalLogins: 156,
+                    topPages: ['Support Tickets', 'Knowledge Base', 'Invoices'],
+                    avgSessionDuration: '8:30'
+                }
+            };
+        }
+
+        return { success: true, message: `Portal action "${args.action}" completed.` };
+    }
+
+    // 135. Track Customer Feedback
+    if (name === 'track_customer_feedback') {
+        if (args.action === 'log') {
+            const feedback = {
+                id: generateId('feedback'),
+                companyId: args.companyId || null,
+                contactId: args.contactId || null,
+                feedbackType: args.feedbackType,
+                content: args.content,
+                source: args.source || 'manual',
+                sentiment: args.sentiment || 'neutral',
+                loggedAt: new Date().toISOString()
+            };
+            return { success: true, message: 'Feedback logged.', feedback };
+        }
+
+        if (args.action === 'get_summary') {
+            return {
+                success: true,
+                summary: {
+                    companyId: args.companyId || 'all',
+                    totalFeedback: 156,
+                    byType: {
+                        praise: 45,
+                        complaint: 28,
+                        suggestion: 52,
+                        question: 31
+                    },
+                    bySentiment: {
+                        positive: 65,
+                        neutral: 48,
+                        negative: 43
+                    },
+                    topThemes: ['Product Features', 'Support Response', 'Pricing']
+                }
+            };
+        }
+
+        return { success: true, message: `Feedback action "${args.action}" completed.` };
+    }
+
+    // ============ ROUND 8: ADVANCED OPERATIONS & AI (136-150) ============
+
+    // 136. Predict Deal Outcome
+    if (name === 'predict_deal_outcome') {
+        return {
+            success: true,
+            prediction: {
+                dealId: args.dealId,
+                winProbability: 72,
+                confidence: 85,
+                predictedCloseDate: '2026-04-15',
+                factors: args.includeFactors ? {
+                    positive: [
+                        { factor: 'Strong champion engagement', impact: '+15%' },
+                        { factor: 'Budget confirmed', impact: '+12%' },
+                        { factor: 'Competitive win history', impact: '+8%' }
+                    ],
+                    negative: [
+                        { factor: 'Long sales cycle', impact: '-10%' },
+                        { factor: 'Committee decision', impact: '-5%' }
+                    ]
+                } : null,
+                recommendations: args.includeRecommendations ? [
+                    'Schedule executive alignment call',
+                    'Send case study for similar customer',
+                    'Address procurement timeline'
+                ] : null,
+                similarDeals: args.compareToSimilar ? {
+                    matchingDeals: 15,
+                    avgWinRate: '65%',
+                    yourDeal: 'above_average'
+                } : null,
+                predictedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 137. Recommend Next Action
+    if (name === 'recommend_next_action') {
+        return {
+            success: true,
+            recommendations: {
+                context: args.context,
+                entityId: args.entityId || null,
+                userId: args.userId || null,
+                actions: [
+                    {
+                        priority: 1,
+                        urgency: 'urgent',
+                        action: 'Follow up on proposal with Acme Corp',
+                        reason: 'No response in 5 days, deal at risk',
+                        expectedImpact: 'Prevent deal slippage'
+                    },
+                    {
+                        priority: 2,
+                        urgency: 'important',
+                        action: 'Send renewal reminder to TechStart',
+                        reason: 'Renewal in 30 days, no engagement',
+                        expectedImpact: 'Secure $45K renewal'
+                    },
+                    {
+                        priority: 3,
+                        urgency: 'normal',
+                        action: 'Schedule QBR with GlobalCo',
+                        reason: 'Quarterly review overdue',
+                        expectedImpact: 'Strengthen relationship'
+                    }
+                ].filter(a =>
+                    args.urgencyFilter === 'all' ? true :
+                    args.urgencyFilter === 'urgent' ? a.urgency === 'urgent' :
+                    a.urgency !== 'normal'
+                ).slice(0, args.maxRecommendations || 5),
+                generatedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 138. Auto Classify Lead
+    if (name === 'auto_classify_lead') {
+        return {
+            success: true,
+            classification: {
+                contactId: args.contactId,
+                classifications: {
+                    segment: 'enterprise',
+                    industry: 'technology',
+                    buyerPersona: 'technical_decision_maker',
+                    intent: 'high',
+                    budget: 'qualified',
+                    timeline: '30-60_days'
+                },
+                leadScore: args.autoScore ? {
+                    score: 85,
+                    grade: 'A',
+                    components: {
+                        demographic: 90,
+                        behavioral: 80,
+                        firmographic: 85
+                    }
+                } : null,
+                assignedTo: args.autoAssign ? 'rep_enterprise_1' : null,
+                confidence: 0.88,
+                classifiedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 139. Generate Summary
+    if (name === 'generate_summary') {
+        const summaryContent: Record<string, any> = {
+            brief: {
+                headline: 'Key highlights from the last 30 days',
+                points: ['3 meetings held', '2 proposals sent', '$150K in pipeline']
+            },
+            detailed: {
+                overview: 'Comprehensive summary of all activities and outcomes...',
+                sections: ['Activity Summary', 'Key Decisions', 'Open Items', 'Next Steps']
+            },
+            executive: {
+                status: 'On Track',
+                keyMetrics: { dealValue: '$250K', probability: '72%', nextStep: 'Contract review' }
+            },
+            action_items: {
+                items: [
+                    { action: 'Send updated proposal', owner: 'John Smith', due: '2026-03-10' },
+                    { action: 'Schedule legal review', owner: 'Jane Doe', due: '2026-03-12' }
+                ]
+            }
+        };
+
+        return {
+            success: true,
+            summary: {
+                entityType: args.entityType,
+                entityId: args.entityId,
+                summaryType: args.summaryType,
+                content: summaryContent[args.summaryType] || summaryContent.brief,
+                metrics: args.includeMetrics ? {
+                    activities: 15,
+                    emails: 8,
+                    meetings: 3,
+                    calls: 4
+                } : null,
+                generatedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 140. Extract Insights
+    if (name === 'extract_insights') {
+        const insightTypes = args.insightTypes.split(',').map((t: string) => t.trim());
+        return {
+            success: true,
+            insights: {
+                dataSource: args.dataSource,
+                entityId: args.entityId || null,
+                timeframe: args.timeframe || '30days',
+                extracted: {
+                    sentiment: insightTypes.includes('sentiment') ? {
+                        overall: 'positive',
+                        score: 72,
+                        trend: 'stable'
+                    } : null,
+                    topics: insightTypes.includes('topics') ? [
+                        { topic: 'Product Features', mentions: 15, sentiment: 'positive' },
+                        { topic: 'Pricing', mentions: 8, sentiment: 'neutral' },
+                        { topic: 'Support', mentions: 5, sentiment: 'mixed' }
+                    ] : null,
+                    trends: insightTypes.includes('trends') ? {
+                        engagementTrend: 'increasing',
+                        volumeTrend: 'stable',
+                        keyChanges: ['More product inquiries', 'Fewer support issues']
+                    } : null,
+                    risks: insightTypes.includes('risks') ? [
+                        { risk: 'Budget concerns mentioned', severity: 'medium' },
+                        { risk: 'Competitor evaluation', severity: 'low' }
+                    ] : null
+                },
+                extractedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 141. Detect Duplicates
+    if (name === 'detect_duplicates') {
+        return {
+            success: true,
+            duplicates: {
+                objectType: args.objectType,
+                recordId: args.recordId || null,
+                matchThreshold: args.matchThreshold || 80,
+                found: [
+                    {
+                        recordId: 'contact_123',
+                        matchedRecordId: 'contact_456',
+                        confidence: 95,
+                        matchedFields: ['email', 'phone', 'company'],
+                        recommendation: 'merge'
+                    },
+                    {
+                        recordId: 'contact_789',
+                        matchedRecordId: 'contact_012',
+                        confidence: 82,
+                        matchedFields: ['name', 'company'],
+                        recommendation: 'review'
+                    }
+                ],
+                autoMerged: args.autoMerge ? 1 : 0,
+                analyzedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 142. Enrich Data
+    if (name === 'enrich_data') {
+        return {
+            success: true,
+            enrichment: {
+                objectType: args.objectType,
+                recordId: args.recordId,
+                sources: args.enrichmentSources ? args.enrichmentSources.split(',') : ['linkedin', 'clearbit'],
+                enrichedFields: {
+                    company: {
+                        employeeCount: 250,
+                        revenue: '$50M-$100M',
+                        industry: 'Technology',
+                        founded: 2015
+                    },
+                    contact: {
+                        linkedinUrl: 'linkedin.com/in/johndoe',
+                        title: 'VP of Engineering',
+                        department: 'Engineering'
+                    }
+                },
+                fieldsUpdated: args.fieldsToEnrich ? args.fieldsToEnrich.split(',').length : 5,
+                overwritten: args.overwriteExisting || false,
+                enrichedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 143. Score Sentiment
+    if (name === 'score_sentiment') {
+        return {
+            success: true,
+            sentimentAnalysis: {
+                text: args.text.substring(0, 100) + '...',
+                entityId: args.entityId || null,
+                entityType: args.entityType || 'general',
+                sentiment: {
+                    overall: 'positive',
+                    score: 0.72,
+                    magnitude: 0.85
+                },
+                emotions: args.includeEmotions ? {
+                    joy: 0.6,
+                    trust: 0.7,
+                    anticipation: 0.5,
+                    concern: 0.2
+                } : null,
+                topics: args.includeTopics ? [
+                    { topic: 'product_satisfaction', sentiment: 'positive' },
+                    { topic: 'pricing', sentiment: 'neutral' }
+                ] : null,
+                analyzedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 144. Predict Revenue
+    if (name === 'predict_revenue') {
+        const baseRevenue = args.period === 'yearly' ? 5500000 : args.period === 'quarterly' ? 1450000 : 510000;
+        return {
+            success: true,
+            revenuePrediction: {
+                period: args.period,
+                model: args.model,
+                prediction: {
+                    expected: baseRevenue,
+                    low: baseRevenue * 0.85,
+                    high: baseRevenue * 1.15
+                },
+                segments: args.segmentBy ? args.segmentBy.split(',').map((s: string) => ({
+                    segment: s.trim(),
+                    predicted: baseRevenue * 0.3
+                })) : null,
+                scenarios: args.includeScenarios ? {
+                    conservative: baseRevenue * 0.85,
+                    moderate: baseRevenue,
+                    optimistic: baseRevenue * 1.2
+                } : null,
+                drivers: args.includeDrivers ? [
+                    { driver: 'Pipeline conversion', impact: '+$250K' },
+                    { driver: 'Renewals', impact: '+$180K' },
+                    { driver: 'Churn risk', impact: '-$45K' }
+                ] : null,
+                confidence: 0.82,
+                predictedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 145. Optimize Pricing
+    if (name === 'optimize_pricing') {
+        return {
+            success: true,
+            pricingOptimization: {
+                dealId: args.dealId || null,
+                products: args.productIds ? args.productIds.split(',') : [],
+                customerSegment: args.customerSegment || 'standard',
+                objective: args.objective,
+                recommendations: {
+                    suggestedPrice: 125000,
+                    currentPrice: 150000,
+                    discount: '16.7%',
+                    rationale: `Based on ${args.objective}, recommend competitive pricing to secure deal.`,
+                    alternatives: [
+                        { price: 135000, winProbability: '65%', margin: '42%' },
+                        { price: 125000, winProbability: '78%', margin: '38%' },
+                        { price: 115000, winProbability: '88%', margin: '34%' }
+                    ]
+                },
+                competitorContext: args.competitorContext || null,
+                optimizedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 146. Forecast Demand
+    if (name === 'forecast_demand') {
+        return {
+            success: true,
+            demandForecast: {
+                productId: args.productId || 'all',
+                period: args.period,
+                horizon: args.horizon || 4,
+                forecast: Array.from({ length: args.horizon || 4 }, (_, i) => ({
+                    period: i + 1,
+                    predicted: 1000 + Math.floor(Math.random() * 200),
+                    low: 800 + Math.floor(Math.random() * 100),
+                    high: 1100 + Math.floor(Math.random() * 200)
+                })),
+                seasonality: args.includeSeasonality ? {
+                    pattern: 'quarterly',
+                    peakPeriod: 'Q4',
+                    lowPeriod: 'Q1',
+                    seasonalFactor: 1.25
+                } : null,
+                externalFactors: args.externalFactors ? JSON.parse(args.externalFactors) : null,
+                accuracy: '85%',
+                forecastedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 147. Personalize Content
+    if (name === 'personalize_content') {
+        return {
+            success: true,
+            personalization: {
+                contentId: args.contentId,
+                contactId: args.contactId,
+                contentType: args.contentType,
+                level: args.personalizationLevel || 'moderate',
+                personalizedContent: {
+                    greeting: 'Hi {{firstName}}',
+                    industry_reference: 'As a leader in {{industry}}...',
+                    pain_points: 'We understand challenges like {{painPoint}}...',
+                    recommendations: args.includeRecommendations ? [
+                        { product: 'Enterprise Plan', reason: 'Based on company size' },
+                        { product: 'Analytics Add-on', reason: 'Based on usage patterns' }
+                    ] : null
+                },
+                mergeFields: {
+                    firstName: 'John',
+                    industry: 'Technology',
+                    painPoint: 'scaling operations'
+                },
+                personalizedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 148. Auto Categorize
+    if (name === 'auto_categorize') {
+        return {
+            success: true,
+            categorization: {
+                objectType: args.objectType,
+                recordId: args.recordId,
+                categories: [
+                    { category: 'Product Inquiry', confidence: 0.92 },
+                    { category: 'Pricing Question', confidence: 0.78 }
+                ].slice(0, args.multiCategory ? 2 : 1),
+                multiCategory: args.multiCategory || false,
+                confidenceThreshold: args.confidenceThreshold || 70,
+                autoApplied: true,
+                categorizedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 149. Generate Talking Points
+    if (name === 'generate_talking_points') {
+        const contextTalkingPoints: Record<string, any> = {
+            discovery_call: {
+                opener: 'Thank them for their time, reference how you connected',
+                questions: ['What prompted you to explore solutions now?', 'What does success look like?'],
+                keyPoints: ['Our unique value proposition', 'Similar customer success stories']
+            },
+            demo: {
+                opener: 'Recap their key requirements from discovery',
+                features: ['Feature A addressing need X', 'Feature B solving pain Y'],
+                differentiators: ['Why we\'re different from competitors']
+            },
+            negotiation: {
+                opener: 'Acknowledge their budget concerns',
+                valueProps: ['ROI data points', 'TCO comparison'],
+                concessions: ['Potential areas of flexibility']
+            }
+        };
+
+        return {
+            success: true,
+            talkingPoints: {
+                context: args.context,
+                contactId: args.contactId || null,
+                dealId: args.dealId || null,
+                accountId: args.accountId || null,
+                points: contextTalkingPoints[args.context] || contextTalkingPoints.discovery_call,
+                objectionHandling: args.includeObjections ? [
+                    { objection: 'Too expensive', response: 'Focus on ROI and TCO...' },
+                    { objection: 'Not the right time', response: 'Discuss opportunity cost...' }
+                ] : null,
+                competitivePositioning: args.includeCompetitive ? [
+                    { competitor: 'Competitor A', positioning: 'We offer better integration...' }
+                ] : null,
+                generatedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 150. Analyze Conversation
+    if (name === 'analyze_conversation') {
+        const analysisTypes = args.analysisTypes.split(',').map((t: string) => t.trim());
+        return {
+            success: true,
+            conversationAnalysis: {
+                callId: args.callId || null,
+                analysisTypes,
+                results: {
+                    sentiment: analysisTypes.includes('sentiment') ? {
+                        overall: 'positive',
+                        customerSentiment: 0.72,
+                        repSentiment: 0.85,
+                        trend: 'improved_during_call'
+                    } : null,
+                    topics: analysisTypes.includes('topics') ? [
+                        { topic: 'Product Features', duration: '5:30', sentiment: 'positive' },
+                        { topic: 'Pricing', duration: '3:15', sentiment: 'neutral' },
+                        { topic: 'Implementation', duration: '2:45', sentiment: 'positive' }
+                    ] : null,
+                    actionItems: analysisTypes.includes('action_items') || args.identifyNextSteps ? [
+                        { action: 'Send proposal by Friday', owner: 'rep', mentioned_at: '15:30' },
+                        { action: 'Schedule follow-up demo', owner: 'both', mentioned_at: '22:15' }
+                    ] : null,
+                    objections: analysisTypes.includes('objections') ? [
+                        { objection: 'Budget constraints', handled: true, response_quality: 'good' },
+                        { objection: 'Timeline concerns', handled: true, response_quality: 'excellent' }
+                    ] : null
+                },
+                entities: args.extractEntities ? {
+                    people: ['John Smith', 'Jane Doe'],
+                    companies: ['Acme Corp', 'TechStart'],
+                    products: ['Enterprise Plan', 'Analytics Add-on'],
+                    dates: ['March 15', 'Q2']
+                } : null,
+                summary: args.generateSummary ? {
+                    duration: '25:45',
+                    participants: 3,
+                    keyOutcome: 'Positive response to demo, next step is proposal review',
+                    overallScore: 85
+                } : null,
+                analyzedAt: new Date().toISOString()
             }
         };
     }
