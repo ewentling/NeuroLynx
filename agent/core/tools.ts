@@ -815,8 +815,8 @@ export const localTools = [
                 name: { type: 'string', description: 'Campaign name.' },
                 type: { type: 'string', enum: ['email', 'social', 'event', 'webinar', 'advertising', 'content', 'referral'], description: 'Campaign type.' },
                 status: { type: 'string', enum: ['draft', 'scheduled', 'active', 'paused', 'completed'], description: 'Campaign status.' },
-                startDate: { type: 'string', description: 'Campaign start date (ISO format).' },
-                endDate: { type: 'string', description: 'Campaign end date (ISO format).' },
+                startDate: { type: 'string', description: 'Campaign start date in ISO format (YYYY-MM-DD).' },
+                endDate: { type: 'string', description: 'Campaign end date in ISO format (YYYY-MM-DD).' },
                 budget: { type: 'number', description: 'Campaign budget in dollars.' },
                 targetAudience: { type: 'string', description: 'Description of target audience.' },
                 goals: { type: 'string', description: 'Campaign goals and KPIs.' }
