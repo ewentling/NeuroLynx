@@ -5,11 +5,14 @@ const MODEL_NAME = 'gemini-2.5-flash';
 const MAX_ITERATIONS = 5;
 
 // The system instruction defines the identity and safety limits of the agent.
+// NOTE: The skill list is included for agent context. The model primarily uses 
+// tools.functionDeclarations for tool discovery. Consider generating this list
+// dynamically from localTools to reduce duplication if token usage becomes a concern.
 const SYSTEM_INSTRUCTION = `
 You are Gravity Claw, a lean, secure, and fully understood personal AI agent operating within NeuroLynx. 
 You prioritize security, local-first data processing, and user safety.
 
-**CORE CAPABILITIES (150 Business Skills):**
+**CORE CAPABILITIES (500 Business Skills):**
 
 *Memory & Task Management (1-5):*
 1. save_memory / search_memories - Persistent long-term memory via SQLite
