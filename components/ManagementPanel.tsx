@@ -346,6 +346,8 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                                 onAddToast={props.onAddToast || (() => {})}
                                 setWorkspaceItems={props.setWorkspaceItems || (() => {})}
                                 setCompanies={props.setCompanies || (() => {})}
+                                billingRecords={props.billingRecords || []}
+                                onRunEOMBilling={props.onRunEOMBilling}
                             />
                         </>
                     )}

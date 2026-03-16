@@ -1945,16 +1945,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                 MCP Connected · Just ask
                             </div>
                         </div>
-                        <div className="hidden lg:flex items-center gap-4 border-l border-white/5 pl-4 ml-4">
-                            <div className="flex items-center gap-2 px-3 py-1 bg-cyan-500/5 border border-cyan-500/20 rounded-full">
-                                <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full status-pulse"></div>
-                                <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Neural Sync</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-3 py-1 bg-orange-500/5 border border-orange-500/20 rounded-full">
-                                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></div>
-                                <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">AI Core Active</span>
-                            </div>
-                        </div>
                     </div>
 
                     <div className="flex gap-3 items-center">
@@ -2181,7 +2171,9 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <ManagementPanel
                                                 {...commonPanelProps}
                                                 view="workspace"
-                                                tab={internalTab}
+                                                workspaceMode="internal"
+                                                internalTab={internalTab}
+                                                onSetInternalTab={setInternalTab}
                                                 products={products}
                                                 salesPipeline={salesPipeline}
                                                 onMoveTask={handleMoveTask}
@@ -2196,7 +2188,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                 onSaveAutomation={(a) => { setModalData(a); setActiveModal('save_automation'); }}
                                                 onDeleteAutomation={deleteAutomation}
                                                 onToggleAutomation={toggleAutomation}
-                                                setInternalTab={setInternalTab}
                                                 onResetPassword={(u) => { setModalData(u); setAdminPasswordInput(''); setActiveModal('admin_reset_password'); }}
                                             />
                                         )}
