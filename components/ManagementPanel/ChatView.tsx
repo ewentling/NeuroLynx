@@ -8,7 +8,7 @@ interface ChatViewProps {
     input: string;
     onSetInput: (val: string) => void;
     onSubmitMessage: () => void;
-    messagesEndRef: React.RefObject<HTMLDivElement | null>;
+    messagesEndRef: React.RefObject<HTMLDivElement>;
     isVoiceContinuityEnabled: boolean;
     onToggleVoiceContinuity: (val: boolean) => void;
 }
@@ -131,7 +131,12 @@ const ChatView: React.FC<ChatViewProps> = ({
                     className="flex-1 p-4 rounded-xl bg-slate-800 border border-white/10 focus:border-cyan-500 outline-none text-white placeholder-slate-500"
                     value={input}
                     onChange={e => onSetInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && onSubmitMessage()}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            onSubmitMessage();
+                        }
+                    }}
                     placeholder="Ask NeuroLynx anything..."
                 />
                 <button 

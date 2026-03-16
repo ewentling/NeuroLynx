@@ -204,7 +204,18 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
     const { view } = props;
 
     // Helper to get selected company for single-company views
-    const selectedCompany = props.companies?.find(c => c.id === props.selectedCompanyId) || props.companies?.[0];
+    // Only use first company as fallback for views that always need a company
+    const selectedCompany = props.companies?.find(c => c.id === props.selectedCompanyId);
+    const defaultCompany = props.companies?.[0];
+
+    // Empty state component for views requiring company selection
+    const CompanyRequiredState = () => (
+        <div className="flex items-center justify-center h-64 text-slate-500 flex-col">
+            <i className="fas fa-building text-4xl mb-4 opacity-50"></i>
+            <div className="text-lg font-bold mb-2">Company Selection Required</div>
+            <div className="text-sm">Please select a company from the dropdown above to view this section.</div>
+        </div>
+    );
 
     return (
         <div className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar relative">
@@ -435,11 +446,20 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     companies={props.companies || []}
                 />
             )}
-            {view === 'orgchart' && selectedCompany && (
-                <OrgChartView
-                    company={selectedCompany}
-                    contacts={props.orgContacts || []}
-                />
+            {view === 'orgchart' && (
+                selectedCompany ? (
+                    <OrgChartView
+                        company={selectedCompany}
+                        contacts={props.orgContacts || []}
+                    />
+                ) : defaultCompany ? (
+                    <OrgChartView
+                        company={defaultCompany}
+                        contacts={props.orgContacts || []}
+                    />
+                ) : (
+                    <CompanyRequiredState />
+                )
             )}
             {view === 'roadmap' && (
                 <RoadmapView
@@ -488,14 +508,26 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     onAddVendor={props.onAddVendor || (() => {})}
                 />
             )}
-            {view === 'portal' && selectedCompany && (
-                <ClientPortal
-                    company={selectedCompany}
-                    projects={props.projects || []}
-                    billing={props.billingRecords || []}
-                    documents={props.workspaceItems || []}
-                    messages={props.messages || []}
-                />
+            {view === 'portal' && (
+                selectedCompany ? (
+                    <ClientPortal
+                        company={selectedCompany}
+                        projects={props.projects || []}
+                        billing={props.billingRecords || []}
+                        documents={props.workspaceItems || []}
+                        messages={props.messages || []}
+                    />
+                ) : defaultCompany ? (
+                    <ClientPortal
+                        company={defaultCompany}
+                        projects={props.projects || []}
+                        billing={props.billingRecords || []}
+                        documents={props.workspaceItems || []}
+                        messages={props.messages || []}
+                    />
+                ) : (
+                    <CompanyRequiredState />
+                )
             )}
             {view === 'expenses' && (
                 <ExpenseView
