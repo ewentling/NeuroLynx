@@ -1773,6 +1773,11 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'profile'} label="Profile" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('profile'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('automations'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
+                                            <SidebarSubItem active={view === 'activity'} label="Activity" onClick={() => setView('activity')} />
+                                            <SidebarSubItem active={view === 'vendors'} label="Vendors" onClick={() => setView('vendors')} />
+                                            <SidebarSubItem active={view === 'expenses'} label="Expenses" onClick={() => setView('expenses')} />
+                                            <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
+                                            <SidebarSubItem active={view === 'versions'} label="Versions" onClick={() => setView('versions')} />
                                         </div>
                                     )}
                                     <SidebarGroupToggle isOpen={isClientWorkspaceOpen} label="Client Workspace" onClick={() => setIsClientWorkspaceOpen(!isClientWorkspaceOpen)} />
@@ -1782,6 +1787,10 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'documents'} label="Documents" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('documents'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'contracts'} label="Contracts" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('contracts'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'billing'} label="Billing" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('billing'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
+                                            <SidebarSubItem active={view === 'tickets'} label="Tickets" onClick={() => setView('tickets')} />
+                                            <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => setView('onboarding')} />
+                                            <SidebarSubItem active={view === 'sequences'} label="Sequences" onClick={() => setView('sequences')} />
+                                            <SidebarSubItem active={view === 'portal'} label="Portal" onClick={() => setView('portal')} />
                                         </div>
                                     )}
                                 </motion.div>
@@ -1882,19 +1891,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     </div>
 
                     <SidebarItem active={view === 'help'} icon="fa-circle-question" label="Help" onClick={() => setView('help')} />
-
-                    {/* Flat Items */}
-                    <div className="space-y-1 pt-4 opacity-80">
-                        <SidebarItem active={view === 'activity'} icon="fa-stream" label="Activity" onClick={() => setView('activity')} />
-                        <SidebarItem active={view === 'tickets'} icon="fa-ticket-alt" label="Tickets" onClick={() => setView('tickets')} />
-                        <SidebarItem active={view === 'onboarding'} icon="fa-clipboard-check" label="Onboarding" onClick={() => setView('onboarding')} />
-                        <SidebarItem active={view === 'sequences'} icon="fa-mail-bulk" label="Sequences" onClick={() => setView('sequences')} />
-                        <SidebarItem active={view === 'vendors'} icon="fa-truck-field" label="Vendors" onClick={() => setView('vendors')} />
-                        <SidebarItem active={view === 'portal'} icon="fa-door-open" label="Portal" onClick={() => setView('portal')} />
-                        <SidebarItem active={view === 'expenses'} icon="fa-receipt" label="Expenses" onClick={() => setView('expenses')} />
-                        <SidebarItem active={view === 'compliance'} icon="fa-shield-halved" label="Compliance" onClick={() => setView('compliance')} />
-                        <SidebarItem active={view === 'versions'} icon="fa-history" label="Versions" onClick={() => setView('versions')} />
-                    </div>
 
                     {/* Recent Items Section */}
                     {recentItems.length > 0 && (
