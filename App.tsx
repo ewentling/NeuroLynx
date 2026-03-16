@@ -1255,64 +1255,97 @@ export const App: React.FC = () => {
     const submitMessage = async () => {
         if (!input.trim() || isLoading) return;
 
-        const targetClientId = chatMode === 'client' ? (chatClientSelection || selectedCompanyId) : undefined;
-        if (chatMode === 'client' && (!targetClientId || targetClientId === 'all')) {
-            return addToast('error', 'Please select a specific client for Client Chat.');
-        }
+        // Derive client context from selected company (for MCP tool scoping)
+        const clientContext = selectedCompanyId !== 'all' ? selectedCompanyId : undefined;
 
-        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: input, timestamp: Date.now(), type: 'text', clientId: targetClientId }]);
+        // Add user message to chat
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: input, timestamp: Date.now(), type: 'text' }]);
         const currentInput = input;
         setInput('');
 
-        if (handleMcpCommand(currentInput, targetClientId)) {
+        // Check for MCP commands first (pass clientContext so tools create scoped items)
+        if (handleMcpCommand(currentInput, clientContext)) {
             return;
         }
 
+        // Check for natural language intents (pass clientContext for tool scoping)
         const detectedIntent = detectMcpIntent(currentInput);
         if (detectedIntent) {
-            executeMcp(detectedIntent.toolId, detectedIntent.args, targetClientId, 'intent');
+            executeMcp(detectedIntent.toolId, detectedIntent.args, clientContext, 'intent');
             return;
         }
 
         setIsLoading(true);
 
-        let contextData = "";
-        if (chatMode === 'client' && targetClientId) {
-            const clientName = companies.find(c => c.id === targetClientId)?.name || "Unknown";
-            const clientDocs = workspaceItems.filter(i => i.clientId === targetClientId).map(i => `[Doc] ${i.title}: ${i.snippet}`).join('\n');
-            const clientMeetings = meetings.filter(m => m.clientId === targetClientId).map(m => `[Meeting] ${m.title}: ${m.summary}`).join('\n');
-            contextData = `Focus strictly on client: ${clientName}.\n\nRelated Docs:\n${clientDocs}\n\nRecent Meetings:\n${clientMeetings}`;
-        } else if (chatMode === 'internal') {
-            const productsList = products.map(p => `${p.name} ($${p.price})`).join(', ');
-            contextData = `Focus strictly on internal company data. Do not discuss specific external clients.\n\nOur Products: ${productsList}`;
-        } else {
-            const allCompanies = companies.map(c => `- ${c.name} (Status: ${c.status}, Revenue: $${c.revenue.toLocaleString()})`).join('\n');
-            const allContracts = contracts.map(c => {
+        // Token budget for context data (prevent exceeding LLM limits)
+        const MAX_CONTEXT_CHARS = 8000;
+        const MAX_ITEMS_PER_SECTION = 20;
+
+        // Build comprehensive context with truncation for large datasets
+        const truncateList = (items: string[], maxItems: number, label: string) => {
+            if (items.length <= maxItems) return items.join('\n');
+            const shown = items.slice(0, maxItems).join('\n');
+            return `${shown}\n... and ${items.length - maxItems} more ${label}`;
+        };
+
+        const allCompanies = truncateList(
+            companies.map(c => `- ${c.name} (Status: ${c.status}, Revenue: $${c.revenue.toLocaleString()})`),
+            MAX_ITEMS_PER_SECTION, 'companies'
+        );
+        const allContracts = truncateList(
+            contracts.map(c => {
                 const compName = companies.find(comp => comp.id === c.companyId)?.name || 'Unknown';
                 return `- Contract "${c.title}" for ${compName}: $${c.totalValue.toLocaleString()} (${c.status})`;
-            }).join('\n');
-            const allTasks = tasks.map(t => `- Task "${t.title}": ${t.status}`).join('\n');
+            }),
+            MAX_ITEMS_PER_SECTION, 'contracts'
+        );
+        const allTasks = truncateList(
+            tasks.map(t => `- Task "${t.title}": ${t.status}`),
+            MAX_ITEMS_PER_SECTION, 'tasks'
+        );
+        const allDeals = truncateList(
+            deals.map(d => {
+                const compName = companies.find(c => c.id === d.companyId)?.name || 'Unknown';
+                return `- Deal "${d.title}" for ${compName}: $${d.value.toLocaleString()} (Stage: ${d.stage}, Probability: ${d.probability}%)`;
+            }),
+            MAX_ITEMS_PER_SECTION, 'deals'
+        );
+        const productsList = truncateList(
+            products.map(p => `- ${p.name}: $${p.price}`),
+            MAX_ITEMS_PER_SECTION, 'products'
+        );
 
-            contextData = `
-[INTERNAL DATABASE DUMP]
-This is the ONLY data you have access to. Do not use outside knowledge.
+        let contextData = `
+[NEUROLYNX INTERNAL DATABASE]
+You have access to all company data. Base your answers strictly on this data.
 
-COMPANIES:
+COMPANIES/CLIENTS (${companies.length} total):
 ${allCompanies}
 
-CONTRACTS & REVENUE:
+DEALS/OPPORTUNITIES (${deals.length} total):
+${allDeals}
+
+CONTRACTS & REVENUE (${contracts.length} total):
 ${allContracts}
 
-TASKS:
+TASKS (${tasks.length} total):
 ${allTasks}
 
+PRODUCTS/OFFERINGS (${products.length} total):
+${productsList}
+
 INSTRUCTIONS: 
-You are analyzing the internal database. 
-Strictly base your answers on the data provided above. 
-Do not hallucinate outside companies, people, or revenue figures.
-If the user asks for "highest paying customer", calculate it based on the Revenue figures provided above.
-If the answer is not in the list above, state that you do not have that information.
+You are NeuroLynx, an AI assistant with 500+ skills for business operations.
+- Answer questions based on the data provided above
+- You can create tasks, schedule meetings, and more via natural language
+- Be helpful, concise, and professional
+- If asked about "highest paying customer", use the Revenue figures
+- If the data doesn't contain the answer, say so honestly
 `;
+
+        // Final truncation if still too large
+        if (contextData.length > MAX_CONTEXT_CHARS) {
+            contextData = contextData.substring(0, MAX_CONTEXT_CHARS) + '\n... [Context truncated due to size]';
         }
 
         const activeModelId = featureMapping['chat'] || 'default';
@@ -1328,7 +1361,7 @@ If the answer is not in the list above, state that you do not have that informat
 
             const res = await lynxService.current?.sendMessage(currentInput, contextData);
 
-            if (res) setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: res.text || 'Error', timestamp: Date.now(), type: 'text', clientId: targetClientId }]);
+            if (res) setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: res.text || 'Error', timestamp: Date.now(), type: 'text' }]);
         } catch (e: any) {
             console.error(e);
             const errorMsg = e.message || 'AI Error - Check API Key';
@@ -2054,22 +2087,20 @@ If the answer is not in the list above, state that you do not have that informat
                                     onAddToast: addToast,
                                     isVoiceContinuityEnabled,
                                     onToggleVoiceContinuity: setIsVoiceContinuityEnabled,
-                                    chatMode,
-                                    onSetChatMode: setChatMode,
-                                    chatClientSelection,
-                                    onSetChatClientSelection: setChatClientSelection,
                                     messages,
                                     input,
                                     onSetInput: setInput,
                                     onSubmitMessage: submitMessage,
                                     messagesEndRef: chatEndRef,
                                     billingRecords,
+                                    contracts,
                                     onMoveTask: handleMoveTask,
                                     onSetModalData: setModalData,
                                     onSetActiveModal: setActiveModal,
                                     isMapView,
                                     onSetIsMapView: setIsMapView,
                                     offerings: MOCK_PRODUCTS,
+                                    meetings,
                                     calYear: currentDate.getFullYear(),
                                     calMonth: currentDate.getMonth(),
                                     monthNames: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
@@ -2078,6 +2109,46 @@ If the answer is not in the list above, state that you do not have that informat
                                     onSetCurrentDate: setCurrentDate,
                                     onMeetingClick: handleMeetingClick,
                                     onMemoryUpload: handleMemoryUpload,
+                                    // Additional props for extended views
+                                    tickets,
+                                    onUpdateTicket: (id: string, updates: any) => setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t)),
+                                    kpiGoals,
+                                    onUpdateKpiGoal: (id: string, current: number) => setKpiGoals(prev => prev.map(g => g.id === id ? { ...g, current } : g)),
+                                    projects,
+                                    expenses,
+                                    timeEntries,
+                                    csatResponses,
+                                    onSendSurvey: () => addToast('info', 'Survey feature coming soon'),
+                                    invoices,
+                                    onSaveInvoice: (inv: any) => setInvoices(prev => [...prev, inv]),
+                                    esignRequests,
+                                    assets,
+                                    wikiPages,
+                                    orgContacts,
+                                    featureRequests,
+                                    partners,
+                                    customFields,
+                                    activities,
+                                    onLogActivity: () => setActiveModal('log_activity'),
+                                    onboardingChecklists,
+                                    onToggleOnboardingItem: (checklistId: string, itemId: string) => {
+                                        setOnboardingChecklists(prev => prev.map(c => 
+                                            c.id === checklistId 
+                                                ? { ...c, items: c.items.map(i => i.id === itemId ? { ...i, completed: !i.completed } : i) }
+                                                : c
+                                        ));
+                                    },
+                                    onCreateOnboardingChecklist: () => setActiveModal('create_onboarding'),
+                                    emailSequences,
+                                    onCreateSequence: () => setActiveModal('create_sequence'),
+                                    onToggleSequenceStatus: (id: string) => setEmailSequences(prev => prev.map(s => s.id === id ? { ...s, status: s.status === 'active' ? 'paused' : 'active' } : s)),
+                                    vendors,
+                                    onAddVendor: () => setActiveModal('add_vendor'),
+                                    complianceItems,
+                                    docVersions,
+                                    onRestoreVersion: (versionId: string) => addToast('info', `Restored version ${versionId}`),
+                                    onAddExpense: () => setActiveModal('add_expense'),
+                                    workspaceItems,
                                 } as any;
 
                                 return (
