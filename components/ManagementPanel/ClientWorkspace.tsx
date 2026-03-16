@@ -248,32 +248,34 @@ const ClientWorkspace: React.FC<ClientWorkspaceProps> = ({
                                 )}
                             </div>
                             <div className="space-y-4">
-                                {billingRecords
-                                    .filter(b => selectedCompanyId === 'all' || b.clientId === selectedCompanyId)
-                                    .map(record => (
-                                        <div key={record.id} className="p-4 bg-slate-800 rounded-xl border border-white/5 flex justify-between items-center">
-                                            <div>
-                                                <div className="font-bold">{record.breakdown}</div>
-                                                <div className="text-xs text-slate-400">{record.date}</div>
+                                {(() => {
+                                    const filteredRecords = billingRecords.filter(b => selectedCompanyId === 'all' || b.clientId === selectedCompanyId);
+                                    return filteredRecords.length > 0 ? (
+                                        filteredRecords.map(record => (
+                                            <div key={record.id} className="p-4 bg-slate-800 rounded-xl border border-white/5 flex justify-between items-center">
+                                                <div>
+                                                    <div className="font-bold">{record.breakdown}</div>
+                                                    <div className="text-xs text-slate-400">{record.date}</div>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold ${
+                                                        record.status === 'paid' ? 'bg-emerald-500/20 text-emerald-400' :
+                                                        record.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        'bg-red-500/20 text-red-400'
+                                                    }`}>
+                                                        {record.status}
+                                                    </span>
+                                                    <div className="font-mono text-cyan-400 font-bold">${record.amount.toLocaleString()}</div>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-4">
-                                                <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold ${
-                                                    record.status === 'paid' ? 'bg-emerald-500/20 text-emerald-400' :
-                                                    record.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                    'bg-red-500/20 text-red-400'
-                                                }`}>
-                                                    {record.status}
-                                                </span>
-                                                <div className="font-mono text-cyan-400 font-bold">${record.amount.toLocaleString()}</div>
-                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center p-8 bg-slate-800/50 rounded-xl border border-white/5 border-dashed text-slate-500">
+                                            <i className="fas fa-file-invoice-dollar text-4xl mb-4 opacity-50"></i>
+                                            <div>No billing records yet for this client.</div>
                                         </div>
-                                    ))}
-                                {billingRecords.filter(b => selectedCompanyId === 'all' || b.clientId === selectedCompanyId).length === 0 && (
-                                    <div className="text-center p-8 bg-slate-800/50 rounded-xl border border-white/5 border-dashed text-slate-500">
-                                        <i className="fas fa-file-invoice-dollar text-4xl mb-4 opacity-50"></i>
-                                        <div>No billing records yet for this client.</div>
-                                    </div>
-                                )}
+                                    );
+                                })()}
                             </div>
                         </div>
                     )}
