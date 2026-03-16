@@ -1738,7 +1738,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
             </AnimatePresence>
 
             <aside className={`relative w-64 flex-shrink-0 border-r flex flex-col items-center py-6 h-full transition-all duration-300 ${isDarkMode ? 'bg-slate-900 border-white/5' : 'bg-white border-gray-200'} ${isFocusMode ? '-ml-64' : ''}`}>
-                <div className="mb-8 font-black text-xl tracking-tighter cursor-pointer flex-shrink-0" onClick={() => setView('home')}>NEURO<span className="text-cyan-400">LYNX</span></div>
+                <div className="mb-4 font-black text-xl tracking-tighter cursor-pointer flex-shrink-0" onClick={() => setView('home')}>NEURO<span className="text-cyan-400">LYNX</span></div>
+                <img src="/neurolynx-logo.png" alt="NeuroLynx Logo" className="w-40 h-auto mb-4 cursor-pointer opacity-90 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded" tabIndex={0} onClick={() => setView('home')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setView('home'); }} role="button" />
                 <nav className="flex-1 w-full px-4 space-y-2 overflow-y-auto custom-scrollbar">
                     <SidebarItem active={view === 'home'} icon="fa-house" label="Home" onClick={() => setView('home')} />
                     <SidebarItem active={view === 'chat'} icon="fa-comment-dots" label="Chat" onClick={() => setView('chat')} />
