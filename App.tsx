@@ -1361,7 +1361,61 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 
             const res = await lynxService.current?.sendMessage(currentInput, contextData);
 
-            if (res) setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: res.text || 'Error', timestamp: Date.now(), type: 'text' }]);
+            if (res) {
+                const responseText = res.text || 'Error';
+                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: responseText, timestamp: Date.now(), type: 'text' }]);
+
+                // Detect if the user requested generated content (proposals, reports, plans, etc.)
+                const contentKeywords = ['proposal', 'report', 'plan', 'summary', 'analysis', 'strategy', 'recommendation', 'document', 'draft', 'outline', 'brief', 'memo', 'presentation'];
+                const requestKeywords = ['create', 'write', 'draft', 'generate', 'make', 'prepare', 'build', 'develop'];
+                // Exclude informational queries that aren't content generation requests
+                const excludeKeywords = ['explain', 'what is', 'what are', 'how to', 'how do', 'tell me about', 'describe', 'define'];
+                
+                const inputLower = currentInput.toLowerCase();
+                const isExcludedQuery = excludeKeywords.some(ek => inputLower.includes(ek));
+                const isContentRequest = !isExcludedQuery &&
+                                        requestKeywords.some(rk => inputLower.includes(rk)) && 
+                                        contentKeywords.some(ck => inputLower.includes(ck));
+                
+                // Check if response is substantial (more than a simple answer)
+                const SUBSTANTIAL_RESPONSE_LENGTH = 500;
+                const MEMORY_PREVIEW_LENGTH = 500;
+                const isSubstantialResponse = responseText.length > SUBSTANTIAL_RESPONSE_LENGTH;
+
+                if (isContentRequest && isSubstantialResponse && responseText !== 'Error') {
+                    // Determine document type from user request
+                    const docType = contentKeywords.find(ck => inputLower.includes(ck)) || 'document';
+                    const clientName = companies.find(c => c.id === clientContext)?.name || 'General';
+                    const docTitle = `${docType.charAt(0).toUpperCase() + docType.slice(1)} - ${clientName}`;
+                    const timestamp = Date.now();
+                    const dateStr = new Date().toISOString().split('T')[0];
+
+                    // Add to Memory (long-term storage)
+                    setMemories(prev => [{
+                        id: `mem-${timestamp}`,
+                        key: docTitle,
+                        value: responseText.substring(0, MEMORY_PREVIEW_LENGTH) + (responseText.length > MEMORY_PREVIEW_LENGTH ? '...' : ''),
+                        timestamp: timestamp,
+                        type: 'text',
+                        createdBy: 'AI Assistant',
+                        clientId: clientContext
+                    }, ...prev]);
+
+                    // Add to Workspace Items (Documents tab)
+                    setWorkspaceItems(prev => [{
+                        id: `doc-${timestamp}`,
+                        type: 'doc',
+                        title: docTitle,
+                        snippet: responseText.substring(0, 150) + '...',
+                        date: dateStr,
+                        link: '#', // Link to view in-app; full content stored in summary
+                        clientId: clientContext,
+                        summary: responseText
+                    }, ...prev]);
+
+                    addToast('success', `${docTitle} saved to Memory & Documents`);
+                }
+            }
         } catch (e: any) {
             console.error(e);
             const errorMsg = e.message || 'AI Error - Check API Key';
