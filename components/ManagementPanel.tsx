@@ -452,11 +452,6 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                         company={selectedCompany}
                         contacts={props.orgContacts || []}
                     />
-                ) : defaultCompany ? (
-                    <OrgChartView
-                        company={defaultCompany}
-                        contacts={props.orgContacts || []}
-                    />
                 ) : (
                     <CompanyRequiredState />
                 )
@@ -512,14 +507,6 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 selectedCompany ? (
                     <ClientPortal
                         company={selectedCompany}
-                        projects={props.projects || []}
-                        billing={props.billingRecords || []}
-                        documents={props.workspaceItems || []}
-                        messages={props.messages || []}
-                    />
-                ) : defaultCompany ? (
-                    <ClientPortal
-                        company={defaultCompany}
                         projects={props.projects || []}
                         billing={props.billingRecords || []}
                         documents={props.workspaceItems || []}

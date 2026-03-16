@@ -1255,55 +1255,83 @@ export const App: React.FC = () => {
     const submitMessage = async () => {
         if (!input.trim() || isLoading) return;
 
+        // Derive client context from selected company (for MCP tool scoping)
+        const clientContext = selectedCompanyId !== 'all' ? selectedCompanyId : undefined;
+
         // Add user message to chat
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: input, timestamp: Date.now(), type: 'text' }]);
         const currentInput = input;
         setInput('');
 
-        // Check for MCP commands first
-        if (handleMcpCommand(currentInput)) {
+        // Check for MCP commands first (pass clientContext so tools create scoped items)
+        if (handleMcpCommand(currentInput, clientContext)) {
             return;
         }
 
-        // Check for natural language intents
+        // Check for natural language intents (pass clientContext for tool scoping)
         const detectedIntent = detectMcpIntent(currentInput);
         if (detectedIntent) {
-            executeMcp(detectedIntent.toolId, detectedIntent.args, undefined, 'intent');
+            executeMcp(detectedIntent.toolId, detectedIntent.args, clientContext, 'intent');
             return;
         }
 
         setIsLoading(true);
 
-        // Build comprehensive context with all available data
-        const allCompanies = companies.map(c => `- ${c.name} (Status: ${c.status}, Revenue: $${c.revenue.toLocaleString()})`).join('\n');
-        const allContracts = contracts.map(c => {
-            const compName = companies.find(comp => comp.id === c.companyId)?.name || 'Unknown';
-            return `- Contract "${c.title}" for ${compName}: $${c.totalValue.toLocaleString()} (${c.status})`;
-        }).join('\n');
-        const allTasks = tasks.map(t => `- Task "${t.title}": ${t.status}`).join('\n');
-        const allDeals = deals.map(d => {
-            const compName = companies.find(c => c.id === d.companyId)?.name || 'Unknown';
-            return `- Deal "${d.title}" for ${compName}: $${d.value.toLocaleString()} (Stage: ${d.stage}, Probability: ${d.probability}%)`;
-        }).join('\n');
-        const productsList = products.map(p => `- ${p.name}: $${p.price}`).join('\n');
+        // Token budget for context data (prevent exceeding LLM limits)
+        const MAX_CONTEXT_CHARS = 8000;
+        const MAX_ITEMS_PER_SECTION = 20;
 
-        const contextData = `
+        // Build comprehensive context with truncation for large datasets
+        const truncateList = (items: string[], maxItems: number, label: string) => {
+            if (items.length <= maxItems) return items.join('\n');
+            const shown = items.slice(0, maxItems).join('\n');
+            return `${shown}\n... and ${items.length - maxItems} more ${label}`;
+        };
+
+        const allCompanies = truncateList(
+            companies.map(c => `- ${c.name} (Status: ${c.status}, Revenue: $${c.revenue.toLocaleString()})`),
+            MAX_ITEMS_PER_SECTION, 'companies'
+        );
+        const allContracts = truncateList(
+            contracts.map(c => {
+                const compName = companies.find(comp => comp.id === c.companyId)?.name || 'Unknown';
+                return `- Contract "${c.title}" for ${compName}: $${c.totalValue.toLocaleString()} (${c.status})`;
+            }),
+            MAX_ITEMS_PER_SECTION, 'contracts'
+        );
+        const allTasks = truncateList(
+            tasks.map(t => `- Task "${t.title}": ${t.status}`),
+            MAX_ITEMS_PER_SECTION, 'tasks'
+        );
+        const allDeals = truncateList(
+            deals.map(d => {
+                const compName = companies.find(c => c.id === d.companyId)?.name || 'Unknown';
+                return `- Deal "${d.title}" for ${compName}: $${d.value.toLocaleString()} (Stage: ${d.stage}, Probability: ${d.probability}%)`;
+            }),
+            MAX_ITEMS_PER_SECTION, 'deals'
+        );
+        const productsList = truncateList(
+            products.map(p => `- ${p.name}: $${p.price}`),
+            MAX_ITEMS_PER_SECTION, 'products'
+        );
+
+        let contextData = `
 [NEUROLYNX INTERNAL DATABASE]
 You have access to all company data. Base your answers strictly on this data.
 
-COMPANIES/CLIENTS:
+COMPANIES/CLIENTS (${companies.length} total):
 ${allCompanies}
 
-DEALS/OPPORTUNITIES:
+DEALS/OPPORTUNITIES (${deals.length} total):
 ${allDeals}
 
-CONTRACTS & REVENUE:
+CONTRACTS & REVENUE (${contracts.length} total):
 ${allContracts}
 
-TASKS:
+TASKS (${tasks.length} total):
 ${allTasks}
 
-PRODUCTS/OFFERINGS:
+PRODUCTS/OFFERINGS (${products.length} total):
 ${productsList}
 
 INSTRUCTIONS: 
@@ -1314,6 +1342,11 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 - If asked about "highest paying customer", use the Revenue figures
 - If the data doesn't contain the answer, say so honestly
 `;
+
+        // Final truncation if still too large
+        if (contextData.length > MAX_CONTEXT_CHARS) {
+            contextData = contextData.substring(0, MAX_CONTEXT_CHARS) + '\n... [Context truncated due to size]';
+        }
 
         const activeModelId = featureMapping['chat'] || 'default';
         const modelConfig = configuredModels.find(m => m.id === activeModelId) || configuredModels[0];
