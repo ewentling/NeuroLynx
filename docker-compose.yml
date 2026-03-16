@@ -1,0 +1,9 @@
+services:
+  neurolynx:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./agent_memory.db:/app/agent_memory.db

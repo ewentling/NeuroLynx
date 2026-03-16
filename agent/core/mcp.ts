@@ -19,9 +19,7 @@ export async function connectToMCPServer(command: string, args: string[]): Promi
             version: "1.0.0",
         },
         {
-            capabilities: {
-                tools: {} // we request tools from the server
-            }
+            capabilities: {}
         }
     );
 

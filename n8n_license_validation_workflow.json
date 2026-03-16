@@ -1,0 +1,63 @@
+{
+  "name": "NeuroLynx - License Validation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "validate-key",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "validate-key-neurolynx"
+    },
+    {
+      "parameters": {
+        "functionCode": "// License validation logic\n// Edit VALID_KEYS to add/remove license keys\n// Each entry: { key, allowedUsers }\n\nconst VALID_KEYS = [\n  { key: 'qocVjUVNzT5c68oxw6hP2lYkD', allowed_users: 5 }\n  // Add more keys here\n];\n\n// Handle both JSON-parsed body and text/plain body\nlet licenseKey = '';\nconst item = items[0].json;\n\nif (item.body && typeof item.body === 'object') {\n  licenseKey = item.body.licenseKey || '';\n} else if (item.body && typeof item.body === 'string') {\n  try {\n    const parsed = JSON.parse(item.body);\n    licenseKey = parsed.licenseKey || '';\n  } catch (e) {}\n} else if (item.licenseKey) {\n  licenseKey = item.licenseKey;\n}\n\nconst match = VALID_KEYS.find(k => k.key === licenseKey.trim());\n\nif (match) {\n  return [{ json: { valid: true, allowed_users: match.allowed_users } }];\n}\n\nreturn [{ json: { valid: false, allowed_users: 0 } }];"
+      },
+      "name": "Validate Key",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [750, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Validate Key", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate Key": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

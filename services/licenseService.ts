@@ -1,11 +1,12 @@
 import { CryptoService } from './cryptoService';
 
 const LICENSE_STORAGE_KEY = 'nl_sys_chk_v1';
-const VALIDATION_URL = 'https://chump.blinkyink.com/webhook/validate-key';
+const VALIDATION_URL = '/api/validate-key';
 
 export interface LicenseValidationResponse {
     valid: boolean;
     allowedUsers: number;
+    offline?: boolean;
 }
 
 export class LicenseService {
@@ -40,14 +41,19 @@ export class LicenseService {
 
     /**
      * Encrypts and saves the license key to local storage.
+     * Falls back to plain storage on non-secure contexts (HTTP) where SubtleCrypto is unavailable.
      */
     async saveLicense(key: string): Promise<void> {
+        if (!window.crypto?.subtle) {
+            localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(key));
+            return;
+        }
         try {
             const encrypted = await this.crypto.encrypt(key);
             localStorage.setItem(LICENSE_STORAGE_KEY, encrypted);
         } catch (e) {
-            console.error("Failed to save license", e);
-            throw new Error("Storage failure");
+            console.error("Failed to save license, falling back to plain storage", e);
+            localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(key));
         }
     }
 
@@ -70,7 +76,6 @@ export class LicenseService {
             // The body is still valid JSON string.
             const response = await fetch(VALIDATION_URL, {
                 method: 'POST',
-                mode: 'cors',
                 headers: {
                     'Content-Type': 'text/plain;charset=UTF-8'
                 },
@@ -78,8 +83,16 @@ export class LicenseService {
             });
 
             if (response.ok) {
+                const text = await response.text();
+
+                // Empty body means the n8n workflow is inactive/deactivated
+                if (!text || text.trim().length === 0) {
+                    console.warn("License server returned empty response — workflow may be deactivated.");
+                    return { valid: false, allowedUsers: 0, offline: true };
+                }
+
                 try {
-                    const data = await response.json();
+                    const data = JSON.parse(text);
                     // Check for valid status (handling various potential field names for robustness)
                     const isValid = !!(data.valid || data.success || data.result);
 
@@ -96,7 +109,7 @@ export class LicenseService {
                     return { valid: isValid, allowedUsers };
                 } catch (jsonError) {
                     console.warn("Invalid JSON response from license server", jsonError);
-                    return { valid: false, allowedUsers: 0 };
+                    return { valid: false, allowedUsers: 0, offline: true };
                 }
             } else {
                 console.warn(`License validation failed with status: ${response.status} ${response.statusText}`);
@@ -104,7 +117,7 @@ export class LicenseService {
             }
         } catch (e) {
             console.error("License validation network error", e);
-            throw new Error("Network Error");
+            return { valid: false, allowedUsers: 0, offline: true };
         }
     }
 }

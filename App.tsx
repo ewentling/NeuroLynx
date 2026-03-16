@@ -544,6 +544,8 @@ export const App: React.FC = () => {
                     if (result.valid) {
                         setLicenseStatus('valid');
                         setMaxUsers(result.allowedUsers);
+                    } else if (result.offline) {
+                        setLicenseStatus('offline');
                     } else {
                         licenseService.current.clearLicense();
                         setLicenseStatus('invalid');
@@ -562,7 +564,10 @@ export const App: React.FC = () => {
         setLicenseStatus('checking');
         try {
             const result = await licenseService.current.validateLicense(rawKey);
-            if (result.valid) {
+            if (result.offline) {
+                setLicenseStatus('offline');
+                addToast('error', 'Connection failed. Please check internet.');
+            } else if (result.valid) {
                 await licenseService.current.saveLicense(rawKey);
                 setLicenseStatus('valid');
                 setMaxUsers(result.allowedUsers);
@@ -571,8 +576,9 @@ export const App: React.FC = () => {
                 setLicenseStatus('invalid');
             }
         } catch (e) {
+            console.error('Activation error', e);
             setLicenseStatus('offline');
-            addToast('error', 'Connection failed. Please check internet.');
+            addToast('error', 'Activation failed. Please try again.');
         }
     };
 
@@ -614,15 +620,8 @@ export const App: React.FC = () => {
         addToast('success', 'Document Deleted');
     };
 
-    const handleUserLogin = async (user: User) => {
-        setIsVerifyingLogin(true);
-        try {
-            const key = await licenseService.current.getStoredLicense();
-            if (!key) { setLicenseStatus('none'); return; }
-            const result = await licenseService.current.validateLicense(key);
-            if (result.valid) { setMaxUsers(result.allowedUsers); setCurrentUser(user); }
-            else { licenseService.current.clearLicense(); setLicenseStatus('invalid'); addToast('error', 'License expired or invalid. Please reactivate.'); }
-        } catch (e) { console.error("Login verification failed", e); setLicenseStatus('offline'); addToast('error', 'Network error. Cannot verify license.'); } finally { setIsVerifyingLogin(false); }
+    const handleUserLogin = (user: User) => {
+        setCurrentUser(user);
     };
 
     useEffect(() => {
@@ -1637,13 +1636,16 @@ If the answer is not in the list above, state that you do not have that informat
             <AnimatePresence mode="wait">
                 {!currentUser && (
                     <motion.div
-                        key="login"
+                        key="auth"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 backdrop-blur-xl"
                     >
-                        <LoginScreen users={users} setUsers={setUsers} onLogin={handleUserLogin} onClearLicense={handleClearLicense} isValidating={isVerifyingLogin} />
+                        {licenseStatus !== 'valid'
+                            ? <LicenseScreen status={licenseStatus} onValidate={handleActivation} />
+                            : <LoginScreen users={users} setUsers={setUsers} onLogin={handleUserLogin} onClearLicense={handleClearLicense} isValidating={false} />
+                        }
                     </motion.div>
                 )}
             </AnimatePresence>

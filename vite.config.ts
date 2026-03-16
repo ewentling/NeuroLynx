@@ -8,6 +8,19 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          '/api/validate-key': {
+            target: 'https://chump.blinkyink.com',
+            changeOrigin: true,
+            secure: false,
+            rewrite: (_path) => '/webhook/validate-key',
+            configure: (proxy) => {
+              proxy.on('error', (err) => console.error('[proxy error]', err.message));
+              proxy.on('proxyReq', (_req, req) => console.log('[proxy →]', req.method, req.url));
+              proxy.on('proxyRes', (res, req) => console.log('[proxy ←]', res.statusCode, req.url));
+            }
+          }
+        }
       },
       plugins: [react()],
       define: {
