@@ -116,6 +116,9 @@ const SidebarGroupToggle = React.memo(({ isOpen, label, onClick }: { isOpen: boo
     </button>
 ));
 
+// Views that belong to workspace section
+const WORKSPACE_VIEWS = ['workspace', 'activity', 'vendors', 'expenses', 'compliance', 'versions', 'tickets', 'onboarding', 'sequences', 'portal', 'pipeline', 'meetings', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields', 'forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'];
+
 const SimpleMarkdown = React.memo(({ content }: { content: string }) => {
     if (!content) return null;
     const lines = content.split('\n');
@@ -1746,8 +1749,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     <SidebarItem active={view === 'clients'} icon="fa-building" label="Companies" onClick={() => setView('clients')} />
 
                     <div className="space-y-1">
-                        <button onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${view === 'workspace' || view === 'activity' || view === 'vendors' || view === 'expenses' || view === 'compliance' || view === 'versions' || view === 'tickets' || view === 'onboarding' || view === 'sequences' || view === 'portal' || view === 'pipeline' || view === 'meetings' || view === 'invoices' || view === 'esign' || view === 'assets' || view === 'wiki' || view === 'orgchart' || view === 'roadmap' || view === 'partners' || view === 'customfields' ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-                            <div className={`w-8 flex items-center justify-center transition-transform ${view === 'workspace' || view === 'activity' || view === 'vendors' || view === 'expenses' || view === 'compliance' || view === 'versions' || view === 'tickets' || view === 'onboarding' || view === 'sequences' || view === 'portal' || view === 'pipeline' || view === 'meetings' || view === 'invoices' || view === 'esign' || view === 'assets' || view === 'wiki' || view === 'orgchart' || view === 'roadmap' || view === 'partners' || view === 'customfields' ? 'text-orange-400' : 'text-slate-500'}`}>
+                        <button onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${WORKSPACE_VIEWS.includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                            <div className={`w-8 flex items-center justify-center transition-transform ${WORKSPACE_VIEWS.includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
                                 <i className="fas fa-briefcase text-lg"></i>
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Workspace</span>
