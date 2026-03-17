@@ -1501,7 +1501,22 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
         }
 
         const activeModelId = featureMapping['chat'] || 'default';
-        const modelConfig = configuredModels.find(m => m.id === activeModelId) || configuredModels[0];
+        let modelConfig = configuredModels.find(m => m.id === activeModelId) || configuredModels[0];
+        
+        // If the selected model has no API key, find the first model with a valid API key
+        if (modelConfig && (!modelConfig.apiKey || modelConfig.apiKey.trim() === '')) {
+            const modelWithKey = configuredModels.find(m => m.apiKey && m.apiKey.trim() !== '');
+            if (modelWithKey) {
+                modelConfig = modelWithKey;
+            }
+        }
+        
+        // Guard against empty configuredModels array
+        if (!modelConfig) {
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: 'Error: No AI models configured. Please add a model with an API key in Internal MGMT > System.', timestamp: Date.now(), type: 'text' }]);
+            setIsLoading(false);
+            return;
+        }
 
         try {
             await lynxService.current?.configure({
@@ -2287,6 +2302,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     // System configuration props for AI model dropdown
                                     mockIntegrations: MOCK_INTEGRATIONS,
                                     configuredModels,
+                                    featureMapping,
+                                    onSetFeatureMapping: setFeatureMapping,
                                     popularLlms: POPULAR_LLMS,
                                     newModelSelection,
                                     newModelKey,

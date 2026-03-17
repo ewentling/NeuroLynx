@@ -25,6 +25,8 @@ interface InternalWorkspaceProps {
     auditLogs: AuditLog[];
     mockIntegrations: Integration[];
     configuredModels: any[];
+    featureMapping: { [key: string]: string };
+    onSetFeatureMapping: (mapping: { [key: string]: string }) => void;
     popularLlms: any[];
     newModelSelection: string;
     newModelKey: string;
@@ -70,6 +72,8 @@ const InternalWorkspace: React.FC<InternalWorkspaceProps> = ({
     auditLogs,
     mockIntegrations,
     configuredModels,
+    featureMapping,
+    onSetFeatureMapping,
     popularLlms,
     newModelSelection,
     newModelKey,
@@ -243,6 +247,30 @@ const InternalWorkspace: React.FC<InternalWorkspaceProps> = ({
                             <input className="flex-1 bg-black/20 p-2 rounded border border-white/10 text-sm" placeholder="API Key" value={newModelKey} onChange={e => onSetNewModelKey(e.target.value)} type="password" />
                             <button onClick={onAddModel} className="px-4 bg-green-600 rounded text-xs font-bold">Add</button>
                         </div>
+                    </div>
+
+                    <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
+                        <h3 className="font-bold mb-4">Chat Model Assignment</h3>
+                        <p className="text-sm text-slate-400 mb-4">Select which AI model to use for the chat feature. The chat will automatically use the first model with a valid API key if "Auto-select" is chosen.</p>
+                        <div className="flex items-center gap-3">
+                            <label className="text-sm text-slate-400">Chat Model:</label>
+                            <select 
+                                className="flex-1 bg-black/20 p-2 rounded border border-white/10 text-sm" 
+                                value={featureMapping['chat'] || 'default'}
+                                onChange={e => onSetFeatureMapping({ ...featureMapping, chat: e.target.value })}
+                            >
+                                <option value="default">Auto-select (first with API key)</option>
+                                {configuredModels.filter(m => m.apiKey && m.apiKey.trim() !== '').map(m => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        {featureMapping['chat'] !== 'default' && (
+                            <div className="mt-2 text-xs text-green-400">
+                                <i className="fas fa-check-circle mr-1"></i>
+                                Using: {configuredModels.find(m => m.id === featureMapping['chat'])?.name || 'Unknown'}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

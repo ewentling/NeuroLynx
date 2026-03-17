@@ -102,6 +102,8 @@ interface ManagementPanelProps {
     auditLogs?: AuditLog[];
     mockIntegrations?: Integration[];
     configuredModels?: any[];
+    featureMapping?: { [key: string]: string };
+    onSetFeatureMapping?: (mapping: { [key: string]: string }) => void;
     popularLlms?: any[];
     newModelSelection?: string;
     newModelKey?: string;
@@ -297,6 +299,8 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                                 auditLogs={props.auditLogs || []}
                                 mockIntegrations={props.mockIntegrations || []}
                                 configuredModels={props.configuredModels || []}
+                                featureMapping={props.featureMapping || { chat: 'default' }}
+                                onSetFeatureMapping={props.onSetFeatureMapping || (() => {})}
                                 popularLlms={props.popularLlms || []}
                                 newModelSelection={props.newModelSelection || ''}
                                 newModelKey={props.newModelKey || ''}
