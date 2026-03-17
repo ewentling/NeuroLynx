@@ -119,6 +119,15 @@ const SidebarGroupToggle = React.memo(({ isOpen, label, onClick }: { isOpen: boo
 // Views that belong to workspace section
 const WORKSPACE_VIEWS = ['workspace', 'activity', 'vendors', 'expenses', 'compliance', 'versions', 'tickets', 'onboarding', 'sequences', 'portal', 'pipeline', 'meetings', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields', 'forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'];
 
+// Client Workspace views that should show the client dropdown
+const CLIENT_WORKSPACE_VIEWS = ['workspace', 'meetings', 'pipeline', 'tasks', 'calendar', 'clients', 'memory', 'tickets', 'onboarding', 'sequences', 'portal', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners'];
+
+// Display labels for views (maps internal view keys to user-friendly names)
+const VIEW_LABELS: Record<string, string> = {
+    alltickets: 'Tickets',
+};
+const getViewLabel = (view: string) => VIEW_LABELS[view] || view;
+
 const SimpleMarkdown = React.memo(({ content }: { content: string }) => {
     if (!content) return null;
     const lines = content.split('\n');
@@ -207,7 +216,7 @@ const Breadcrumbs = ({ view, companyName }: { view: string, companyName?: string
         <Home className="w-3 h-3" />
         <span className="hover:text-slate-300 cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent('nav', { detail: 'home' }))}>Dashboard</span>
         <ChevronRight className="w-3 h-3 opacity-30" />
-        <span className={`${!companyName ? 'text-orange-400' : 'hover:text-slate-300 cursor-pointer'}`}>{view}</span>
+        <span className={`${!companyName ? 'text-orange-400' : 'hover:text-slate-300 cursor-pointer'}`}>{getViewLabel(view)}</span>
         {companyName && (
             <>
                 <ChevronRight className="w-3 h-3 opacity-30" />
@@ -387,7 +396,7 @@ interface ConnectedModel {
 export const App: React.FC = () => {
     const [licenseStatus, setLicenseStatus] = useState<LicenseStatus>('checking');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [view, setView] = useState<'home' | 'chat' | 'workspace' | 'pipeline' | 'memory' | 'meetings' | 'clients' | 'communications' | 'tasks' | 'calendar' | 'help' | 'users' | 'activity' | 'forecast' | 'tickets' | 'alerts' | 'onboarding' | 'winloss' | 'projects' | 'referrals' | 'kpis' | 'time' | 'competitors' | 'csat' | 'sequences' | 'utilization' | 'vendors' | 'versions' | 'portal' | 'expenses' | 'compliance' | 'invoices' | 'orgchart' | 'esign' | 'profitability' | 'velocity' | 'assets' | 'roadmap' | 'wiki' | 'partners' | 'customfields'>('home');
+    const [view, setView] = useState<'home' | 'chat' | 'workspace' | 'pipeline' | 'memory' | 'meetings' | 'clients' | 'communications' | 'tasks' | 'calendar' | 'help' | 'users' | 'activity' | 'forecast' | 'tickets' | 'alltickets' | 'alerts' | 'onboarding' | 'winloss' | 'projects' | 'referrals' | 'kpis' | 'time' | 'competitors' | 'csat' | 'sequences' | 'utilization' | 'vendors' | 'versions' | 'portal' | 'expenses' | 'compliance' | 'invoices' | 'orgchart' | 'esign' | 'profitability' | 'velocity' | 'assets' | 'roadmap' | 'wiki' | 'partners' | 'customfields'>('home');
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [activeModal, setActiveModal] = useState<string | null>(null);
     const [modalData, setModalData] = useState<any>({});
@@ -830,6 +839,13 @@ export const App: React.FC = () => {
     };
 
     const getSelectedCompany = () => companies.find(c => c.id === selectedCompanyId);
+
+    // Helper function to ensure a company is selected when navigating to client workspace views
+    const ensureClientSelected = useCallback(() => {
+        if (selectedCompanyId === 'all' && companies.length > 0) {
+            setSelectedCompanyId(companies[0].id);
+        }
+    }, [selectedCompanyId, companies]);
 
     const getMonthlyRunRate = useCallback((companyId: string) => {
         const activeContracts = contracts.filter(c => c.status === 'active' && (companyId === 'all' || c.companyId === companyId));
@@ -1733,6 +1749,9 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     <SidebarItem active={view === 'chat'} icon="fa-comment-dots" label="Chat" onClick={() => setView('chat')} />
                     <SidebarItem active={view === 'clients'} icon="fa-building" label="Companies" onClick={() => setView('clients')} />
 
+                    {/* Global Tickets Menu - shows all tickets across all clients */}
+                    <SidebarItem active={view === 'alltickets'} icon="fa-ticket-alt" label="Tickets" onClick={() => { setView('alltickets'); setSelectedCompanyId('all'); }} />
+
                     <div className="space-y-1">
                         <button onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${WORKSPACE_VIEWS.includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
                             <div className={`w-8 flex items-center justify-center transition-transform ${WORKSPACE_VIEWS.includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
@@ -1749,6 +1768,31 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     exit={{ height: 0, opacity: 0 }}
                                     className="overflow-hidden pl-10 space-y-1 border-l border-white/5 ml-6 py-1"
                                 >
+                                    {/* Client Workspace - now above Internal Mgmt */}
+                                    <SidebarGroupToggle isOpen={isClientWorkspaceOpen} label="Client Workspace" onClick={() => setIsClientWorkspaceOpen(!isClientWorkspaceOpen)} />
+                                    {isClientWorkspaceOpen && (
+                                        <div className="space-y-1 mt-1 pl-2 transition-all">
+                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'overview'} label="Overview" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('overview'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'documents'} label="Documents" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('documents'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'contracts'} label="Contracts" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('contracts'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'billing'} label="Billing" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('billing'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'pipeline'} label="Pipeline" onClick={() => { setView('pipeline'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'meetings'} label="Meetings" onClick={() => { setView('meetings'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'tickets'} label="Tickets" onClick={() => { setView('tickets'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => { setView('onboarding'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'sequences'} label="Sequences" onClick={() => { setView('sequences'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'portal'} label="Portal" onClick={() => { setView('portal'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => { setView('invoices'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'esign'} label="E-Signature" onClick={() => { setView('esign'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'assets'} label="IT Inventory" onClick={() => { setView('assets'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'wiki'} label="Brain / Wiki" onClick={() => { setView('wiki'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'orgchart'} label="Org Viz" onClick={() => { setView('orgchart'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'roadmap'} label="Product Ops" onClick={() => { setView('roadmap'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => { setView('partners'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} />
+                                        </div>
+                                    )}
+                                    {/* Internal Mgmt - now below Client Workspace */}
                                     <SidebarGroupToggle isOpen={isInternalMgmtOpen} label="Internal Mgmt" onClick={() => setIsInternalMgmtOpen(!isInternalMgmtOpen)} />
                                     {isInternalMgmtOpen && (
                                         <div className="space-y-1 mt-1 pl-2 transition-all">
@@ -1775,29 +1819,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'profitability'} label="ROI Analysis" onClick={() => setView('profitability')} />
                                             <SidebarSubItem active={view === 'utilization'} label="Resource Ops" onClick={() => setView('utilization')} />
                                             <SidebarSubItem active={view === 'csat'} label="Sentience/CSAT" onClick={() => setView('csat')} />
-                                        </div>
-                                    )}
-                                    <SidebarGroupToggle isOpen={isClientWorkspaceOpen} label="Client Workspace" onClick={() => setIsClientWorkspaceOpen(!isClientWorkspaceOpen)} />
-                                    {isClientWorkspaceOpen && (
-                                        <div className="space-y-1 mt-1 pl-2 transition-all">
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'overview'} label="Overview" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('overview'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'documents'} label="Documents" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('documents'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'contracts'} label="Contracts" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('contracts'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'billing'} label="Billing" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('billing'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
-                                            <SidebarSubItem active={view === 'pipeline'} label="Pipeline" onClick={() => { setView('pipeline'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
-                                            <SidebarSubItem active={view === 'meetings'} label="Meetings" onClick={() => { setView('meetings'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
-                                            <SidebarSubItem active={view === 'tickets'} label="Tickets" onClick={() => setView('tickets')} />
-                                            <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => setView('onboarding')} />
-                                            <SidebarSubItem active={view === 'sequences'} label="Sequences" onClick={() => setView('sequences')} />
-                                            <SidebarSubItem active={view === 'portal'} label="Portal" onClick={() => setView('portal')} />
-                                            <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
-                                            <SidebarSubItem active={view === 'esign'} label="E-Signature" onClick={() => setView('esign')} />
-                                            <SidebarSubItem active={view === 'assets'} label="IT Inventory" onClick={() => setView('assets')} />
-                                            <SidebarSubItem active={view === 'wiki'} label="Brain / Wiki" onClick={() => setView('wiki')} />
-                                            <SidebarSubItem active={view === 'orgchart'} label="Org Viz" onClick={() => setView('orgchart')} />
-                                            <SidebarSubItem active={view === 'roadmap'} label="Product Ops" onClick={() => setView('roadmap')} />
-                                            <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => setView('partners')} />
-                                            <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} />
                                         </div>
                                     )}
                                 </motion.div>
@@ -1879,7 +1900,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     <div className="flex items-center gap-6 flex-1">
                         <div className="flex flex-col">
                             <Breadcrumbs view={view} companyName={selectedCompanyId !== 'all' ? companies.find(c => c.id === selectedCompanyId)?.name : undefined} />
-                            <h1 className="font-extrabold text-2xl neuro-text-gradient uppercase hidden md:block leading-tight">{view}</h1>
+                            <h1 className="font-extrabold text-2xl neuro-text-gradient uppercase hidden md:block leading-tight">{getViewLabel(view)}</h1>
                         </div>
 
                         <div className="relative flex-1 group">
@@ -1955,7 +1976,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                             />
                         </div>
 
-                        {(view === 'workspace' || view === 'meetings' || view === 'pipeline' || view === 'tasks' || view === 'calendar' || view === 'clients' || view === 'memory') && (
+                        {CLIENT_WORKSPACE_VIEWS.includes(view) && (
                             <select
                                 value={selectedCompanyId}
                                 onChange={(e) => { setSelectedCompanyId(e.target.value); if (view === 'workspace') setWorkspaceMode(e.target.value === 'all' ? 'internal' : 'client'); }}
@@ -2193,7 +2214,10 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             />
                                         )}
                                         {view === 'memory' && <MemoryView memory={memories} onMemoryUpload={handleMemoryUpload} onSetActiveModal={setActiveModal} />}
-                                        {view === 'tickets' && <ManagementPanel view="tickets" tickets={tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
+                                        {/* Client Workspace Tickets - filtered by selected company */}
+                                        {view === 'tickets' && <ManagementPanel view="tickets" tickets={selectedCompanyId !== 'all' ? tickets.filter(t => t.companyId === selectedCompanyId) : tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
+                                        {/* Global Tickets - shows all tickets across all clients */}
+                                        {view === 'alltickets' && <ManagementPanel view="tickets" tickets={tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
                                         {['forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'].includes(view) && (
                                             <ManagementPanel
                                                 {...commonPanelProps}
