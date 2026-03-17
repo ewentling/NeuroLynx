@@ -1081,6 +1081,76 @@ export const App: React.FC = () => {
     // --- MANAGEMENT FUNCTIONS ---
     const handleAddModel = () => { if (!newModelKey && !newModelSelection.includes('gemini') && !newModelSelection.includes('gpt')) return addToast('error', 'API Key required'); const template = POPULAR_LLMS.find(m => m.id === newModelSelection); if (!template) return; setConfiguredModels(prev => [...prev, { id: Date.now().toString(), name: template.name, modelId: template.id, provider: template.provider, apiKey: newModelKey }]); setNewModelKey(''); addToast('success', 'Model Added'); };
     const removeModel = (id: string) => { if (id === 'default') return addToast('error', 'Cannot remove system default'); setConfiguredModels(prev => prev.filter(m => m.id !== id)); };
+    const handleImportCsv = () => { 
+        const csvInput = (document.getElementById('csv-input') as HTMLTextAreaElement)?.value;
+        if (!csvInput?.trim()) return addToast('error', 'Please enter CSV data');
+        const rows = csvInput.split('\n').filter(r => r.trim());
+        let imported = 0;
+        rows.forEach(row => {
+            const [name, email, company, role] = row.split(',').map(s => s.trim());
+            if (name && email) {
+                const existingCompany = companies.find(c => c.name.toLowerCase() === company?.toLowerCase());
+                const companyId = existingCompany?.id || Date.now().toString();
+                if (!existingCompany && company) {
+                    setCompanies(prev => [...prev, { id: companyId, name: company, address: '', phone: '', website: '', industry: 'Unknown', status: 'active', revenue: 0 }]);
+                }
+                setClients(prev => [...prev, { id: Date.now().toString() + Math.random(), companyId, name, email, phone: '', role: role || 'Contact', status: 'active', avatarColor: 'bg-blue-500', notes: '', lastContactDate: new Date().toISOString(), nextActionDate: '' }]);
+                imported++;
+            }
+        });
+        addToast('success', `Imported ${imported} contacts`);
+    };
+    const handleGenerateComplianceReport = (framework: string) => {
+        const fwItems = complianceItems.filter(i => i.framework === framework);
+        const compliant = fwItems.filter(i => i.status === 'compliant').length;
+        const inProgress = fwItems.filter(i => i.status === 'in_progress').length;
+        const nonCompliant = fwItems.filter(i => i.status === 'non_compliant').length;
+        const total = fwItems.filter(i => i.status !== 'not_applicable').length;
+        const score = total ? Math.round((compliant / total) * 100) : 100;
+        
+        const reportContent = `
+${framework} COMPLIANCE READINESS REPORT
+Generated: ${new Date().toLocaleString()}
+================================================
+
+EXECUTIVE SUMMARY
+-----------------
+Audit Readiness Score: ${score}%
+
+CONTROL STATUS BREAKDOWN
+------------------------
+✅ Compliant: ${compliant}
+🔄 In Progress: ${inProgress}
+❌ Non-Compliant: ${nonCompliant}
+Total Controls: ${total}
+
+DETAILED FINDINGS
+-----------------
+${fwItems.map(item => `
+${item.control}: ${item.description}
+Status: ${item.status.replace('_', ' ').toUpperCase()}
+${item.lastAuditDate ? `Last Audit: ${item.lastAuditDate}` : ''}
+${item.dueDate ? `Due Date: ${item.dueDate}` : ''}
+${item.assignedTo ? `Assigned To: ${users.find(u => u.id === item.assignedTo)?.name || 'Unassigned'}` : ''}
+`).join('\n')}
+
+RECOMMENDATIONS
+---------------
+${nonCompliant > 0 ? '⚠️ Address non-compliant controls immediately' : ''}
+${inProgress > 0 ? '📋 Continue progress on in-progress items' : ''}
+${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target: Address ${total - compliant} remaining items`}
+`;
+
+        // Create and download the report
+        const blob = new Blob([reportContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${framework}_Compliance_Report_${new Date().toISOString().split('T')[0]}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+        addToast('success', `${framework} Readiness Report Generated`);
+    };
     const addUser = () => { if (users.length >= maxUsers) return addToast('error', `Limit Reached`); if (!modalData.name || !modalData.email || !adminPasswordInput) return addToast('error', 'Fields required'); setUsers(prev => [...prev, { id: Date.now().toString(), name: modalData.name, email: modalData.email, role: modalData.role || 'worker', avatar: `https://ui-avatars.com/api/?name=${modalData.name}&background=random&color=fff`, password: adminPasswordInput }]); setActiveModal(null); setAdminPasswordInput(''); addToast('success', 'Member Added'); };
     const deleteUser = (id: string) => { setUsers(prev => prev.filter(u => u.id !== id)); addToast('success', 'User Removed'); };
     const unlockUser = (id: string) => { setUsers(prev => prev.map(u => u.id === id ? { ...u, failedAttempts: 0, lockoutUntil: 0 } : u)); addToast('success', 'Account Unlocked'); };
@@ -2137,6 +2207,31 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     onRestoreVersion: (versionId: string) => addToast('info', `Restored version ${versionId}`),
                                     onAddExpense: () => setActiveModal('add_expense'),
                                     workspaceItems,
+                                    // System configuration props for AI model dropdown
+                                    mockIntegrations: MOCK_INTEGRATIONS,
+                                    configuredModels,
+                                    popularLlms: POPULAR_LLMS,
+                                    newModelSelection,
+                                    newModelKey,
+                                    onSetNewModelSelection: setNewModelSelection,
+                                    onSetNewModelKey: setNewModelKey,
+                                    onRemoveModel: removeModel,
+                                    onAddModel: handleAddModel,
+                                    maxUsers,
+                                    onAddUser: () => setActiveModal('save_user'),
+                                    onUnlockUser: unlockUser,
+                                    onDeleteUser: deleteUser,
+                                    onResetPassword: (u: User) => { setModalData(u); setAdminPasswordInput(''); setActiveModal('admin_reset_password'); },
+                                    automationRules: automations,
+                                    onAddAutomation: () => setActiveModal('save_automation'),
+                                    onDeleteAutomation: deleteAutomation,
+                                    onSetBusinessProfile: setBusinessProfile,
+                                    onImportCsv: handleImportCsv,
+                                    selectedExportCompanyId,
+                                    onSetSelectedExportCompanyId: setSelectedExportCompanyId,
+                                    onClientExport: handleClientExport,
+                                    // Compliance props
+                                    onGenerateComplianceReport: handleGenerateComplianceReport,
                                 } as any;
 
                                 return (

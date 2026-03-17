@@ -195,6 +195,7 @@ interface ManagementPanelProps {
     vendors?: Vendor[];
     onAddVendor?: () => void;
     complianceItems?: ComplianceItem[];
+    onGenerateComplianceReport?: (framework: string) => void;
     docVersions?: DocVersion[];
     onRestoreVersion?: (versionId: string) => void;
     onAddExpense?: () => void;
@@ -530,6 +531,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
             {view === 'compliance' && (
                 <ComplianceView
                     items={props.complianceItems || []}
+                    onGenerateReport={props.onGenerateComplianceReport}
                 />
             )}
             {view === 'versions' && (
