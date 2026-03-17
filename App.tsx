@@ -877,6 +877,90 @@ export const App: React.FC = () => {
         } catch (e) { console.error(e); addToast('error', 'Export Failed'); } finally { setIsLoading(false); }
     };
 
+    const handleGenerateComplianceReport = (framework: string) => {
+        const fwItems = complianceItems.filter(i => i.framework === framework);
+        const compliant = fwItems.filter(i => i.status === 'compliant').length;
+        const inProgress = fwItems.filter(i => i.status === 'in_progress').length;
+        const nonCompliant = fwItems.filter(i => i.status === 'non_compliant').length;
+        const notApplicable = fwItems.filter(i => i.status === 'not_applicable').length;
+        const total = fwItems.length;
+        const applicableTotal = total - notApplicable;
+        // If no applicable controls, show 0% readiness (not misleading 100%)
+        const readiness = applicableTotal > 0 ? Math.round((compliant / applicableTotal) * 100) : 0;
+        const readinessDisplay = applicableTotal > 0 ? `${readiness}%` : 'N/A (no applicable controls)';
+        
+        const reportDate = new Date().toISOString().split('T')[0];
+        const generatedTime = new Date().toLocaleString();
+        
+        // Build control details with only non-empty fields
+        const controlDetails = fwItems.map(item => {
+            const statusIcon = item.status === 'compliant' ? '✅' : item.status === 'in_progress' ? '🔄' : item.status === 'non_compliant' ? '❌' : '⚪';
+            const details = [
+                `[${statusIcon}] ${item.control}`,
+                `    Description: ${item.description}`,
+                `    Status: ${item.status.replace('_', ' ').toUpperCase()}`
+            ];
+            if (item.lastAuditDate) details.push(`    Last Audit: ${item.lastAuditDate}`);
+            if (item.dueDate) details.push(`    Due Date: ${item.dueDate}`);
+            if (item.evidenceLink) details.push(`    Evidence: ${item.evidenceLink}`);
+            return details.join('\n');
+        }).join('\n\n');
+        
+        // Build recommendations with only non-empty items
+        const recommendations = [
+            nonCompliant > 0 ? `⚠️  ${nonCompliant} control(s) require immediate attention to achieve compliance.` : '',
+            inProgress > 0 ? `📋 ${inProgress} control(s) are in progress and should be monitored.` : '',
+            readiness === 100 && applicableTotal > 0 ? '🎉 All applicable controls are compliant. Ready for audit!' : '',
+            applicableTotal === 0 ? '⚠️  No applicable controls found for this framework.' : ''
+        ].filter(r => r).join('\n');
+        
+        const reportContent = `
+================================================================================
+                        ${framework} COMPLIANCE READINESS REPORT
+================================================================================
+Generated: ${generatedTime}
+Framework: ${framework}
+
+EXECUTIVE SUMMARY
+-----------------
+Overall Readiness Score: ${readinessDisplay}
+Total Controls: ${total}
+Applicable Controls: ${applicableTotal}
+
+STATUS BREAKDOWN
+----------------
+✅ Compliant:       ${compliant} (${applicableTotal > 0 ? Math.round((compliant / applicableTotal) * 100) : 0}%)
+🔄 In Progress:     ${inProgress} (${applicableTotal > 0 ? Math.round((inProgress / applicableTotal) * 100) : 0}%)
+❌ Non-Compliant:   ${nonCompliant} (${applicableTotal > 0 ? Math.round((nonCompliant / applicableTotal) * 100) : 0}%)
+⚪ Not Applicable:  ${notApplicable}
+
+DETAILED CONTROL STATUS
+-----------------------
+${controlDetails}
+
+RECOMMENDATIONS
+---------------
+${recommendations}
+
+================================================================================
+                              END OF REPORT
+================================================================================
+`;
+        
+        // Create and download the report
+        const blob = new Blob([reportContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${framework.replace(/[^a-z0-9]/gi, '_')}_Compliance_Report_${reportDate}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        addToast('success', `${framework} Readiness Report Generated`);
+    };
+
     // --- AUTOMATION ENGINE ---
     const triggerAutomation = async (event: AutomationEvent, payload: any) => {
         const results = await processAutomationTrigger(event, payload, automationRules);
@@ -2133,6 +2217,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     vendors,
                                     onAddVendor: () => setActiveModal('add_vendor'),
                                     complianceItems,
+                                    onGenerateComplianceReport: handleGenerateComplianceReport,
                                     docVersions,
                                     onRestoreVersion: (versionId: string) => addToast('info', `Restored version ${versionId}`),
                                     onAddExpense: () => setActiveModal('add_expense'),
