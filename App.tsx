@@ -1361,7 +1361,61 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 
             const res = await lynxService.current?.sendMessage(currentInput, contextData);
 
-            if (res) setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: res.text || 'Error', timestamp: Date.now(), type: 'text' }]);
+            if (res) {
+                const responseText = res.text || 'Error';
+                setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: responseText, timestamp: Date.now(), type: 'text' }]);
+
+                // Detect if the user requested generated content (proposals, reports, plans, etc.)
+                const contentKeywords = ['proposal', 'report', 'plan', 'summary', 'analysis', 'strategy', 'recommendation', 'document', 'draft', 'outline', 'brief', 'memo', 'presentation'];
+                const requestKeywords = ['create', 'write', 'draft', 'generate', 'make', 'prepare', 'build', 'develop'];
+                // Exclude informational queries that aren't content generation requests
+                const excludeKeywords = ['explain', 'what is', 'what are', 'how to', 'how do', 'tell me about', 'describe', 'define'];
+                
+                const inputLower = currentInput.toLowerCase();
+                const isExcludedQuery = excludeKeywords.some(ek => inputLower.includes(ek));
+                const isContentRequest = !isExcludedQuery &&
+                                        requestKeywords.some(rk => inputLower.includes(rk)) && 
+                                        contentKeywords.some(ck => inputLower.includes(ck));
+                
+                // Check if response is substantial (more than a simple answer)
+                const SUBSTANTIAL_RESPONSE_LENGTH = 500;
+                const MEMORY_PREVIEW_LENGTH = 500;
+                const isSubstantialResponse = responseText.length > SUBSTANTIAL_RESPONSE_LENGTH;
+
+                if (isContentRequest && isSubstantialResponse && responseText !== 'Error') {
+                    // Determine document type from user request
+                    const docType = contentKeywords.find(ck => inputLower.includes(ck)) || 'document';
+                    const clientName = companies.find(c => c.id === clientContext)?.name || 'General';
+                    const docTitle = `${docType.charAt(0).toUpperCase() + docType.slice(1)} - ${clientName}`;
+                    const timestamp = Date.now();
+                    const dateStr = new Date().toISOString().split('T')[0];
+
+                    // Add to Memory (long-term storage)
+                    setMemories(prev => [{
+                        id: `mem-${timestamp}`,
+                        key: docTitle,
+                        value: responseText.substring(0, MEMORY_PREVIEW_LENGTH) + (responseText.length > MEMORY_PREVIEW_LENGTH ? '...' : ''),
+                        timestamp: timestamp,
+                        type: 'text',
+                        createdBy: 'AI Assistant',
+                        clientId: clientContext
+                    }, ...prev]);
+
+                    // Add to Workspace Items (Documents tab)
+                    setWorkspaceItems(prev => [{
+                        id: `doc-${timestamp}`,
+                        type: 'doc',
+                        title: docTitle,
+                        snippet: responseText.length > 150 ? responseText.substring(0, 150) + '...' : responseText,
+                        date: dateStr,
+                        link: '#', // Link to view in-app; full content stored in summary
+                        clientId: clientContext,
+                        summary: responseText
+                    }, ...prev]);
+
+                    addToast('success', `${docTitle} saved to Memory & Documents`);
+                }
+            }
         } catch (e: any) {
             console.error(e);
             const errorMsg = e.message || 'AI Error - Check API Key';
@@ -1683,8 +1737,9 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                 )}
             </AnimatePresence>
 
-            <aside className={`w-64 flex-shrink-0 border-r flex flex-col items-center py-6 h-full transition-all duration-300 ${isDarkMode ? 'bg-slate-900 border-white/5' : 'bg-white border-gray-200'} ${isFocusMode ? '-ml-64' : ''}`}>
-                <div className="mb-8 font-black text-xl tracking-tighter cursor-pointer flex-shrink-0" onClick={() => setView('home')}>NEURO<span className="text-cyan-400">LYNX</span></div>
+            <aside className={`relative w-64 flex-shrink-0 border-r flex flex-col items-center py-6 h-full transition-all duration-300 ${isDarkMode ? 'bg-slate-900 border-white/5' : 'bg-white border-gray-200'} ${isFocusMode ? '-ml-64' : ''}`}>
+                <div className="mb-4 font-black text-xl tracking-tighter cursor-pointer flex-shrink-0" onClick={() => setView('home')}>NEURO<span className="text-cyan-400">LYNX</span></div>
+                <img src="/neurolynx-logo.png" alt="NeuroLynx Logo" className="w-40 h-auto mb-4 cursor-pointer opacity-90 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded" tabIndex={0} onClick={() => setView('home')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setView('home'); } }} role="button" />
                 <nav className="flex-1 w-full px-4 space-y-2 overflow-y-auto custom-scrollbar">
                     <SidebarItem active={view === 'home'} icon="fa-house" label="Home" onClick={() => setView('home')} />
                     <SidebarItem active={view === 'chat'} icon="fa-comment-dots" label="Chat" onClick={() => setView('chat')} />
@@ -1719,6 +1774,11 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'profile'} label="Profile" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('profile'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('automations'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
+                                            <SidebarSubItem active={view === 'activity'} label="Activity" onClick={() => setView('activity')} />
+                                            <SidebarSubItem active={view === 'vendors'} label="Vendors" onClick={() => setView('vendors')} />
+                                            <SidebarSubItem active={view === 'expenses'} label="Expenses" onClick={() => setView('expenses')} />
+                                            <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
+                                            <SidebarSubItem active={view === 'versions'} label="Versions" onClick={() => setView('versions')} />
                                         </div>
                                     )}
                                     <SidebarGroupToggle isOpen={isClientWorkspaceOpen} label="Client Workspace" onClick={() => setIsClientWorkspaceOpen(!isClientWorkspaceOpen)} />
@@ -1728,6 +1788,10 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'documents'} label="Documents" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('documents'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'contracts'} label="Contracts" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('contracts'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'billing'} label="Billing" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('billing'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
+                                            <SidebarSubItem active={view === 'tickets'} label="Tickets" onClick={() => setView('tickets')} />
+                                            <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => setView('onboarding')} />
+                                            <SidebarSubItem active={view === 'sequences'} label="Sequences" onClick={() => setView('sequences')} />
+                                            <SidebarSubItem active={view === 'portal'} label="Portal" onClick={() => setView('portal')} />
                                         </div>
                                     )}
                                 </motion.div>
@@ -1829,19 +1893,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 
                     <SidebarItem active={view === 'help'} icon="fa-circle-question" label="Help" onClick={() => setView('help')} />
 
-                    {/* Flat Items */}
-                    <div className="space-y-1 pt-4 opacity-80">
-                        <SidebarItem active={view === 'activity'} icon="fa-stream" label="Activity" onClick={() => setView('activity')} />
-                        <SidebarItem active={view === 'tickets'} icon="fa-ticket-alt" label="Tickets" onClick={() => setView('tickets')} />
-                        <SidebarItem active={view === 'onboarding'} icon="fa-clipboard-check" label="Onboarding" onClick={() => setView('onboarding')} />
-                        <SidebarItem active={view === 'sequences'} icon="fa-mail-bulk" label="Sequences" onClick={() => setView('sequences')} />
-                        <SidebarItem active={view === 'vendors'} icon="fa-truck-field" label="Vendors" onClick={() => setView('vendors')} />
-                        <SidebarItem active={view === 'portal'} icon="fa-door-open" label="Portal" onClick={() => setView('portal')} />
-                        <SidebarItem active={view === 'expenses'} icon="fa-receipt" label="Expenses" onClick={() => setView('expenses')} />
-                        <SidebarItem active={view === 'compliance'} icon="fa-shield-halved" label="Compliance" onClick={() => setView('compliance')} />
-                        <SidebarItem active={view === 'versions'} icon="fa-history" label="Versions" onClick={() => setView('versions')} />
-                    </div>
-
                     {/* Recent Items Section */}
                     {recentItems.length > 0 && (
                         <div className="mt-8 px-4">
@@ -1872,7 +1923,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     </div>
                 </nav>
 
-                <div className="absolute bottom-6 left-6 right-6 z-50">
+                <div className="absolute bottom-6 left-4 right-4 z-50">
                     <AnimatePresence>
                         {isQuickActionOpen && (
                             <motion.div
@@ -1943,16 +1994,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                             <div className="glass-chip" title="Model Context Protocol tools ready for natural requests (e.g. 'create a task for tomorrow')">
                                 <Sparkles className="w-3 h-3 text-purple-300" />
                                 MCP Connected · Just ask
-                            </div>
-                        </div>
-                        <div className="hidden lg:flex items-center gap-4 border-l border-white/5 pl-4 ml-4">
-                            <div className="flex items-center gap-2 px-3 py-1 bg-cyan-500/5 border border-cyan-500/20 rounded-full">
-                                <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full status-pulse"></div>
-                                <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Neural Sync</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-3 py-1 bg-orange-500/5 border border-orange-500/20 rounded-full">
-                                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></div>
-                                <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">AI Core Active</span>
                             </div>
                         </div>
                     </div>
@@ -2181,7 +2222,9 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <ManagementPanel
                                                 {...commonPanelProps}
                                                 view="workspace"
-                                                tab={internalTab}
+                                                workspaceMode="internal"
+                                                internalTab={internalTab}
+                                                onSetInternalTab={setInternalTab}
                                                 products={products}
                                                 salesPipeline={salesPipeline}
                                                 onMoveTask={handleMoveTask}
@@ -2196,7 +2239,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                 onSaveAutomation={(a) => { setModalData(a); setActiveModal('save_automation'); }}
                                                 onDeleteAutomation={deleteAutomation}
                                                 onToggleAutomation={toggleAutomation}
-                                                setInternalTab={setInternalTab}
                                                 onResetPassword={(u) => { setModalData(u); setAdminPasswordInput(''); setActiveModal('admin_reset_password'); }}
                                             />
                                         )}
@@ -2209,6 +2251,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                 clientWorkspaceTab={clientWorkspaceTab}
                                                 onSetClientWorkspaceTab={setClientWorkspaceTab}
                                                 onSetWorkspaceMode={setWorkspaceMode}
+                                                onRunEOMBilling={runEOMBilling}
                                             />
                                         )}
 

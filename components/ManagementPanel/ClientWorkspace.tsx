@@ -1,5 +1,5 @@
 import React from 'react';
-import { Company, WorkspaceItem, Contract, Template } from '../../types';
+import { Company, WorkspaceItem, Contract, Template, BillingRecord } from '../../types';
 
 interface ClientWorkspaceProps {
     clientWorkspaceTab: 'overview' | 'contracts' | 'documents' | 'billing';
@@ -18,6 +18,8 @@ interface ClientWorkspaceProps {
     onAddToast: (type: any, msg: string) => void;
     setWorkspaceItems: React.Dispatch<React.SetStateAction<WorkspaceItem[]>>;
     setCompanies: React.Dispatch<React.SetStateAction<Company[]>>;
+    billingRecords?: BillingRecord[];
+    onRunEOMBilling?: (companyId: string) => void;
 }
 
 const ClientWorkspace: React.FC<ClientWorkspaceProps> = ({
@@ -36,7 +38,9 @@ const ClientWorkspace: React.FC<ClientWorkspaceProps> = ({
     mockTemplates,
     onAddToast,
     setWorkspaceItems,
-    setCompanies
+    setCompanies,
+    billingRecords = [],
+    onRunEOMBilling
 }) => {
     return (
         <>
@@ -226,6 +230,52 @@ const ClientWorkspace: React.FC<ClientWorkspaceProps> = ({
                                         </div>
                                     </a>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {clientWorkspaceTab === 'billing' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold">Billing Records</h2>
+                                {activeClient && onRunEOMBilling && (
+                                    <button 
+                                        onClick={() => onRunEOMBilling(activeClient.id)} 
+                                        className="px-4 py-2 bg-green-600 rounded text-xs font-bold hover:bg-green-500 transition-colors"
+                                    >
+                                        <i className="fas fa-calculator mr-2"></i>Run EOM Billing
+                                    </button>
+                                )}
+                            </div>
+                            <div className="space-y-4">
+                                {(() => {
+                                    const filteredRecords = billingRecords.filter(b => selectedCompanyId === 'all' || b.clientId === selectedCompanyId);
+                                    return filteredRecords.length > 0 ? (
+                                        filteredRecords.map(record => (
+                                            <div key={record.id} className="p-4 bg-slate-800 rounded-xl border border-white/5 flex justify-between items-center">
+                                                <div>
+                                                    <div className="font-bold">{record.breakdown}</div>
+                                                    <div className="text-xs text-slate-400">{record.date}</div>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold ${
+                                                        record.status === 'paid' ? 'bg-emerald-500/20 text-emerald-400' :
+                                                        record.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        'bg-red-500/20 text-red-400'
+                                                    }`}>
+                                                        {record.status}
+                                                    </span>
+                                                    <div className="font-mono text-cyan-400 font-bold">${record.amount.toLocaleString()}</div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center p-8 bg-slate-800/50 rounded-xl border border-white/5 border-dashed text-slate-500">
+                                            <i className="fas fa-file-invoice-dollar text-4xl mb-4 opacity-50"></i>
+                                            <div>No billing records yet for this client.</div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
                     )}
