@@ -421,7 +421,6 @@ export const App: React.FC = () => {
     const licenseService = useRef<LicenseService>(new LicenseService());
     const testService = useRef<TestService>(new TestService());
     const cryptoService = useRef<CryptoService>(new CryptoService());
-    const chatEndRef = useRef<HTMLDivElement>(null);
     const { isRecording, startRecording, stopRecording, startFileRecording, stopFileRecording } = useAudio();
 
     // NEW IMPROVEMENTS STATE
@@ -432,7 +431,6 @@ export const App: React.FC = () => {
     });
     const [isFocusMode, setIsFocusMode] = useState(false);
     const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
-    const [recentItems, setRecentItems] = useState<{ label: string, view: string, timestamp: number }[]>([]);
     const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
     const [newModelSelection, setNewModelSelection] = useState(POPULAR_LLMS[1].id); // Use index 1 (gemini flash preview) as default
@@ -456,8 +454,6 @@ export const App: React.FC = () => {
     const [isInternalMgmtOpen, setIsInternalMgmtOpen] = useState(true);
     const [isClientWorkspaceOpen, setIsClientWorkspaceOpen] = useState(true);
     const [isTasksMenuOpen, setIsTasksMenuOpen] = useState(false);
-    const [isAnalyticsMenuOpen, setIsAnalyticsMenuOpen] = useState(false);
-    const [isBusinessSuiteOpen, setIsBusinessSuiteOpen] = useState(false);
     const [isChatPopupOpen, setIsChatPopupOpen] = useState(false);
     const [workspaceMode, setWorkspaceMode] = useState<'internal' | 'client'>('internal');
     const [internalTab, setInternalTab] = useState<'offerings' | 'team' | 'profile' | 'system' | 'data' | 'automations'>('offerings');
@@ -788,17 +784,6 @@ export const App: React.FC = () => {
     useEffect(() => {
         localStorage.setItem('neurolynx_theme', isDarkMode ? 'dark' : 'light');
     }, [isDarkMode]);
-
-    // Recent Items Tracking
-    useEffect(() => {
-        if (view !== 'home') {
-            setRecentItems(prev => {
-                const filtered = prev.filter(item => item.view !== view);
-                const newItem = { label: view.charAt(0).toUpperCase() + view.slice(1), view, timestamp: Date.now() };
-                return [newItem, ...filtered].slice(0, 5);
-            });
-        }
-    }, [view]);
 
     // Scratchpad Persistence
     useEffect(() => {
@@ -2073,7 +2058,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     input,
                                     onSetInput: setInput,
                                     onSubmitMessage: submitMessage,
-                                    messagesEndRef: chatEndRef,
+                                    messagesEndRef: messagesEndRef,
                                     billingRecords,
                                     contracts,
                                     onMoveTask: handleMoveTask,
@@ -2604,8 +2589,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                 )}
             </AnimatePresence>
 
-            {/* Floating Chat Popup - shown on all views except chat */}
-            {view !== 'chat' && (
+            {/* Floating Chat Popup - shown on all views except chat, hidden when modal is open */}
+            {view !== 'chat' && !activeModal && (
                 <>
                     {/* Chat Popup Window */}
                     <AnimatePresence>
@@ -2614,7 +2599,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                                className="fixed bottom-24 right-6 w-96 h-[500px] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl z-[100] flex flex-col overflow-hidden"
+                                className="fixed bottom-24 right-6 w-[calc(100vw-3rem)] max-w-96 h-[calc(100vh-10rem)] max-h-[500px] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden"
                             >
                                 {/* Header */}
                                 <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-800/50">
@@ -2643,11 +2628,17 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     {messages.map((msg, i) => (
                                         <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`p-3 rounded-xl max-w-[85%] text-sm ${msg.role === 'user' ? 'bg-orange-600' : 'bg-slate-800 border border-white/10'}`}>
-                                                {msg.content}
+                                                <SimpleMarkdown content={msg.content} />
+                                                {msg.toolCalls && msg.toolCalls.length > 0 && (
+                                                    <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-2 text-[10px] text-cyan-400">
+                                                        <i className="fas fa-cog"></i>
+                                                        <span>Used: {msg.toolCalls.map(t => t.toolName).join(', ')}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
-                                    <div ref={chatEndRef}></div>
+                                    <div ref={messagesEndRef}></div>
                                 </div>
 
                                 {/* Input */}
@@ -2681,7 +2672,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     {/* Floating Chat Button */}
                     <button
                         onClick={() => setIsChatPopupOpen(!isChatPopupOpen)}
-                        className={`fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-xl z-[100] flex items-center justify-center transition-all ${
+                        className={`fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-xl z-50 flex items-center justify-center transition-all ${
                             isChatPopupOpen
                                 ? 'bg-slate-800 border border-white/10 hover:bg-slate-700'
                                 : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:scale-110 shadow-cyan-500/30'
