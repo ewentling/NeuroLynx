@@ -122,6 +122,12 @@ const WORKSPACE_VIEWS = ['workspace', 'activity', 'vendors', 'expenses', 'compli
 // Client Workspace views that should show the client dropdown
 const CLIENT_WORKSPACE_VIEWS = ['workspace', 'meetings', 'pipeline', 'tasks', 'calendar', 'clients', 'memory', 'tickets', 'onboarding', 'sequences', 'portal', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners'];
 
+// Display labels for views (maps internal view keys to user-friendly names)
+const VIEW_LABELS: Record<string, string> = {
+    alltickets: 'Tickets',
+};
+const getViewLabel = (view: string) => VIEW_LABELS[view] || view;
+
 const SimpleMarkdown = React.memo(({ content }: { content: string }) => {
     if (!content) return null;
     const lines = content.split('\n');
@@ -210,7 +216,7 @@ const Breadcrumbs = ({ view, companyName }: { view: string, companyName?: string
         <Home className="w-3 h-3" />
         <span className="hover:text-slate-300 cursor-pointer" onClick={() => window.dispatchEvent(new CustomEvent('nav', { detail: 'home' }))}>Dashboard</span>
         <ChevronRight className="w-3 h-3 opacity-30" />
-        <span className={`${!companyName ? 'text-orange-400' : 'hover:text-slate-300 cursor-pointer'}`}>{view}</span>
+        <span className={`${!companyName ? 'text-orange-400' : 'hover:text-slate-300 cursor-pointer'}`}>{getViewLabel(view)}</span>
         {companyName && (
             <>
                 <ChevronRight className="w-3 h-3 opacity-30" />
@@ -1744,7 +1750,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     <SidebarItem active={view === 'clients'} icon="fa-building" label="Companies" onClick={() => setView('clients')} />
 
                     {/* Global Tickets Menu - shows all tickets across all clients */}
-                    <SidebarItem active={view === 'alltickets'} icon="fa-ticket" label="Tickets" onClick={() => { setView('alltickets'); setSelectedCompanyId('all'); }} />
+                    <SidebarItem active={view === 'alltickets'} icon="fa-ticket-alt" label="Tickets" onClick={() => { setView('alltickets'); setSelectedCompanyId('all'); }} />
 
                     <div className="space-y-1">
                         <button onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${WORKSPACE_VIEWS.includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
@@ -1894,7 +1900,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     <div className="flex items-center gap-6 flex-1">
                         <div className="flex flex-col">
                             <Breadcrumbs view={view} companyName={selectedCompanyId !== 'all' ? companies.find(c => c.id === selectedCompanyId)?.name : undefined} />
-                            <h1 className="font-extrabold text-2xl neuro-text-gradient uppercase hidden md:block leading-tight">{view}</h1>
+                            <h1 className="font-extrabold text-2xl neuro-text-gradient uppercase hidden md:block leading-tight">{getViewLabel(view)}</h1>
                         </div>
 
                         <div className="relative flex-1 group">
