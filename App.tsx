@@ -1086,15 +1086,16 @@ export const App: React.FC = () => {
         if (!csvInput?.trim()) return addToast('error', 'Please enter CSV data');
         const rows = csvInput.split('\n').filter(r => r.trim());
         let imported = 0;
-        rows.forEach(row => {
+        let companyCounter = 0;
+        rows.forEach((row, rowIndex) => {
             const [name, email, company, role] = row.split(',').map(s => s.trim());
             if (name && email) {
                 const existingCompany = companies.find(c => c.name.toLowerCase() === company?.toLowerCase());
-                const companyId = existingCompany?.id || Date.now().toString();
+                const companyId = existingCompany?.id || `company-${Date.now()}-${companyCounter++}`;
                 if (!existingCompany && company) {
                     setCompanies(prev => [...prev, { id: companyId, name: company, address: '', phone: '', website: '', industry: 'Unknown', status: 'active', revenue: 0 }]);
                 }
-                setClients(prev => [...prev, { id: Date.now().toString() + Math.random(), companyId, name, email, phone: '', role: role || 'Contact', status: 'active', avatarColor: 'bg-blue-500', notes: '', lastContactDate: new Date().toISOString(), nextActionDate: '' }]);
+                setClients(prev => [...prev, { id: `client-${Date.now()}-${rowIndex}`, companyId, name, email, phone: '', role: role || 'Contact', status: 'active', avatarColor: 'bg-blue-500', notes: '', lastContactDate: new Date().toISOString(), nextActionDate: '' }]);
                 imported++;
             }
         });
@@ -1151,6 +1152,7 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
         URL.revokeObjectURL(url);
         addToast('success', `${framework} Readiness Report Generated`);
     };
+    const MOCK_SURVEY_RESPONSE_DELAY_MS = 5000;
     const handleSendSurvey = () => {
         if (!modalData.companyId) return addToast('error', 'Please select a company');
         if (!modalData.recipientEmail) return addToast('error', 'Please enter recipient email');
@@ -1158,24 +1160,30 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
         const company = companies.find(c => c.id === modalData.companyId);
         const surveyId = `survey-${Date.now()}`;
         
+        // Capture modal data before clearing
+        const capturedCompanyId = modalData.companyId;
+        const capturedRecipientName = modalData.recipientName;
+        const capturedRecipientEmail = modalData.recipientEmail;
+        const capturedCompanyName = company?.name;
+        
         // Create a mock response to simulate survey being sent
         // In production this would integrate with an email service
-        addToast('success', `Survey sent to ${modalData.recipientEmail}`);
+        addToast('success', `Survey sent to ${capturedRecipientEmail}`);
         
         // Optionally create a pending survey entry (simulating the workflow)
         setTimeout(() => {
             // Simulate a response coming back after some time
             const newResponse: CSATResponse = {
                 id: surveyId,
-                companyId: modalData.companyId,
-                respondentName: modalData.recipientName || modalData.recipientEmail.split('@')[0],
+                companyId: capturedCompanyId,
+                respondentName: capturedRecipientName || capturedRecipientEmail.split('@')[0],
                 score: Math.floor(Math.random() * 4) + 7, // Random score 7-10 for demo
                 feedback: 'Thank you for the excellent service!',
                 date: new Date().toISOString().split('T')[0]
             };
             setCsatResponses(prev => [...prev, newResponse]);
-            addToast('info', `New survey response received from ${company?.name || 'client'}`);
-        }, 5000); // Simulate response after 5 seconds for demo
+            addToast('info', `New survey response received from ${capturedCompanyName || 'client'}`);
+        }, MOCK_SURVEY_RESPONSE_DELAY_MS);
         
         setActiveModal(null);
         setModalData({});
