@@ -237,6 +237,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 <MeetingsView
                     meetings={props.meetings || []}
                     companies={props.companies || []}
+                    selectedCompanyId={props.selectedCompanyId}
                     isLiveMeeting={props.isLiveMeeting || false}
                     onToggleLiveMeeting={props.onToggleLiveMeeting || (() => {})}
                     onLogMeeting={props.onLogMeeting || (() => {})}

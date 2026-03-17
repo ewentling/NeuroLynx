@@ -67,14 +67,6 @@ const HomeView: React.FC<HomeViewProps> = ({
                         <Zap className="w-3 h-3 text-orange-500" /> Real-time Neural Sync Active
                     </p>
                 </div>
-                <div className="flex items-center gap-3 px-4 py-2 bg-green-500/5 border border-green-500/20 rounded-2xl shadow-[0_0_20px_rgba(34,197,94,0.1)]">
-                    <ShieldCheck className="w-4 h-4 text-green-500" />
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-green-400 uppercase tracking-widest leading-none">Quantum Secure</span>
-                        <span className="text-[8px] text-slate-500 font-bold uppercase mt-0.5">Neuro-Encrypted Channel</span>
-                    </div>
-                    <div className="ml-2 w-1.5 h-1.5 bg-green-500 rounded-full status-pulse"></div>
-                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
