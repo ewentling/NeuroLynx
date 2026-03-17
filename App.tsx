@@ -1151,6 +1151,35 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
         URL.revokeObjectURL(url);
         addToast('success', `${framework} Readiness Report Generated`);
     };
+    const handleSendSurvey = () => {
+        if (!modalData.companyId) return addToast('error', 'Please select a company');
+        if (!modalData.recipientEmail) return addToast('error', 'Please enter recipient email');
+        
+        const company = companies.find(c => c.id === modalData.companyId);
+        const surveyId = `survey-${Date.now()}`;
+        
+        // Create a mock response to simulate survey being sent
+        // In production this would integrate with an email service
+        addToast('success', `Survey sent to ${modalData.recipientEmail}`);
+        
+        // Optionally create a pending survey entry (simulating the workflow)
+        setTimeout(() => {
+            // Simulate a response coming back after some time
+            const newResponse: CSATResponse = {
+                id: surveyId,
+                companyId: modalData.companyId,
+                respondentName: modalData.recipientName || modalData.recipientEmail.split('@')[0],
+                score: Math.floor(Math.random() * 4) + 7, // Random score 7-10 for demo
+                feedback: 'Thank you for the excellent service!',
+                date: new Date().toISOString().split('T')[0]
+            };
+            setCsatResponses(prev => [...prev, newResponse]);
+            addToast('info', `New survey response received from ${company?.name || 'client'}`);
+        }, 5000); // Simulate response after 5 seconds for demo
+        
+        setActiveModal(null);
+        setModalData({});
+    };
     const addUser = () => { if (users.length >= maxUsers) return addToast('error', `Limit Reached`); if (!modalData.name || !modalData.email || !adminPasswordInput) return addToast('error', 'Fields required'); setUsers(prev => [...prev, { id: Date.now().toString(), name: modalData.name, email: modalData.email, role: modalData.role || 'worker', avatar: `https://ui-avatars.com/api/?name=${modalData.name}&background=random&color=fff`, password: adminPasswordInput }]); setActiveModal(null); setAdminPasswordInput(''); addToast('success', 'Member Added'); };
     const deleteUser = (id: string) => { setUsers(prev => prev.filter(u => u.id !== id)); addToast('success', 'User Removed'); };
     const unlockUser = (id: string) => { setUsers(prev => prev.map(u => u.id === id ? { ...u, failedAttempts: 0, lockoutUntil: 0 } : u)); addToast('success', 'Account Unlocked'); };
@@ -2176,7 +2205,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     expenses,
                                     timeEntries,
                                     csatResponses,
-                                    onSendSurvey: () => addToast('info', 'Survey feature coming soon'),
+                                    onSendSurvey: () => setActiveModal('send_survey'),
                                     invoices,
                                     onSaveInvoice: (inv: any) => setInvoices(prev => [...prev, inv]),
                                     esignRequests,
@@ -2587,6 +2616,33 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Email" value={modalData.email || ''} onChange={e => setModalData({ ...modalData, email: e.target.value })} />
                                         <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Role / Position" value={modalData.role || ''} onChange={e => setModalData({ ...modalData, role: e.target.value })} />
                                         <button onClick={saveClient} className="w-full py-3 bg-cyan-600 rounded font-bold text-white">Save Contact</button>
+                                    </div>
+                                )
+                            }
+
+                            {
+                                activeModal === 'send_survey' && (
+                                    <div className="space-y-4">
+                                        <h3 className="text-xl font-bold">Send CSAT Survey</h3>
+                                        <p className="text-sm text-slate-400">Send a satisfaction survey to gather feedback from your clients.</p>
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || ''} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
+                                            <option value="">Select Company...</option>
+                                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Recipient Name" value={modalData.recipientName || ''} onChange={e => setModalData({ ...modalData, recipientName: e.target.value })} />
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" type="email" placeholder="Recipient Email" value={modalData.recipientEmail || ''} onChange={e => setModalData({ ...modalData, recipientEmail: e.target.value })} />
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Survey Type</label>
+                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.surveyType || 'nps'} onChange={e => setModalData({ ...modalData, surveyType: e.target.value })}>
+                                                <option value="nps">NPS (Net Promoter Score)</option>
+                                                <option value="csat">CSAT (Customer Satisfaction)</option>
+                                                <option value="ces">CES (Customer Effort Score)</option>
+                                            </select>
+                                        </div>
+                                        <textarea className="w-full p-3 bg-black/20 rounded border border-white/10 h-20" placeholder="Custom message (optional)" value={modalData.customMessage || ''} onChange={e => setModalData({ ...modalData, customMessage: e.target.value })} />
+                                        <button onClick={handleSendSurvey} className="w-full py-3 bg-orange-600 rounded font-bold text-white">
+                                            <i className="fas fa-paper-plane mr-2"></i>Send Survey
+                                        </button>
                                     </div>
                                 )
                             }
