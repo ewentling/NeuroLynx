@@ -1085,21 +1085,46 @@ export const App: React.FC = () => {
         const csvInput = (document.getElementById('csv-input') as HTMLTextAreaElement)?.value;
         if (!csvInput?.trim()) return addToast('error', 'Please enter CSV data');
         const rows = csvInput.split('\n').filter(r => r.trim());
-        let imported = 0;
+        
+        // Build a local map of company names to IDs, seeded from existing companies
+        const companyMap = new Map<string, string>();
+        companies.forEach(c => companyMap.set(c.name.toLowerCase(), c.id));
+        
+        const newCompanies: Company[] = [];
+        const newClients: Client[] = [];
         let companyCounter = 0;
+        
         rows.forEach((row, rowIndex) => {
             const [name, email, company, role] = row.split(',').map(s => s.trim());
             if (name && email) {
-                const existingCompany = companies.find(c => c.name.toLowerCase() === company?.toLowerCase());
-                const companyId = existingCompany?.id || `company-${Date.now()}-${companyCounter++}`;
-                if (!existingCompany && company) {
-                    setCompanies(prev => [...prev, { id: companyId, name: company, address: '', phone: '', website: '', industry: 'Unknown', status: 'active', revenue: 0 }]);
+                // Skip rows without a company name to avoid creating clients with invalid companyId
+                if (!company) {
+                    addToast('warning', `Skipped row ${rowIndex + 1}: company name required`);
+                    return;
                 }
-                setClients(prev => [...prev, { id: `client-${Date.now()}-${rowIndex}`, companyId, name, email, phone: '', role: role || 'Contact', status: 'active', avatarColor: 'bg-blue-500', notes: '', lastContactDate: new Date().toISOString(), nextActionDate: '' }]);
-                imported++;
+                
+                const companyLower = company.toLowerCase();
+                let companyId = companyMap.get(companyLower);
+                
+                if (!companyId) {
+                    // Create new company entry
+                    companyId = `company-${Date.now()}-${companyCounter++}`;
+                    companyMap.set(companyLower, companyId);
+                    newCompanies.push({ id: companyId, name: company, address: '', phone: '', website: '', industry: 'Unknown', status: 'active', revenue: 0 });
+                }
+                
+                newClients.push({ id: `client-${Date.now()}-${rowIndex}`, companyId, name, email, phone: '', role: role || 'Contact', status: 'active', avatarColor: 'bg-blue-500', notes: '', lastContactDate: new Date().toISOString(), nextActionDate: '' });
             }
         });
-        addToast('success', `Imported ${imported} contacts`);
+        
+        // Apply batch updates
+        if (newCompanies.length > 0) {
+            setCompanies(prev => [...prev, ...newCompanies]);
+        }
+        if (newClients.length > 0) {
+            setClients(prev => [...prev, ...newClients]);
+        }
+        addToast('success', `Imported ${newClients.length} contacts${newCompanies.length > 0 ? ` and ${newCompanies.length} new companies` : ''}`);
     };
     const handleGenerateComplianceReport = (framework: string) => {
         const fwItems = complianceItems.filter(i => i.framework === framework);
@@ -1142,14 +1167,19 @@ ${inProgress > 0 ? '📋 Continue progress on in-progress items' : ''}
 ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target: Address ${total - compliant} remaining items`}
 `;
 
+        // Sanitize framework for safe filename (remove characters invalid in filenames)
+        const safeFramework = framework.replace(/[\/\\:*?"<>|]/g, '_');
+        
         // Create and download the report
         const blob = new Blob([reportContent], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${framework}_Compliance_Report_${new Date().toISOString().split('T')[0]}.txt`;
+        a.download = `${safeFramework}_Compliance_Report_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
         addToast('success', `${framework} Readiness Report Generated`);
     };
     const MOCK_SURVEY_RESPONSE_DELAY_MS = 5000;
@@ -1160,29 +1190,39 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
         const company = companies.find(c => c.id === modalData.companyId);
         const surveyId = `survey-${Date.now()}`;
         
-        // Capture modal data before clearing
+        // Capture modal data before clearing (including survey type and custom message)
         const capturedCompanyId = modalData.companyId;
         const capturedRecipientName = modalData.recipientName;
         const capturedRecipientEmail = modalData.recipientEmail;
         const capturedCompanyName = company?.name;
+        const capturedSurveyType = modalData.surveyType || 'general';
+        const capturedCustomMessage = modalData.customMessage || '';
         
         // Create a mock response to simulate survey being sent
         // In production this would integrate with an email service
-        addToast('success', `Survey sent to ${capturedRecipientEmail}`);
+        const surveyTypeLabel = capturedSurveyType === 'nps' ? 'NPS' : 
+                               capturedSurveyType === 'project' ? 'Project Feedback' : 'CSAT';
+        addToast('success', `${surveyTypeLabel} survey sent to ${capturedRecipientEmail}${capturedCustomMessage ? ' with custom message' : ''}`);
         
         // Optionally create a pending survey entry (simulating the workflow)
         setTimeout(() => {
             // Simulate a response coming back after some time
+            // Score range varies by survey type
+            const baseScore = capturedSurveyType === 'nps' ? 6 : 7;
+            const scoreRange = capturedSurveyType === 'nps' ? 5 : 4;
+            
             const newResponse: CSATResponse = {
                 id: surveyId,
                 companyId: capturedCompanyId,
                 respondentName: capturedRecipientName || capturedRecipientEmail.split('@')[0],
-                score: Math.floor(Math.random() * 4) + 7, // Random score 7-10 for demo
-                feedback: 'Thank you for the excellent service!',
+                score: Math.floor(Math.random() * scoreRange) + baseScore,
+                feedback: capturedCustomMessage 
+                    ? `Response to "${capturedCustomMessage.substring(0, 50)}${capturedCustomMessage.length > 50 ? '...' : ''}": Great experience!`
+                    : 'Thank you for the excellent service!',
                 date: new Date().toISOString().split('T')[0]
             };
             setCsatResponses(prev => [...prev, newResponse]);
-            addToast('info', `New survey response received from ${capturedCompanyName || 'client'}`);
+            addToast('info', `New ${surveyTypeLabel} response received from ${capturedCompanyName || 'client'}`);
         }, MOCK_SURVEY_RESPONSE_DELAY_MS);
         
         setActiveModal(null);
