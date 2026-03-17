@@ -3,9 +3,10 @@ import { ComplianceItem } from '../types';
 
 interface ComplianceViewProps {
     items: ComplianceItem[];
+    onGenerateReport?: (framework: string) => void;
 }
 
-const ComplianceView: React.FC<ComplianceViewProps> = ({ items }) => {
+const ComplianceView: React.FC<ComplianceViewProps> = ({ items, onGenerateReport }) => {
     const frameworks = Array.from(new Set(items.map(i => i.framework)));
 
     const getStatusColor = (status: ComplianceItem['status']) => {
@@ -72,7 +73,10 @@ const ComplianceView: React.FC<ComplianceViewProps> = ({ items }) => {
                                 ))}
                             </div>
 
-                            <button className="w-full py-4 bg-slate-900/50 hover:bg-slate-700 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-all border-t border-white/5">
+                            <button 
+                                onClick={() => onGenerateReport?.(fw)}
+                                className="w-full py-4 bg-slate-900/50 hover:bg-slate-700 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-all border-t border-white/5"
+                            >
                                 Generate {fw} Readiness Report
                             </button>
                         </div>

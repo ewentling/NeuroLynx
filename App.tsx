@@ -1081,6 +1081,153 @@ export const App: React.FC = () => {
     // --- MANAGEMENT FUNCTIONS ---
     const handleAddModel = () => { if (!newModelKey && !newModelSelection.includes('gemini') && !newModelSelection.includes('gpt')) return addToast('error', 'API Key required'); const template = POPULAR_LLMS.find(m => m.id === newModelSelection); if (!template) return; setConfiguredModels(prev => [...prev, { id: Date.now().toString(), name: template.name, modelId: template.id, provider: template.provider, apiKey: newModelKey }]); setNewModelKey(''); addToast('success', 'Model Added'); };
     const removeModel = (id: string) => { if (id === 'default') return addToast('error', 'Cannot remove system default'); setConfiguredModels(prev => prev.filter(m => m.id !== id)); };
+    const handleImportCsv = () => { 
+        const csvInput = (document.getElementById('csv-input') as HTMLTextAreaElement)?.value;
+        if (!csvInput?.trim()) return addToast('error', 'Please enter CSV data');
+        const rows = csvInput.split('\n').filter(r => r.trim());
+        
+        // Build a local map of company names to IDs, seeded from existing companies
+        const companyMap = new Map<string, string>();
+        companies.forEach(c => companyMap.set(c.name.toLowerCase(), c.id));
+        
+        const newCompanies: Company[] = [];
+        const newClients: Client[] = [];
+        let companyCounter = 0;
+        
+        rows.forEach((row, rowIndex) => {
+            const [name, email, company, role] = row.split(',').map(s => s.trim());
+            if (name && email) {
+                // Skip rows without a company name to avoid creating clients with invalid companyId
+                if (!company) {
+                    addToast('warning', `Skipped row ${rowIndex + 1}: company name required`);
+                    return;
+                }
+                
+                const companyLower = company.toLowerCase();
+                let companyId = companyMap.get(companyLower);
+                
+                if (!companyId) {
+                    // Create new company entry
+                    companyId = `company-${Date.now()}-${companyCounter++}`;
+                    companyMap.set(companyLower, companyId);
+                    newCompanies.push({ id: companyId, name: company, address: '', phone: '', website: '', industry: 'Unknown', status: 'active', revenue: 0 });
+                }
+                
+                newClients.push({ id: `client-${Date.now()}-${rowIndex}`, companyId, name, email, phone: '', role: role || 'Contact', status: 'active', avatarColor: 'bg-blue-500', notes: '', lastContactDate: new Date().toISOString(), nextActionDate: '' });
+            }
+        });
+        
+        // Apply batch updates
+        if (newCompanies.length > 0) {
+            setCompanies(prev => [...prev, ...newCompanies]);
+        }
+        if (newClients.length > 0) {
+            setClients(prev => [...prev, ...newClients]);
+        }
+        addToast('success', `Imported ${newClients.length} contacts${newCompanies.length > 0 ? ` and ${newCompanies.length} new companies` : ''}`);
+    };
+    const handleGenerateComplianceReport = (framework: string) => {
+        const fwItems = complianceItems.filter(i => i.framework === framework);
+        const compliant = fwItems.filter(i => i.status === 'compliant').length;
+        const inProgress = fwItems.filter(i => i.status === 'in_progress').length;
+        const nonCompliant = fwItems.filter(i => i.status === 'non_compliant').length;
+        const total = fwItems.filter(i => i.status !== 'not_applicable').length;
+        const score = total ? Math.round((compliant / total) * 100) : 100;
+        
+        const reportContent = `
+${framework} COMPLIANCE READINESS REPORT
+Generated: ${new Date().toLocaleString()}
+================================================
+
+EXECUTIVE SUMMARY
+-----------------
+Audit Readiness Score: ${score}%
+
+CONTROL STATUS BREAKDOWN
+------------------------
+✅ Compliant: ${compliant}
+🔄 In Progress: ${inProgress}
+❌ Non-Compliant: ${nonCompliant}
+Total Controls: ${total}
+
+DETAILED FINDINGS
+-----------------
+${fwItems.map(item => `
+${item.control}: ${item.description}
+Status: ${item.status.replace('_', ' ').toUpperCase()}
+${item.lastAuditDate ? `Last Audit: ${item.lastAuditDate}` : ''}
+${item.dueDate ? `Due Date: ${item.dueDate}` : ''}
+${item.assignedTo ? `Assigned To: ${users.find(u => u.id === item.assignedTo)?.name || 'Unassigned'}` : ''}
+`).join('\n')}
+
+RECOMMENDATIONS
+---------------
+${nonCompliant > 0 ? '⚠️ Address non-compliant controls immediately' : ''}
+${inProgress > 0 ? '📋 Continue progress on in-progress items' : ''}
+${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target: Address ${total - compliant} remaining items`}
+`;
+
+        // Sanitize framework for safe filename (remove characters invalid in filenames)
+        const safeFramework = framework.replace(/[\/\\:*?"<>|]/g, '_');
+        
+        // Create and download the report
+        const blob = new Blob([reportContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${safeFramework}_Compliance_Report_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        addToast('success', `${framework} Readiness Report Generated`);
+    };
+    const MOCK_SURVEY_RESPONSE_DELAY_MS = 5000;
+    const handleSendSurvey = () => {
+        if (!modalData.companyId) return addToast('error', 'Please select a company');
+        if (!modalData.recipientEmail) return addToast('error', 'Please enter recipient email');
+        
+        const company = companies.find(c => c.id === modalData.companyId);
+        const surveyId = `survey-${Date.now()}`;
+        
+        // Capture modal data before clearing (including survey type and custom message)
+        const capturedCompanyId = modalData.companyId;
+        const capturedRecipientName = modalData.recipientName;
+        const capturedRecipientEmail = modalData.recipientEmail;
+        const capturedCompanyName = company?.name;
+        const capturedSurveyType = modalData.surveyType || 'general';
+        const capturedCustomMessage = modalData.customMessage || '';
+        
+        // Create a mock response to simulate survey being sent
+        // In production this would integrate with an email service
+        const surveyTypeLabel = capturedSurveyType === 'nps' ? 'NPS' : 
+                               capturedSurveyType === 'project' ? 'Project Feedback' : 'CSAT';
+        addToast('success', `${surveyTypeLabel} survey sent to ${capturedRecipientEmail}${capturedCustomMessage ? ' with custom message' : ''}`);
+        
+        // Optionally create a pending survey entry (simulating the workflow)
+        setTimeout(() => {
+            // Simulate a response coming back after some time
+            // Score range varies by survey type
+            const baseScore = capturedSurveyType === 'nps' ? 6 : 7;
+            const scoreRange = capturedSurveyType === 'nps' ? 5 : 4;
+            
+            const newResponse: CSATResponse = {
+                id: surveyId,
+                companyId: capturedCompanyId,
+                respondentName: capturedRecipientName || capturedRecipientEmail.split('@')[0],
+                score: Math.floor(Math.random() * scoreRange) + baseScore,
+                feedback: capturedCustomMessage 
+                    ? `Response to "${capturedCustomMessage.substring(0, 50)}${capturedCustomMessage.length > 50 ? '...' : ''}": Great experience!`
+                    : 'Thank you for the excellent service!',
+                date: new Date().toISOString().split('T')[0]
+            };
+            setCsatResponses(prev => [...prev, newResponse]);
+            addToast('info', `New ${surveyTypeLabel} response received from ${capturedCompanyName || 'client'}`);
+        }, MOCK_SURVEY_RESPONSE_DELAY_MS);
+        
+        setActiveModal(null);
+        setModalData({});
+    };
     const addUser = () => { if (users.length >= maxUsers) return addToast('error', `Limit Reached`); if (!modalData.name || !modalData.email || !adminPasswordInput) return addToast('error', 'Fields required'); setUsers(prev => [...prev, { id: Date.now().toString(), name: modalData.name, email: modalData.email, role: modalData.role || 'worker', avatar: `https://ui-avatars.com/api/?name=${modalData.name}&background=random&color=fff`, password: adminPasswordInput }]); setActiveModal(null); setAdminPasswordInput(''); addToast('success', 'Member Added'); };
     const deleteUser = (id: string) => { setUsers(prev => prev.filter(u => u.id !== id)); addToast('success', 'User Removed'); };
     const unlockUser = (id: string) => { setUsers(prev => prev.map(u => u.id === id ? { ...u, failedAttempts: 0, lockoutUntil: 0 } : u)); addToast('success', 'Account Unlocked'); };
@@ -2106,7 +2253,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     expenses,
                                     timeEntries,
                                     csatResponses,
-                                    onSendSurvey: () => addToast('info', 'Survey feature coming soon'),
+                                    onSendSurvey: () => setActiveModal('send_survey'),
                                     invoices,
                                     onSaveInvoice: (inv: any) => setInvoices(prev => [...prev, inv]),
                                     esignRequests,
@@ -2137,6 +2284,31 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     onRestoreVersion: (versionId: string) => addToast('info', `Restored version ${versionId}`),
                                     onAddExpense: () => setActiveModal('add_expense'),
                                     workspaceItems,
+                                    // System configuration props for AI model dropdown
+                                    mockIntegrations: MOCK_INTEGRATIONS,
+                                    configuredModels,
+                                    popularLlms: POPULAR_LLMS,
+                                    newModelSelection,
+                                    newModelKey,
+                                    onSetNewModelSelection: setNewModelSelection,
+                                    onSetNewModelKey: setNewModelKey,
+                                    onRemoveModel: removeModel,
+                                    onAddModel: handleAddModel,
+                                    maxUsers,
+                                    onAddUser: () => setActiveModal('save_user'),
+                                    onUnlockUser: unlockUser,
+                                    onDeleteUser: deleteUser,
+                                    onResetPassword: (u: User) => { setModalData(u); setAdminPasswordInput(''); setActiveModal('admin_reset_password'); },
+                                    automationRules: automations,
+                                    onAddAutomation: () => setActiveModal('save_automation'),
+                                    onDeleteAutomation: deleteAutomation,
+                                    onSetBusinessProfile: setBusinessProfile,
+                                    onImportCsv: handleImportCsv,
+                                    selectedExportCompanyId,
+                                    onSetSelectedExportCompanyId: setSelectedExportCompanyId,
+                                    onClientExport: handleClientExport,
+                                    // Compliance props
+                                    onGenerateComplianceReport: handleGenerateComplianceReport,
                                 } as any;
 
                                 return (
@@ -2492,6 +2664,33 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Email" value={modalData.email || ''} onChange={e => setModalData({ ...modalData, email: e.target.value })} />
                                         <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Role / Position" value={modalData.role || ''} onChange={e => setModalData({ ...modalData, role: e.target.value })} />
                                         <button onClick={saveClient} className="w-full py-3 bg-cyan-600 rounded font-bold text-white">Save Contact</button>
+                                    </div>
+                                )
+                            }
+
+                            {
+                                activeModal === 'send_survey' && (
+                                    <div className="space-y-4">
+                                        <h3 className="text-xl font-bold">Send CSAT Survey</h3>
+                                        <p className="text-sm text-slate-400">Send a satisfaction survey to gather feedback from your clients.</p>
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || ''} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
+                                            <option value="">Select Company...</option>
+                                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Recipient Name" value={modalData.recipientName || ''} onChange={e => setModalData({ ...modalData, recipientName: e.target.value })} />
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" type="email" placeholder="Recipient Email" value={modalData.recipientEmail || ''} onChange={e => setModalData({ ...modalData, recipientEmail: e.target.value })} />
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Survey Type</label>
+                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.surveyType || 'nps'} onChange={e => setModalData({ ...modalData, surveyType: e.target.value })}>
+                                                <option value="nps">NPS (Net Promoter Score)</option>
+                                                <option value="csat">CSAT (Customer Satisfaction)</option>
+                                                <option value="ces">CES (Customer Effort Score)</option>
+                                            </select>
+                                        </div>
+                                        <textarea className="w-full p-3 bg-black/20 rounded border border-white/10 h-20" placeholder="Custom message (optional)" value={modalData.customMessage || ''} onChange={e => setModalData({ ...modalData, customMessage: e.target.value })} />
+                                        <button onClick={handleSendSurvey} className="w-full py-3 bg-orange-600 rounded font-bold text-white">
+                                            <i className="fas fa-paper-plane mr-2"></i>Send Survey
+                                        </button>
                                     </div>
                                 )
                             }
