@@ -116,6 +116,9 @@ const SidebarGroupToggle = React.memo(({ isOpen, label, onClick }: { isOpen: boo
     </button>
 ));
 
+// Views that belong to workspace section
+const WORKSPACE_VIEWS = ['workspace', 'activity', 'vendors', 'expenses', 'compliance', 'versions', 'tickets', 'onboarding', 'sequences', 'portal', 'pipeline', 'meetings', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields', 'forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'];
+
 const SimpleMarkdown = React.memo(({ content }: { content: string }) => {
     if (!content) return null;
     const lines = content.split('\n');
@@ -418,7 +421,6 @@ export const App: React.FC = () => {
     const licenseService = useRef<LicenseService>(new LicenseService());
     const testService = useRef<TestService>(new TestService());
     const cryptoService = useRef<CryptoService>(new CryptoService());
-    const chatEndRef = useRef<HTMLDivElement>(null);
     const { isRecording, startRecording, stopRecording, startFileRecording, stopFileRecording } = useAudio();
 
     // NEW IMPROVEMENTS STATE
@@ -429,7 +431,6 @@ export const App: React.FC = () => {
     });
     const [isFocusMode, setIsFocusMode] = useState(false);
     const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
-    const [recentItems, setRecentItems] = useState<{ label: string, view: string, timestamp: number }[]>([]);
     const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
     const [newModelSelection, setNewModelSelection] = useState(POPULAR_LLMS[1].id); // Use index 1 (gemini flash preview) as default
@@ -453,8 +454,7 @@ export const App: React.FC = () => {
     const [isInternalMgmtOpen, setIsInternalMgmtOpen] = useState(true);
     const [isClientWorkspaceOpen, setIsClientWorkspaceOpen] = useState(true);
     const [isTasksMenuOpen, setIsTasksMenuOpen] = useState(false);
-    const [isAnalyticsMenuOpen, setIsAnalyticsMenuOpen] = useState(false);
-    const [isBusinessSuiteOpen, setIsBusinessSuiteOpen] = useState(false);
+    const [isChatPopupOpen, setIsChatPopupOpen] = useState(false);
     const [workspaceMode, setWorkspaceMode] = useState<'internal' | 'client'>('internal');
     const [internalTab, setInternalTab] = useState<'offerings' | 'team' | 'profile' | 'system' | 'data' | 'automations'>('offerings');
     const [clientWorkspaceTab, setClientWorkspaceTab] = useState<'overview' | 'documents' | 'contracts' | 'billing'>('overview');
@@ -784,17 +784,6 @@ export const App: React.FC = () => {
     useEffect(() => {
         localStorage.setItem('neurolynx_theme', isDarkMode ? 'dark' : 'light');
     }, [isDarkMode]);
-
-    // Recent Items Tracking
-    useEffect(() => {
-        if (view !== 'home') {
-            setRecentItems(prev => {
-                const filtered = prev.filter(item => item.view !== view);
-                const newItem = { label: view.charAt(0).toUpperCase() + view.slice(1), view, timestamp: Date.now() };
-                return [newItem, ...filtered].slice(0, 5);
-            });
-        }
-    }, [view]);
 
     // Scratchpad Persistence
     useEffect(() => {
@@ -1738,7 +1727,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
             </AnimatePresence>
 
             <aside className={`relative w-64 flex-shrink-0 border-r flex flex-col items-center py-6 h-full transition-all duration-300 ${isDarkMode ? 'bg-slate-900 border-white/5' : 'bg-white border-gray-200'} ${isFocusMode ? '-ml-64' : ''}`}>
-                <div className="mb-4 font-black text-xl tracking-tighter cursor-pointer flex-shrink-0" onClick={() => setView('home')}>NEURO<span className="text-cyan-400">LYNX</span></div>
                 <img src="/neurolynx-logo.png" alt="NeuroLynx Logo" className="w-40 h-auto mb-4 cursor-pointer opacity-90 hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-cyan-400 rounded" tabIndex={0} onClick={() => setView('home')} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setView('home'); } }} role="button" />
                 <nav className="flex-1 w-full px-4 space-y-2 overflow-y-auto custom-scrollbar">
                     <SidebarItem active={view === 'home'} icon="fa-house" label="Home" onClick={() => setView('home')} />
@@ -1746,8 +1734,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     <SidebarItem active={view === 'clients'} icon="fa-building" label="Companies" onClick={() => setView('clients')} />
 
                     <div className="space-y-1">
-                        <button onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${isWorkspaceMenuOpen || view === 'workspace' ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-                            <div className={`w-8 flex items-center justify-center transition-transform ${isWorkspaceMenuOpen || view === 'workspace' ? 'text-orange-400' : 'text-slate-500'}`}>
+                        <button onClick={() => setIsWorkspaceMenuOpen(!isWorkspaceMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${WORKSPACE_VIEWS.includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                            <div className={`w-8 flex items-center justify-center transition-transform ${WORKSPACE_VIEWS.includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
                                 <i className="fas fa-briefcase text-lg"></i>
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Workspace</span>
@@ -1779,6 +1767,14 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'expenses'} label="Expenses" onClick={() => setView('expenses')} />
                                             <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
                                             <SidebarSubItem active={view === 'versions'} label="Versions" onClick={() => setView('versions')} />
+                                            <SidebarSubItem active={view === 'forecast'} label="Flash Forecast" onClick={() => setView('forecast')} />
+                                            <SidebarSubItem active={view === 'alerts'} label="Risk Radar" onClick={() => setView('alerts')} />
+                                            <SidebarSubItem active={view === 'winloss'} label="Win/Loss Lab" onClick={() => setView('winloss')} />
+                                            <SidebarSubItem active={view === 'kpis'} label="Neural KPIs" onClick={() => setView('kpis')} />
+                                            <SidebarSubItem active={view === 'velocity'} label="Deal Velocity" onClick={() => setView('velocity')} />
+                                            <SidebarSubItem active={view === 'profitability'} label="ROI Analysis" onClick={() => setView('profitability')} />
+                                            <SidebarSubItem active={view === 'utilization'} label="Resource Ops" onClick={() => setView('utilization')} />
+                                            <SidebarSubItem active={view === 'csat'} label="Sentience/CSAT" onClick={() => setView('csat')} />
                                         </div>
                                     )}
                                     <SidebarGroupToggle isOpen={isClientWorkspaceOpen} label="Client Workspace" onClick={() => setIsClientWorkspaceOpen(!isClientWorkspaceOpen)} />
@@ -1788,10 +1784,20 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'documents'} label="Documents" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('documents'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'contracts'} label="Contracts" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('contracts'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'billing'} label="Billing" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('billing'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
+                                            <SidebarSubItem active={view === 'pipeline'} label="Pipeline" onClick={() => { setView('pipeline'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
+                                            <SidebarSubItem active={view === 'meetings'} label="Meetings" onClick={() => { setView('meetings'); if (selectedCompanyId === 'all') setSelectedCompanyId(companies[0]?.id || 'comp1'); }} />
                                             <SidebarSubItem active={view === 'tickets'} label="Tickets" onClick={() => setView('tickets')} />
                                             <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => setView('onboarding')} />
                                             <SidebarSubItem active={view === 'sequences'} label="Sequences" onClick={() => setView('sequences')} />
                                             <SidebarSubItem active={view === 'portal'} label="Portal" onClick={() => setView('portal')} />
+                                            <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
+                                            <SidebarSubItem active={view === 'esign'} label="E-Signature" onClick={() => setView('esign')} />
+                                            <SidebarSubItem active={view === 'assets'} label="IT Inventory" onClick={() => setView('assets')} />
+                                            <SidebarSubItem active={view === 'wiki'} label="Brain / Wiki" onClick={() => setView('wiki')} />
+                                            <SidebarSubItem active={view === 'orgchart'} label="Org Viz" onClick={() => setView('orgchart')} />
+                                            <SidebarSubItem active={view === 'roadmap'} label="Product Ops" onClick={() => setView('roadmap')} />
+                                            <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => setView('partners')} />
+                                            <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} />
                                         </div>
                                     )}
                                 </motion.div>
@@ -1799,14 +1805,12 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                         </AnimatePresence>
                     </div>
 
-                    <SidebarItem active={view === 'pipeline'} icon="fa-funnel-dollar" label="Pipeline" onClick={() => setView('pipeline')} />
-                    <SidebarItem active={view === 'meetings'} icon="fa-microphone" label="Meetings" onClick={() => setView('meetings')} />
                     <SidebarItem active={view === 'memory'} icon="fa-brain" label="Memory" onClick={() => setView('memory')} />
 
                     {/* Task Engine Section */}
                     <div className="space-y-1">
-                        <button onClick={() => setIsTasksMenuOpen(!isTasksMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${isTasksMenuOpen || view === 'tasks' ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-                            <div className={`w-8 flex items-center justify-center transition-transform ${isTasksMenuOpen || view === 'tasks' ? 'text-orange-400' : 'text-slate-500'}`}>
+                        <button onClick={() => setIsTasksMenuOpen(!isTasksMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${view === 'tasks' ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                            <div className={`w-8 flex items-center justify-center transition-transform ${view === 'tasks' ? 'text-orange-400' : 'text-slate-500'}`}>
                                 <Check className="w-5 h-5" />
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Task Engine</span>
@@ -1829,88 +1833,9 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 
                     <SidebarItem active={view === 'calendar'} icon="fa-calendar" label="Calendar" onClick={() => setView('calendar')} />
 
-                    {/* Intelligence Section */}
-                    <div className="space-y-1">
-                        <button onClick={() => setIsAnalyticsMenuOpen(!isAnalyticsMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${isAnalyticsMenuOpen || ['velocity', 'utilization', 'csat', 'forecast', 'kpis', 'alerts', 'winloss', 'profitability'].includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-                            <div className={`w-8 flex items-center justify-center transition-transform ${isAnalyticsMenuOpen || ['velocity', 'utilization', 'csat', 'forecast', 'kpis', 'alerts', 'winloss', 'profitability'].includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
-                                <BrainCircuit className="w-5 h-5" />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Intelligence</span>
-                            <ChevronRight className={`w-3 h-3 transition-transform duration-300 ${isAnalyticsMenuOpen ? 'rotate-90' : 'opacity-30'}`} />
-                        </button>
-                        <AnimatePresence>
-                            {isAnalyticsMenuOpen && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden pl-10 space-y-1 border-l border-white/5 ml-6 py-1"
-                                >
-                                    <SidebarSubItem active={view === 'forecast'} label="Flash Forecast" onClick={() => setView('forecast')} />
-                                    <SidebarSubItem active={view === 'alerts'} label="Risk Radar" onClick={() => setView('alerts')} />
-                                    <SidebarSubItem active={view === 'winloss'} label="Win/Loss Lab" onClick={() => setView('winloss')} />
-                                    <SidebarSubItem active={view === 'kpis'} label="Neural KPIs" onClick={() => setView('kpis')} />
-                                    <SidebarSubItem active={view === 'velocity'} label="Deal Velocity" onClick={() => setView('velocity')} />
-                                    <SidebarSubItem active={view === 'profitability'} label="ROI Analysis" onClick={() => setView('profitability')} />
-                                    <SidebarSubItem active={view === 'utilization'} label="Resource Ops" onClick={() => setView('utilization')} />
-                                    <SidebarSubItem active={view === 'csat'} label="Sentience/CSAT" onClick={() => setView('csat')} />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
                     <SidebarItem active={view === 'communications'} icon="fa-envelope" label="Comms" onClick={() => setView('communications')} />
 
-                    {/* Business Hub Section */}
-                    <div className="space-y-1">
-                        <button onClick={() => setIsBusinessSuiteOpen(!isBusinessSuiteOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${isBusinessSuiteOpen || ['invoices', 'orgchart', 'esign', 'assets', 'roadmap', 'wiki', 'partners', 'customfields'].includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-                            <div className={`w-8 flex items-center justify-center transition-transform ${isBusinessSuiteOpen || ['invoices', 'orgchart', 'esign', 'assets', 'roadmap', 'wiki', 'partners', 'customfields'].includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
-                                <Package className="w-5 h-5" />
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Business Hub</span>
-                            <ChevronRight className={`w-3 h-3 transition-transform duration-300 ${isBusinessSuiteOpen ? 'rotate-90' : 'opacity-30'}`} />
-                        </button>
-                        <AnimatePresence>
-                            {isBusinessSuiteOpen && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden pl-10 space-y-1 border-l border-white/5 ml-6 py-1"
-                                >
-                                    <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
-                                    <SidebarSubItem active={view === 'esign'} label="E-Signature" onClick={() => setView('esign')} />
-                                    <SidebarSubItem active={view === 'assets'} label="IT Inventory" onClick={() => setView('assets')} />
-                                    <SidebarSubItem active={view === 'wiki'} label="Brain / Wiki" onClick={() => setView('wiki')} />
-                                    <SidebarSubItem active={view === 'orgchart'} label="Org Viz" onClick={() => setView('orgchart')} />
-                                    <SidebarSubItem active={view === 'roadmap'} label="Product Ops" onClick={() => setView('roadmap')} />
-                                    <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => setView('partners')} />
-                                    <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
                     <SidebarItem active={view === 'help'} icon="fa-circle-question" label="Help" onClick={() => setView('help')} />
-
-                    {/* Recent Items Section */}
-                    {recentItems.length > 0 && (
-                        <div className="mt-8 px-4">
-                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Jump Back In</div>
-                            <div className="space-y-2">
-                                {recentItems.map((item, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setView(item.view as any)}
-                                        className="w-full flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition-all group"
-                                    >
-                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 opacity-40 group-hover:opacity-100 shadow-[0_0_5px_rgba(6,182,212,0.5)]"></div>
-                                        <span className="text-[10px] font-bold text-slate-400 group-hover:text-slate-200">{item.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     <div className="mt-auto px-4 w-full pt-8 pb-4">
                         <div className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2">Mental Scratchpad</div>
@@ -2121,6 +2046,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     users,
                                     currentUser,
                                     selectedCompanyId,
+                                    activeClient,
                                     isDarkMode,
                                     isLoading,
                                     onSetView: (v: any) => setView(v),
@@ -2132,7 +2058,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     input,
                                     onSetInput: setInput,
                                     onSubmitMessage: submitMessage,
-                                    messagesEndRef: chatEndRef,
+                                    messagesEndRef: messagesEndRef,
                                     billingRecords,
                                     contracts,
                                     onMoveTask: handleMoveTask,
@@ -2662,6 +2588,100 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     />
                 )}
             </AnimatePresence>
+
+            {/* Floating Chat Popup - shown on all views except chat, hidden when modal is open */}
+            {view !== 'chat' && !activeModal && (
+                <>
+                    {/* Chat Popup Window */}
+                    <AnimatePresence>
+                        {isChatPopupOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                                className="fixed bottom-24 right-6 w-[calc(100vw-3rem)] max-w-96 h-[calc(100vh-10rem)] max-h-[500px] bg-slate-900 border border-white/10 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden"
+                            >
+                                {/* Header */}
+                                <div className="flex items-center justify-between p-4 border-b border-white/10 bg-slate-800/50">
+                                    <div className="flex items-center gap-2">
+                                        <i className="fas fa-brain text-cyan-400"></i>
+                                        <span className="text-sm font-black uppercase tracking-widest text-slate-300">NeuroLynx AI</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsChatPopupOpen(false)}
+                                        className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {/* Messages */}
+                                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                                    {messages.length === 0 && (
+                                        <div className="flex flex-col items-center justify-center h-full text-center">
+                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-500/20 to-cyan-500/20 flex items-center justify-center mb-3">
+                                                <i className="fas fa-comments text-xl text-cyan-400"></i>
+                                            </div>
+                                            <p className="text-slate-400 text-xs">Ask NeuroLynx anything...</p>
+                                        </div>
+                                    )}
+                                    {messages.map((msg, i) => (
+                                        <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`p-3 rounded-xl max-w-[85%] text-sm ${msg.role === 'user' ? 'bg-orange-600' : 'bg-slate-800 border border-white/10'}`}>
+                                                <SimpleMarkdown content={msg.content} />
+                                                {msg.toolCalls && msg.toolCalls.length > 0 && (
+                                                    <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-2 text-[10px] text-cyan-400">
+                                                        <i className="fas fa-cog"></i>
+                                                        <span>Used: {msg.toolCalls.map(t => t.toolName).join(', ')}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef}></div>
+                                </div>
+
+                                {/* Input */}
+                                <div className="p-3 border-t border-white/10 bg-slate-800/30">
+                                    <div className="flex gap-2">
+                                        <input
+                                            className="flex-1 p-3 rounded-xl bg-slate-800 border border-white/10 focus:border-cyan-500 outline-none text-white placeholder-slate-500 text-sm"
+                                            value={input}
+                                            onChange={e => setInput(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    submitMessage();
+                                                }
+                                            }}
+                                            placeholder="Type a message..."
+                                        />
+                                        <button
+                                            onClick={submitMessage}
+                                            className="px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 transition-all text-white"
+                                            disabled={!input.trim()}
+                                        >
+                                            <i className="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Floating Chat Button */}
+                    <button
+                        onClick={() => setIsChatPopupOpen(!isChatPopupOpen)}
+                        className={`fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-xl z-50 flex items-center justify-center transition-all ${
+                            isChatPopupOpen
+                                ? 'bg-slate-800 border border-white/10 hover:bg-slate-700'
+                                : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:scale-110 shadow-cyan-500/30'
+                        }`}
+                    >
+                        <i className={`fas ${isChatPopupOpen ? 'fa-times' : 'fa-comment-dots'} text-white text-lg`}></i>
+                    </button>
+                </>
+            )}
 
             {toasts.map(toast => (
                 <NotificationToast

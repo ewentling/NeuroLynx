@@ -4,6 +4,7 @@ import { Meeting, Company } from '../../types';
 interface MeetingsViewProps {
     meetings: Meeting[];
     companies: Company[];
+    selectedCompanyId?: string;
     isLiveMeeting: boolean;
     onToggleLiveMeeting: (status: boolean) => void;
     onLogMeeting: () => void;
@@ -13,11 +14,17 @@ interface MeetingsViewProps {
 const MeetingsView: React.FC<MeetingsViewProps> = ({
     meetings,
     companies,
+    selectedCompanyId,
     isLiveMeeting,
     onToggleLiveMeeting,
     onLogMeeting,
     onAddToast
 }) => {
+    // Filter meetings based on selected company
+    const filteredMeetings = selectedCompanyId && selectedCompanyId !== 'all'
+        ? meetings.filter(m => m.clientId === selectedCompanyId)
+        : meetings;
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -53,7 +60,7 @@ const MeetingsView: React.FC<MeetingsViewProps> = ({
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {meetings.map(m => (
+                {filteredMeetings.map(m => (
                     <div key={m.id} className="p-6 bg-slate-800 rounded-xl border border-white/5 hover:border-purple-500/50 transition-all group">
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-3">
