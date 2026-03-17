@@ -178,6 +178,11 @@ export interface Meeting {
   type?: 'video' | 'phone' | 'in_person';
   link?: string;
   attendees?: string[];
+  // Vexa integration fields
+  vexaBotId?: string;
+  vexaPlatform?: 'google_meet' | 'ms_teams' | 'zoom';
+  vexaMeetingId?: string;
+  vexaStatus?: 'idle' | 'deploying' | 'active' | 'ended' | 'error';
 }
 
 export interface Company {

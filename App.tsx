@@ -2157,6 +2157,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     onSetIsMapView: setIsMapView,
                                     offerings: MOCK_PRODUCTS,
                                     meetings,
+                                    onUpdateMeeting: (meeting: Meeting) => setMeetings(prev => prev.map(m => m.id === meeting.id ? meeting : m)),
                                     calYear: currentDate.getFullYear(),
                                     calMonth: currentDate.getMonth(),
                                     monthNames: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],

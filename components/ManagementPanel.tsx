@@ -64,6 +64,7 @@ interface ManagementPanelProps {
     isLiveMeeting?: boolean;
     onToggleLiveMeeting?: (status: boolean) => void;
     onLogMeeting?: () => void;
+    onUpdateMeeting?: (meeting: Meeting) => void;
 
     // Chat - simplified (no more mode)
     messages?: Message[];
@@ -243,6 +244,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     onToggleLiveMeeting={props.onToggleLiveMeeting || (() => {})}
                     onLogMeeting={props.onLogMeeting || (() => {})}
                     onAddToast={props.onAddToast || (() => {})}
+                    onUpdateMeeting={props.onUpdateMeeting}
                 />
             )}
             {view === 'chat' && (
