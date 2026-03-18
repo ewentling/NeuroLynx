@@ -116,18 +116,26 @@ const SidebarGroupToggle = React.memo(({ isOpen, label, onClick, isMainLabel = f
     </button>
 ));
 
-// Views that belong to workspace section (activity removed - now in Settings)
-const WORKSPACE_VIEWS = ['workspace', 'vendors', 'expenses', 'compliance', 'versions', 'tickets', 'onboarding', 'sequences', 'portal', 'pipeline', 'meetings', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields', 'forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'];
+// Views that belong to workspace section (activity removed - now in Settings, versions/onboarding/customfields moved to other menus)
+const WORKSPACE_VIEWS = ['workspace', 'vendors', 'expenses', 'compliance', 'tickets', 'portal', 'pipeline', 'meetings', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'];
 
 // Client Workspace views that should show the client dropdown
-const CLIENT_WORKSPACE_VIEWS = ['workspace', 'meetings', 'pipeline', 'tasks', 'calendar', 'clients', 'memory', 'tickets', 'onboarding', 'sequences', 'portal', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap'];
+const CLIENT_WORKSPACE_VIEWS = ['workspace', 'meetings', 'pipeline', 'tasks', 'calendar', 'clients', 'tickets', 'portal', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap'];
 
 // Views that belong to settings section
-const SETTINGS_VIEWS = ['activity', 'auditlogs', 'aiconfig', 'integrations'];
+const SETTINGS_VIEWS = ['activity', 'auditlogs', 'aiconfig', 'integrations', 'memory', 'versions', 'customfields'];
+
+// Views that belong to comms section
+const COMMS_VIEWS = ['communications', 'sequences'];
+
+// Views that belong to companies section
+const COMPANIES_VIEWS = ['clients', 'onboarding'];
 
 // Display labels for views (maps internal view keys to user-friendly names)
 const VIEW_LABELS: Record<string, string> = {
     alltickets: 'Tickets',
+    sequences: 'Email Campaigns',
+    communications: 'Messages',
 };
 const getViewLabel = (view: string) => VIEW_LABELS[view] || view;
 
@@ -470,6 +478,9 @@ export const App: React.FC = () => {
     const [isLogsSubmenuOpen, setIsLogsSubmenuOpen] = useState(false);
     const [isAnalyticsSubmenuOpen, setIsAnalyticsSubmenuOpen] = useState(false);
     const [isFinanceSubmenuOpen, setIsFinanceSubmenuOpen] = useState(false);
+    const [isCommsMenuOpen, setIsCommsMenuOpen] = useState(false);
+    const [isCompaniesMenuOpen, setIsCompaniesMenuOpen] = useState(false);
+    const [isMemorySubmenuOpen, setIsMemorySubmenuOpen] = useState(false);
     const [isChatPopupOpen, setIsChatPopupOpen] = useState(false);
     const [workspaceMode, setWorkspaceMode] = useState<'internal' | 'client'>('internal');
     const [internalTab, setInternalTab] = useState<'offerings' | 'team' | 'profile' | 'system' | 'data' | 'automations'>('offerings');
@@ -1916,7 +1927,31 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                 <nav className="flex-1 w-full px-4 space-y-2 overflow-y-auto custom-scrollbar">
                     <SidebarItem active={view === 'home'} icon="fa-house" label="Home" onClick={() => setView('home')} />
                     <SidebarItem active={view === 'chat'} icon="fa-comment-dots" label="Chat" onClick={() => setView('chat')} />
-                    <SidebarItem active={view === 'clients'} icon="fa-building" label="Companies" onClick={() => setView('clients')} />
+
+                    {/* Companies Menu - with Onboarding and Data Export as subs */}
+                    <div className="space-y-1">
+                        <button onClick={() => setIsCompaniesMenuOpen(!isCompaniesMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${COMPANIES_VIEWS.includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                            <div className={`w-8 flex items-center justify-center transition-transform ${COMPANIES_VIEWS.includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
+                                <i className="fas fa-building text-lg"></i>
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Companies</span>
+                            <ChevronRight className={`w-3 h-3 transition-transform duration-300 ${isCompaniesMenuOpen ? 'rotate-90' : 'opacity-30'}`} />
+                        </button>
+                        <AnimatePresence>
+                            {isCompaniesMenuOpen && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden pl-10 space-y-1 border-l border-white/5 ml-6 py-1 submenu-glow-level-1"
+                                >
+                                    <SidebarSubItem active={view === 'clients'} label="All Companies" onClick={() => setView('clients')} />
+                                    <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => { setView('onboarding'); ensureClientSelected(); }} />
+                                    <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
                     {/* Global Tickets Menu - shows all tickets across all clients */}
                     <SidebarItem active={view === 'alltickets'} icon="fa-ticket-alt" label="Tickets" onClick={() => { setView('alltickets'); setSelectedCompanyId('all'); }} />
@@ -1948,15 +1983,12 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'pipeline'} label="Pipeline" onClick={() => { setView('pipeline'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'meetings'} label="Meetings" onClick={() => { setView('meetings'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'tickets'} label="Tickets" onClick={() => { setView('tickets'); ensureClientSelected(); }} />
-                                            <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => { setView('onboarding'); ensureClientSelected(); }} />
-                                            <SidebarSubItem active={view === 'sequences'} label="Sequences" onClick={() => { setView('sequences'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'portal'} label="Portal" onClick={() => { setView('portal'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'esign'} label="E-Signature" onClick={() => { setView('esign'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'assets'} label="IT Inventory" onClick={() => { setView('assets'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'wiki'} label="Brain / Wiki" onClick={() => { setView('wiki'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'orgchart'} label="Org Viz" onClick={() => { setView('orgchart'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'roadmap'} label="Product Ops" onClick={() => { setView('roadmap'); ensureClientSelected(); }} />
-                                            <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} />
                                         </div>
                                     )}
                                     {/* Internal Mgmt - now below Client Workspace */}
@@ -1969,9 +2001,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             )}
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'profile'} label="Profile" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('profile'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('automations'); }} />
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
                                             <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
-                                            <SidebarSubItem active={view === 'versions'} label="Versions" onClick={() => setView('versions')} />
                                             <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
                                             <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => setView('partners')} />
                                             
@@ -2005,8 +2035,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                         </AnimatePresence>
                     </div>
 
-                    <SidebarItem active={view === 'memory'} icon="fa-brain" label="Memory" onClick={() => setView('memory')} />
-
                     {/* Task Engine Section */}
                     <div className="space-y-1">
                         <button onClick={() => setIsTasksMenuOpen(!isTasksMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${view === 'tasks' ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
@@ -2033,7 +2061,29 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 
                     <SidebarItem active={view === 'calendar'} icon="fa-calendar" label="Calendar" onClick={() => setView('calendar')} />
 
-                    <SidebarItem active={view === 'communications'} icon="fa-envelope" label="Comms" onClick={() => setView('communications')} />
+                    {/* Comms Menu - with Email Campaigns (formerly Sequences) */}
+                    <div className="space-y-1">
+                        <button onClick={() => setIsCommsMenuOpen(!isCommsMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${COMMS_VIEWS.includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                            <div className={`w-8 flex items-center justify-center transition-transform ${COMMS_VIEWS.includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
+                                <i className="fas fa-envelope text-lg"></i>
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Comms</span>
+                            <ChevronRight className={`w-3 h-3 transition-transform duration-300 ${isCommsMenuOpen ? 'rotate-90' : 'opacity-30'}`} />
+                        </button>
+                        <AnimatePresence>
+                            {isCommsMenuOpen && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden pl-10 space-y-1 border-l border-white/5 ml-6 py-1 submenu-glow-level-1"
+                                >
+                                    <SidebarSubItem active={view === 'communications'} label="Messages" onClick={() => setView('communications')} />
+                                    <SidebarSubItem active={view === 'sequences'} label="Email Campaigns" onClick={() => setView('sequences')} />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
                     <SidebarItem active={view === 'help'} icon="fa-circle-question" label="Help" onClick={() => setView('help')} />
 
@@ -2062,9 +2112,18 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'auditlogs'} label="System Audit Logs" onClick={() => setView('auditlogs')} />
                                         </div>
                                     )}
+                                    {/* Memory Submenu with Versions */}
+                                    <SidebarGroupToggle isOpen={isMemorySubmenuOpen} label="Memory" onClick={() => setIsMemorySubmenuOpen(!isMemorySubmenuOpen)} />
+                                    {isMemorySubmenuOpen && (
+                                        <div className="space-y-1 mt-1 pl-2 transition-all submenu-glow-level-2">
+                                            <SidebarSubItem active={view === 'memory'} label="Knowledge Base" onClick={() => setView('memory')} />
+                                            <SidebarSubItem active={view === 'versions'} label="Versions" onClick={() => setView('versions')} />
+                                        </div>
+                                    )}
                                     {/* AI Config and Integration Status */}
                                     <SidebarSubItem active={view === 'aiconfig'} label="AI Config" onClick={() => setView('aiconfig')} />
                                     <SidebarSubItem active={view === 'integrations'} label="Integration Status" onClick={() => setView('integrations')} />
+                                    <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} />
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -2299,6 +2358,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     onSaveInvoice: (inv: any) => setInvoices(prev => [...prev, inv]),
                                     esignRequests,
                                     assets,
+                                    onAddAsset: () => { setModalData({ companyId: selectedCompanyId !== 'all' ? selectedCompanyId : '' }); setActiveModal('save_asset'); },
                                     wikiPages,
                                     orgContacts,
                                     featureRequests,
@@ -2707,6 +2767,62 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Email" value={modalData.email || ''} onChange={e => setModalData({ ...modalData, email: e.target.value })} />
                                         <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Role / Position" value={modalData.role || ''} onChange={e => setModalData({ ...modalData, role: e.target.value })} />
                                         <button onClick={saveClient} className="w-full py-3 bg-cyan-600 rounded font-bold text-white">Save Contact</button>
+                                    </div>
+                                )
+                            }
+
+                            {
+                                activeModal === 'save_asset' && (
+                                    <div className="space-y-4">
+                                        <h3 className="text-xl font-bold">{modalData.id ? 'Edit Asset' : 'New Asset'}</h3>
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || ''} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
+                                            <option value="">Select Company...</option>
+                                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Asset Name" value={modalData.name || ''} onChange={e => setModalData({ ...modalData, name: e.target.value })} />
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.type || 'laptop'} onChange={e => setModalData({ ...modalData, type: e.target.value })}>
+                                            <option value="laptop">Laptop</option>
+                                            <option value="server">Server</option>
+                                            <option value="mobile">Mobile Device</option>
+                                            <option value="license">Software License</option>
+                                            <option value="networking">Networking Equipment</option>
+                                        </select>
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Serial Number" value={modalData.serialNumber || ''} onChange={e => setModalData({ ...modalData, serialNumber: e.target.value })} />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <input type="date" className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" placeholder="Purchase Date" value={modalData.purchaseDate || ''} onChange={e => setModalData({ ...modalData, purchaseDate: e.target.value })} />
+                                            <input type="number" className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Value ($)" value={modalData.value ?? ''} onChange={e => setModalData({ ...modalData, value: e.target.value === '' ? undefined : parseFloat(e.target.value) })} />
+                                        </div>
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Assigned To" value={modalData.assignedTo || ''} onChange={e => setModalData({ ...modalData, assignedTo: e.target.value })} />
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.status || 'active'} onChange={e => setModalData({ ...modalData, status: e.target.value })}>
+                                            <option value="active">Active</option>
+                                            <option value="deployed">Deployed</option>
+                                            <option value="maintenance">Maintenance</option>
+                                            <option value="retired">Retired</option>
+                                        </select>
+                                        <button 
+                                            disabled={!modalData.companyId && selectedCompanyId === 'all'}
+                                            onClick={() => {
+                                                const companyId = modalData.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : '');
+                                                if (!companyId) {
+                                                    addToast('error', 'Please select a company');
+                                                    return;
+                                                }
+                                                const newAsset = {
+                                                    id: modalData.id || `asset_${Date.now()}`,
+                                                    companyId: companyId,
+                                                    name: modalData.name || '',
+                                                    type: modalData.type || 'laptop',
+                                                    serialNumber: modalData.serialNumber,
+                                                    purchaseDate: modalData.purchaseDate,
+                                                    value: modalData.value,
+                                                    assignedTo: modalData.assignedTo,
+                                                    status: modalData.status || 'active'
+                                                };
+                                                setAssets(prev => modalData.id ? prev.map(a => a.id === modalData.id ? newAsset : a) : [...prev, newAsset]);
+                                                setActiveModal(null);
+                                                setModalData({});
+                                                addToast('success', `Asset ${modalData.id ? 'updated' : 'created'} successfully`);
+                                        }} className={`w-full py-3 rounded font-bold text-white ${!modalData.companyId && selectedCompanyId === 'all' ? 'bg-slate-600 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500'}`}>Save Asset</button>
                                     </div>
                                 )
                             }

@@ -15,16 +15,16 @@ const SequenceView: React.FC<SequenceViewProps> = ({ sequences, onCreateSequence
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Email Sequences</h2>
+                <h2 className="text-2xl font-bold">Email Campaigns</h2>
                 <button onClick={onCreateSequence} className="px-4 py-2 bg-orange-600 rounded text-xs font-bold hover:bg-orange-500">
-                    <i className="fas fa-plus mr-2"></i>New Sequence
+                    <i className="fas fa-plus mr-2"></i>New Campaign
                 </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-slate-800 p-6 rounded-xl border border-green-500/20 text-center">
                     <div className="text-3xl font-bold text-green-400">{activeCount}</div>
-                    <div className="text-[10px] uppercase text-slate-500 font-bold">Active Sequences</div>
+                    <div className="text-[10px] uppercase text-slate-500 font-bold">Active Campaigns</div>
                 </div>
                 <div className="bg-slate-800 p-6 rounded-xl border border-cyan-500/20 text-center">
                     <div className="text-3xl font-bold text-cyan-400">{totalEnrolled}</div>

@@ -181,6 +181,7 @@ interface ManagementPanelProps {
     onSaveInvoice?: (invoice: Invoice) => void;
     esignRequests?: EsignRequest[];
     assets?: Asset[];
+    onAddAsset?: () => void;
     wikiPages?: WikiPage[];
     orgContacts?: OrgContact[];
     featureRequests?: FeatureRequest[];
@@ -446,6 +447,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 <AssetTracker
                     assets={props.assets || []}
                     companies={props.companies || []}
+                    onAddAsset={props.onAddAsset}
                 />
             )}
             {view === 'wiki' && (
@@ -625,21 +627,24 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     <h2 className="text-2xl font-bold">Integration Status</h2>
                     <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
                         <div className="space-y-2">
-                            {(props.mockIntegrations || []).map((int: Integration) => (
-                                <div key={int.id} className="flex justify-between items-center p-3 bg-black/20 rounded border border-white/5">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-2 h-2 rounded-full ${int.status === 'connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                        <div className="font-bold text-sm">{int.name}</div>
+                            {(props.mockIntegrations || []).map((int: Integration) => {
+                                const displayName = int.name || int.service;
+                                return (
+                                    <div key={int.id} className="flex justify-between items-center p-3 bg-black/20 rounded border border-white/5">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-2 h-2 rounded-full ${int.status === 'connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                            <div className="font-bold text-sm">{displayName}</div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-xs text-slate-500">Last Sync: {int.lastSync ? new Date(int.lastSync).toLocaleDateString() : 'N/A'}</span>
+                                            <button onClick={() => {
+                                                props.onAddToast?.('info', `Testing connection to ${displayName}...`);
+                                                setTimeout(() => props.onAddToast?.('success', `${displayName} is healthy (24ms)`), 1500);
+                                            }} className="text-xs text-cyan-400 hover:underline">Test Connection</button>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-xs text-slate-500">Last Sync: {int.lastSync ? new Date(int.lastSync).toLocaleDateString() : 'N/A'}</span>
-                                        <button onClick={() => {
-                                            props.onAddToast?.('info', `Testing connection to ${int.name}...`);
-                                            setTimeout(() => props.onAddToast?.('success', `${int.name} is healthy (24ms)`), 1500);
-                                        }} className="text-xs text-cyan-400 hover:underline">Test Connection</button>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                             {(props.mockIntegrations || []).length === 0 && (
                                 <div className="text-center text-slate-500 py-8">No integrations configured</div>
                             )}
