@@ -201,6 +201,7 @@ interface ManagementPanelProps {
     docVersions?: DocVersion[];
     onRestoreVersion?: (versionId: string) => void;
     onAddExpense?: () => void;
+    onAddToast?: (type: string, message: string) => void;
 }
 
 const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
@@ -544,6 +545,108 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     companies={props.companies || []}
                     onRestore={props.onRestoreVersion || (() => {})}
                 />
+            )}
+
+            {/* Settings Views - moved from Internal > System */}
+            {view === 'auditlogs' && (
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-bold">System Audit Logs</h2>
+                    <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
+                        <div className="max-h-96 overflow-y-auto space-y-2 custom-scrollbar border border-white/5 rounded bg-black/20 p-2">
+                            {(props.auditLogs || []).map(log => (
+                                <div key={log.id} className="text-xs flex gap-2 p-2 hover:bg-white/5 rounded">
+                                    <span className="text-slate-500 font-mono">{new Date(log.timestamp).toLocaleString()}</span>
+                                    <span className="font-bold text-cyan-400 w-24 truncate">{log.action}</span>
+                                    <span className="text-white flex-1">{log.details || log.target}</span>
+                                    <span className="text-slate-500">{(props.users || []).find(u => u.id === log.userId)?.name || 'System'}</span>
+                                </div>
+                            ))}
+                            {(props.auditLogs || []).length === 0 && (
+                                <div className="text-center text-slate-500 py-8">No audit logs available</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {view === 'aiconfig' && (
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-bold">AI Configuration</h2>
+                    
+                    <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
+                        <h3 className="font-bold mb-4">AI Models</h3>
+                        <div className="space-y-2">
+                            {(props.configuredModels || []).map((m: any) => (
+                                <div key={m.id} className="flex justify-between items-center p-3 bg-black/20 rounded">
+                                    <div>
+                                        <div className="font-bold text-sm">{m.name}</div>
+                                        <div className="text-xs text-slate-500">{m.modelId}</div>
+                                    </div>
+                                    <button onClick={() => props.onRemoveModel?.(m.id)} className="text-red-400 hover:text-white"><i className="fas fa-trash"></i></button>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/5 flex gap-2">
+                            <select className="flex-1 bg-black/20 p-2 rounded border border-white/10 text-sm" value={props.newModelSelection || ''} onChange={e => props.onSetNewModelSelection?.(e.target.value)}>
+                                {(props.popularLlms || []).map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                            </select>
+                            <input className="flex-1 bg-black/20 p-2 rounded border border-white/10 text-sm" placeholder="API Key" value={props.newModelKey || ''} onChange={e => props.onSetNewModelKey?.(e.target.value)} type="password" />
+                            <button onClick={props.onAddModel} className="px-4 bg-green-600 rounded text-xs font-bold">Add</button>
+                        </div>
+                    </div>
+
+                    <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
+                        <h3 className="font-bold mb-4">Chat Model Assignment</h3>
+                        <p className="text-sm text-slate-400 mb-4">Select which AI model to use for the chat feature. The chat will automatically use the first model with a valid API key if "Auto-select" is chosen.</p>
+                        <div className="flex items-center gap-3">
+                            <label className="text-sm text-slate-400">Chat Model:</label>
+                            <select 
+                                className="flex-1 bg-black/20 p-2 rounded border border-white/10 text-sm" 
+                                value={(props.featureMapping || {})['chat'] || 'default'}
+                                onChange={e => props.onSetFeatureMapping?.({ ...(props.featureMapping || {}), chat: e.target.value })}
+                            >
+                                <option value="default">Auto-select (first with API key)</option>
+                                {(props.configuredModels || []).filter((m: any) => m.apiKey && m.apiKey.trim() !== '').map((m: any) => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        {(props.featureMapping || {})['chat'] !== 'default' && (props.featureMapping || {})['chat'] && (
+                            <div className="mt-2 text-xs text-green-400">
+                                <i className="fas fa-check-circle mr-1"></i>
+                                Using: {(props.configuredModels || []).find((m: any) => m.id === (props.featureMapping || {})['chat'])?.name || 'Unknown'}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {view === 'integrations' && (
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-bold">Integration Status</h2>
+                    <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
+                        <div className="space-y-2">
+                            {(props.mockIntegrations || []).map((int: Integration) => (
+                                <div key={int.id} className="flex justify-between items-center p-3 bg-black/20 rounded border border-white/5">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-2 h-2 rounded-full ${int.status === 'connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                        <div className="font-bold text-sm">{int.name}</div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-xs text-slate-500">Last Sync: {int.lastSync ? new Date(int.lastSync).toLocaleDateString() : 'N/A'}</span>
+                                        <button onClick={() => {
+                                            props.onAddToast?.('info', `Testing connection to ${int.name}...`);
+                                            setTimeout(() => props.onAddToast?.('success', `${int.name} is healthy (24ms)`), 1500);
+                                        }} className="text-xs text-cyan-400 hover:underline">Test Connection</button>
+                                    </div>
+                                </div>
+                            ))}
+                            {(props.mockIntegrations || []).length === 0 && (
+                                <div className="text-center text-slate-500 py-8">No integrations configured</div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
