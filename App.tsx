@@ -468,6 +468,8 @@ export const App: React.FC = () => {
     const [isTasksMenuOpen, setIsTasksMenuOpen] = useState(false);
     const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
     const [isLogsSubmenuOpen, setIsLogsSubmenuOpen] = useState(false);
+    const [isAnalyticsSubmenuOpen, setIsAnalyticsSubmenuOpen] = useState(false);
+    const [isFinanceSubmenuOpen, setIsFinanceSubmenuOpen] = useState(false);
     const [isChatPopupOpen, setIsChatPopupOpen] = useState(false);
     const [workspaceMode, setWorkspaceMode] = useState<'internal' | 'client'>('internal');
     const [internalTab, setInternalTab] = useState<'offerings' | 'team' | 'profile' | 'system' | 'data' | 'automations'>('offerings');
@@ -1970,18 +1972,32 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'profile'} label="Profile" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('profile'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('automations'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
-                                            <SidebarSubItem active={view === 'vendors'} label="Vendors" onClick={() => setView('vendors')} />
-                                            <SidebarSubItem active={view === 'expenses'} label="Expenses" onClick={() => setView('expenses')} />
                                             <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
                                             <SidebarSubItem active={view === 'versions'} label="Versions" onClick={() => setView('versions')} />
-                                            <SidebarSubItem active={view === 'forecast'} label="Flash Forecast" onClick={() => setView('forecast')} />
-                                            <SidebarSubItem active={view === 'alerts'} label="Risk Radar" onClick={() => setView('alerts')} />
-                                            <SidebarSubItem active={view === 'winloss'} label="Win/Loss Lab" onClick={() => setView('winloss')} />
-                                            <SidebarSubItem active={view === 'kpis'} label="Neural KPIs" onClick={() => setView('kpis')} />
-                                            <SidebarSubItem active={view === 'velocity'} label="Deal Velocity" onClick={() => setView('velocity')} />
-                                            <SidebarSubItem active={view === 'profitability'} label="ROI Analysis" onClick={() => setView('profitability')} />
-                                            <SidebarSubItem active={view === 'utilization'} label="Resource Ops" onClick={() => setView('utilization')} />
-                                            <SidebarSubItem active={view === 'csat'} label="Sentience/CSAT" onClick={() => setView('csat')} />
+                                            
+                                            {/* Finance Submenu */}
+                                            <SidebarGroupToggle isOpen={isFinanceSubmenuOpen} label="Finance" onClick={() => setIsFinanceSubmenuOpen(!isFinanceSubmenuOpen)} />
+                                            {isFinanceSubmenuOpen && (
+                                                <div className="space-y-1 mt-1 pl-2 transition-all submenu-glow-level-2">
+                                                    <SidebarSubItem active={view === 'vendors'} label="Vendors" onClick={() => setView('vendors')} />
+                                                    <SidebarSubItem active={view === 'expenses'} label="Expenses" onClick={() => setView('expenses')} />
+                                                </div>
+                                            )}
+                                            
+                                            {/* Analytics Submenu */}
+                                            <SidebarGroupToggle isOpen={isAnalyticsSubmenuOpen} label="Analytics" onClick={() => setIsAnalyticsSubmenuOpen(!isAnalyticsSubmenuOpen)} />
+                                            {isAnalyticsSubmenuOpen && (
+                                                <div className="space-y-1 mt-1 pl-2 transition-all submenu-glow-level-2">
+                                                    <SidebarSubItem active={view === 'forecast'} label="Flash Forecast" onClick={() => setView('forecast')} />
+                                                    <SidebarSubItem active={view === 'alerts'} label="Risk Radar" onClick={() => setView('alerts')} />
+                                                    <SidebarSubItem active={view === 'winloss'} label="Win/Loss Lab" onClick={() => setView('winloss')} />
+                                                    <SidebarSubItem active={view === 'kpis'} label="Neural KPIs" onClick={() => setView('kpis')} />
+                                                    <SidebarSubItem active={view === 'velocity'} label="Deal Velocity" onClick={() => setView('velocity')} />
+                                                    <SidebarSubItem active={view === 'profitability'} label="ROI Analysis" onClick={() => setView('profitability')} />
+                                                    <SidebarSubItem active={view === 'utilization'} label="Resource Ops" onClick={() => setView('utilization')} />
+                                                    <SidebarSubItem active={view === 'csat'} label="Sentience/CSAT" onClick={() => setView('csat')} />
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </motion.div>
