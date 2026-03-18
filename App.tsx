@@ -135,7 +135,7 @@ const COMPANIES_VIEWS = ['clients', 'onboarding'];
 const VIEW_LABELS: Record<string, string> = {
     alltickets: 'Tickets',
     sequences: 'Email Campaigns',
-    communications: 'Messages',
+    communications: 'Leads Messages',
 };
 const getViewLabel = (view: string) => VIEW_LABELS[view] || view;
 
@@ -1928,31 +1928,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     <SidebarItem active={view === 'home'} icon="fa-house" label="Home" onClick={() => setView('home')} />
                     <SidebarItem active={view === 'chat'} icon="fa-comment-dots" label="Chat" onClick={() => setView('chat')} />
 
-                    {/* Companies Menu - with Onboarding and Data Export as subs */}
-                    <div className="space-y-1">
-                        <button onClick={() => setIsCompaniesMenuOpen(!isCompaniesMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${COMPANIES_VIEWS.includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-                            <div className={`w-8 flex items-center justify-center transition-transform ${COMPANIES_VIEWS.includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
-                                <i className="fas fa-building text-lg"></i>
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Companies</span>
-                            <ChevronRight className={`w-3 h-3 transition-transform duration-300 ${isCompaniesMenuOpen ? 'rotate-90' : 'opacity-30'}`} />
-                        </button>
-                        <AnimatePresence>
-                            {isCompaniesMenuOpen && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden pl-10 space-y-1 border-l border-white/5 ml-6 py-1 submenu-glow-level-1"
-                                >
-                                    <SidebarSubItem active={view === 'clients'} label="All Companies" onClick={() => setView('clients')} />
-                                    <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => { setView('onboarding'); ensureClientSelected(); }} />
-                                    <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
                     {/* Global Tickets Menu - shows all tickets across all clients */}
                     <SidebarItem active={view === 'alltickets'} icon="fa-ticket-alt" label="Tickets" onClick={() => { setView('alltickets'); setSelectedCompanyId('all'); }} />
 
@@ -2078,14 +2053,37 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     exit={{ height: 0, opacity: 0 }}
                                     className="overflow-hidden pl-10 space-y-1 border-l border-white/5 ml-6 py-1 submenu-glow-level-1"
                                 >
-                                    <SidebarSubItem active={view === 'communications'} label="Messages" onClick={() => setView('communications')} />
+                                    <SidebarSubItem active={view === 'communications'} label="Leads Messages" onClick={() => setView('communications')} />
                                     <SidebarSubItem active={view === 'sequences'} label="Email Campaigns" onClick={() => setView('sequences')} />
                                 </motion.div>
                             )}
                         </AnimatePresence>
                     </div>
 
-                    <SidebarItem active={view === 'help'} icon="fa-circle-question" label="Help" onClick={() => setView('help')} />
+                    {/* Companies Menu - with Onboarding and Data Export as subs */}
+                    <div className="space-y-1">
+                        <button onClick={() => setIsCompaniesMenuOpen(!isCompaniesMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${COMPANIES_VIEWS.includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                            <div className={`w-8 flex items-center justify-center transition-transform ${COMPANIES_VIEWS.includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
+                                <i className="fas fa-building text-lg"></i>
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Companies</span>
+                            <ChevronRight className={`w-3 h-3 transition-transform duration-300 ${isCompaniesMenuOpen ? 'rotate-90' : 'opacity-30'}`} />
+                        </button>
+                        <AnimatePresence>
+                            {isCompaniesMenuOpen && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden pl-10 space-y-1 border-l border-white/5 ml-6 py-1 submenu-glow-level-1"
+                                >
+                                    <SidebarSubItem active={view === 'clients'} label="All Companies" onClick={() => setView('clients')} />
+                                    <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => { setView('onboarding'); ensureClientSelected(); }} />
+                                    <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
                     {/* Settings Menu */}
                     <div className="space-y-1">
@@ -2128,6 +2126,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                             )}
                         </AnimatePresence>
                     </div>
+
+                    <SidebarItem active={view === 'help'} icon="fa-circle-question" label="Help" onClick={() => setView('help')} />
 
                     <div className="mt-auto px-4 w-full pt-8 pb-4">
                         <div className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2">Mental Scratchpad</div>
@@ -2510,7 +2510,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                 businessProfile={businessProfile}
                                             />
                                         )}
-                                        {['activity', 'onboarding', 'sequences', 'vendors', 'portal', 'expenses', 'compliance', 'versions'].includes(view) && (
+                                        {['activity', 'onboarding', 'sequences', 'vendors', 'portal', 'expenses', 'compliance', 'versions', 'aiconfig', 'integrations', 'auditlogs'].includes(view) && (
                                             <ManagementPanel
                                                 {...commonPanelProps}
                                                 view={view}
