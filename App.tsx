@@ -521,7 +521,7 @@ export const App: React.FC = () => {
     // Diagnostics
     const [testResults, setTestResults] = useState<TestResult[]>([]);
 
-    const [commFolder, setCommFolder] = useState<'inbox' | 'sent' | 'drafts'>('inbox');
+    const [commFolder, setCommFolder] = useState<'inbox' | 'replied' | 'converted' | 'archive'>('inbox');
 
     // --- NEW CRM FEATURES STATE ---
     const [activities, setActivities] = useState<ActivityEntry[]>(MOCK_ACTIVITIES);
@@ -2515,6 +2515,13 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                 {...commonPanelProps}
                                                 view={view}
                                                 tab={view as any}
+                                            />
+                                        )}
+                                        {view === 'communications' && (
+                                            <CommunicationsView
+                                                commFolder={commFolder}
+                                                onSetCommFolder={setCommFolder}
+                                                onDraftEmail={() => setActiveModal('draft_email')}
                                             />
                                         )}
                                     </motion.div>

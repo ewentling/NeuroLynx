@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { WorkspaceItem } from '../types';
 
 interface LeadEmail {
     id: string;
@@ -15,12 +14,12 @@ interface LeadEmail {
     phone?: string;
 }
 
+type LeadFolder = 'inbox' | 'replied' | 'converted' | 'archive';
+
 interface CommunicationsViewProps {
-    commFolder: string;
-    onSetCommFolder: (folder: string) => void;
-    workspaceItems: WorkspaceItem[];
+    commFolder: LeadFolder;
+    onSetCommFolder: (folder: LeadFolder) => void;
     onDraftEmail: () => void;
-    onManageTemplates: () => void;
 }
 
 // Mock lead emails for demonstration
@@ -64,12 +63,19 @@ const MOCK_LEAD_EMAILS: LeadEmail[] = [
     }
 ];
 
+type PriorityFilter = 'all' | LeadEmail['priority'];
+
+const isValidPriorityFilter = (value: string): value is PriorityFilter => {
+    return ['all', 'high', 'medium', 'low'].includes(value);
+};
+
 const CommunicationsView: React.FC<CommunicationsViewProps> = ({
-    commFolder, onSetCommFolder, workspaceItems, onDraftEmail, onManageTemplates
+    commFolder, onSetCommFolder, onDraftEmail
 }) => {
-    const [leadEmails] = useState<LeadEmail[]>(MOCK_LEAD_EMAILS);
+    // Lead emails - in production, this would come from props or API
+    const leadEmails = MOCK_LEAD_EMAILS;
     const [selectedLead, setSelectedLead] = useState<LeadEmail | null>(null);
-    const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('all');
 
     // Filter leads based on selected folder/status
     const filteredLeads = leadEmails.filter(lead => {
@@ -105,7 +111,7 @@ const CommunicationsView: React.FC<CommunicationsViewProps> = ({
         return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     };
 
-    const folders = [
+    const folders: { key: LeadFolder; label: string; icon: string; count: number }[] = [
         { key: 'inbox', label: 'New Leads', icon: 'fa-inbox', count: leadEmails.filter(l => l.status === 'new' || l.status === 'read').length },
         { key: 'replied', label: 'Replied', icon: 'fa-reply', count: leadEmails.filter(l => l.status === 'replied').length },
         { key: 'converted', label: 'Converted', icon: 'fa-check-circle', count: leadEmails.filter(l => l.status === 'converted').length },
@@ -197,8 +203,13 @@ const CommunicationsView: React.FC<CommunicationsViewProps> = ({
                         </div>
                         <select 
                             className="text-xs bg-slate-700 border border-white/10 rounded px-2 py-1 text-slate-300"
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
+                            value={priorityFilter}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (isValidPriorityFilter(value)) {
+                                    setPriorityFilter(value);
+                                }
+                            }}
                         >
                             <option value="all">All Priorities</option>
                             <option value="high">High Priority</option>
@@ -209,7 +220,7 @@ const CommunicationsView: React.FC<CommunicationsViewProps> = ({
 
                     {/* Email Items */}
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
-                        {filteredLeads.filter(l => filterStatus === 'all' || l.priority === filterStatus).map(lead => (
+                        {filteredLeads.filter(l => priorityFilter === 'all' || l.priority === priorityFilter).map(lead => (
                             <div 
                                 key={lead.id} 
                                 onClick={() => setSelectedLead(lead)}
