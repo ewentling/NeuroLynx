@@ -2788,7 +2788,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Serial Number" value={modalData.serialNumber || ''} onChange={e => setModalData({ ...modalData, serialNumber: e.target.value })} />
                                         <div className="grid grid-cols-2 gap-4">
                                             <input type="date" className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" placeholder="Purchase Date" value={modalData.purchaseDate || ''} onChange={e => setModalData({ ...modalData, purchaseDate: e.target.value })} />
-                                            <input type="number" className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Value ($)" value={modalData.value || ''} onChange={e => setModalData({ ...modalData, value: parseFloat(e.target.value) || 0 })} />
+                                            <input type="number" className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Value ($)" value={modalData.value ?? ''} onChange={e => setModalData({ ...modalData, value: e.target.value === '' ? undefined : parseFloat(e.target.value) })} />
                                         </div>
                                         <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Assigned To" value={modalData.assignedTo || ''} onChange={e => setModalData({ ...modalData, assignedTo: e.target.value })} />
                                         <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.status || 'active'} onChange={e => setModalData({ ...modalData, status: e.target.value })}>
@@ -2797,23 +2797,30 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <option value="maintenance">Maintenance</option>
                                             <option value="retired">Retired</option>
                                         </select>
-                                        <button onClick={() => {
-                                            const newAsset = {
-                                                id: modalData.id || `asset_${Date.now()}`,
-                                                companyId: modalData.companyId || selectedCompanyId || '',
-                                                name: modalData.name || '',
-                                                type: modalData.type || 'laptop',
-                                                serialNumber: modalData.serialNumber,
-                                                purchaseDate: modalData.purchaseDate,
-                                                value: modalData.value,
-                                                assignedTo: modalData.assignedTo,
-                                                status: modalData.status || 'active'
-                                            };
-                                            setAssets(prev => modalData.id ? prev.map(a => a.id === modalData.id ? newAsset : a) : [...prev, newAsset]);
-                                            setActiveModal(null);
-                                            setModalData({});
-                                            addToast('success', `Asset ${modalData.id ? 'updated' : 'created'} successfully`);
-                                        }} className="w-full py-3 bg-cyan-600 rounded font-bold text-white">Save Asset</button>
+                                        <button 
+                                            disabled={!modalData.companyId && selectedCompanyId === 'all'}
+                                            onClick={() => {
+                                                const companyId = modalData.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : '');
+                                                if (!companyId) {
+                                                    addToast('error', 'Please select a company');
+                                                    return;
+                                                }
+                                                const newAsset = {
+                                                    id: modalData.id || `asset_${Date.now()}`,
+                                                    companyId: companyId,
+                                                    name: modalData.name || '',
+                                                    type: modalData.type || 'laptop',
+                                                    serialNumber: modalData.serialNumber,
+                                                    purchaseDate: modalData.purchaseDate,
+                                                    value: modalData.value,
+                                                    assignedTo: modalData.assignedTo,
+                                                    status: modalData.status || 'active'
+                                                };
+                                                setAssets(prev => modalData.id ? prev.map(a => a.id === modalData.id ? newAsset : a) : [...prev, newAsset]);
+                                                setActiveModal(null);
+                                                setModalData({});
+                                                addToast('success', `Asset ${modalData.id ? 'updated' : 'created'} successfully`);
+                                        }} className={`w-full py-3 rounded font-bold text-white ${!modalData.companyId && selectedCompanyId === 'all' ? 'bg-slate-600 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500'}`}>Save Asset</button>
                                     </div>
                                 )
                             }

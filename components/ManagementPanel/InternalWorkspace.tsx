@@ -141,7 +141,7 @@ const InternalWorkspace: React.FC<InternalWorkspaceProps> = ({
                                 <div className="text-xs text-slate-400 mb-3 line-clamp-2 min-h-[2.5rem]">{p.description}</div>
                                 <div className="flex justify-between items-center pt-3 border-t border-white/5">
                                     <span className="text-[10px] text-slate-500 uppercase font-bold">{p.billingTiming}</span>
-                                    <span className="font-mono text-cyan-400 font-bold text-lg">${p.price.toLocaleString()}</span>
+                                    <span className="font-mono text-cyan-400 font-bold text-lg">${(p.price ?? 0).toLocaleString()}</span>
                                 </div>
                             </div>
                         ))}
