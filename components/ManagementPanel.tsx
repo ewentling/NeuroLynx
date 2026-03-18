@@ -201,7 +201,6 @@ interface ManagementPanelProps {
     docVersions?: DocVersion[];
     onRestoreVersion?: (versionId: string) => void;
     onAddExpense?: () => void;
-    onAddToast?: (type: string, message: string) => void;
 }
 
 const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
