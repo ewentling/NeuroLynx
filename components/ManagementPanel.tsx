@@ -181,6 +181,7 @@ interface ManagementPanelProps {
     onSaveInvoice?: (invoice: Invoice) => void;
     esignRequests?: EsignRequest[];
     assets?: Asset[];
+    onAddAsset?: () => void;
     wikiPages?: WikiPage[];
     orgContacts?: OrgContact[];
     featureRequests?: FeatureRequest[];
@@ -446,6 +447,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 <AssetTracker
                     assets={props.assets || []}
                     companies={props.companies || []}
+                    onAddAsset={props.onAddAsset}
                 />
             )}
             {view === 'wiki' && (

@@ -6,9 +6,10 @@ import { Laptop, Server, Smartphone, Key, Settings, Trash2, Plus, Search, Tag, U
 interface AssetTrackerProps {
     assets: Asset[];
     companies: Company[];
+    onAddAsset?: () => void;
 }
 
-const AssetTracker: React.FC<AssetTrackerProps> = ({ assets, companies }) => {
+const AssetTracker: React.FC<AssetTrackerProps> = ({ assets, companies, onAddAsset }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<AssetType | 'all'>('all');
 
@@ -47,7 +48,7 @@ const AssetTracker: React.FC<AssetTrackerProps> = ({ assets, companies }) => {
                     <h2 className="text-2xl font-bold text-white mb-2">IT Asset Inventory</h2>
                     <p className="text-slate-400 text-sm">Managing client hardware, software licenses, and critical infrastructure.</p>
                 </div>
-                <button className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-bold text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all flex items-center gap-2">
+                <button onClick={onAddAsset} className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-bold text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all flex items-center gap-2">
                     <Plus className="w-4 h-4" /> Add Asset
                 </button>
             </div>

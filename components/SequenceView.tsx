@@ -15,9 +15,9 @@ const SequenceView: React.FC<SequenceViewProps> = ({ sequences, onCreateSequence
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Email Sequences</h2>
+                <h2 className="text-2xl font-bold">Email Campaigns</h2>
                 <button onClick={onCreateSequence} className="px-4 py-2 bg-orange-600 rounded text-xs font-bold hover:bg-orange-500">
-                    <i className="fas fa-plus mr-2"></i>New Sequence
+                    <i className="fas fa-plus mr-2"></i>New Campaign
                 </button>
             </div>
 
