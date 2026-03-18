@@ -762,10 +762,12 @@ export const MOCK_INVOICES: Invoice[] = [
 ];
 
 export const MOCK_ORG_CONTACTS: OrgContact[] = [
-    { id: 'oc1', name: 'James Wilson', title: 'CTO', isDecisionMaker: true, department: 'Engineering', email: 'jwilson@acme.com' },
-    { id: 'oc2', name: 'Sarah Miller', title: 'Director of IT', reportsToId: 'oc1', isDecisionMaker: true, department: 'Engineering' },
-    { id: 'oc3', name: 'Mike Ross', title: 'Senior Architect', reportsToId: 'oc2', isDecisionMaker: false, department: 'Engineering' },
-    { id: 'oc4', name: 'Donna Paulsen', title: 'Operations Manager', isDecisionMaker: false, department: 'Operations' },
+    { id: 'oc1', companyId: 'comp1', name: 'James Wilson', title: 'CTO', isDecisionMaker: true, department: 'Engineering', email: 'jwilson@acme.com' },
+    { id: 'oc2', companyId: 'comp1', name: 'Sarah Miller', title: 'Director of IT', reportsToId: 'oc1', isDecisionMaker: true, department: 'Engineering' },
+    { id: 'oc3', companyId: 'comp1', name: 'Mike Ross', title: 'Senior Architect', reportsToId: 'oc2', isDecisionMaker: false, department: 'Engineering' },
+    { id: 'oc4', companyId: 'comp1', name: 'Donna Paulsen', title: 'Operations Manager', isDecisionMaker: false, department: 'Operations' },
+    { id: 'oc5', companyId: 'comp2', name: 'Tony Stark', title: 'CEO', isDecisionMaker: true, department: 'Executive', email: 'tony@stark.com' },
+    { id: 'oc6', companyId: 'comp2', name: 'Pepper Potts', title: 'COO', reportsToId: 'oc5', isDecisionMaker: true, department: 'Executive', email: 'pepper@stark.com' },
 ];
 
 export const MOCK_ESIGN_REQUESTS: EsignRequest[] = [

@@ -120,7 +120,7 @@ const SidebarGroupToggle = React.memo(({ isOpen, label, onClick, isMainLabel = f
 const WORKSPACE_VIEWS = ['workspace', 'vendors', 'expenses', 'compliance', 'versions', 'tickets', 'onboarding', 'sequences', 'portal', 'pipeline', 'meetings', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields', 'forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'];
 
 // Client Workspace views that should show the client dropdown
-const CLIENT_WORKSPACE_VIEWS = ['workspace', 'meetings', 'pipeline', 'tasks', 'calendar', 'clients', 'memory', 'tickets', 'onboarding', 'sequences', 'portal', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners'];
+const CLIENT_WORKSPACE_VIEWS = ['workspace', 'meetings', 'pipeline', 'tasks', 'calendar', 'clients', 'memory', 'tickets', 'onboarding', 'sequences', 'portal', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap'];
 
 // Views that belong to settings section
 const SETTINGS_VIEWS = ['activity', 'auditlogs', 'aiconfig', 'integrations'];
@@ -1951,13 +1951,11 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => { setView('onboarding'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'sequences'} label="Sequences" onClick={() => { setView('sequences'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'portal'} label="Portal" onClick={() => { setView('portal'); ensureClientSelected(); }} />
-                                            <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => { setView('invoices'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'esign'} label="E-Signature" onClick={() => { setView('esign'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'assets'} label="IT Inventory" onClick={() => { setView('assets'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'wiki'} label="Brain / Wiki" onClick={() => { setView('wiki'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'orgchart'} label="Org Viz" onClick={() => { setView('orgchart'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'roadmap'} label="Product Ops" onClick={() => { setView('roadmap'); ensureClientSelected(); }} />
-                                            <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => { setView('partners'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} />
                                         </div>
                                     )}
@@ -1974,6 +1972,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
                                             <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
                                             <SidebarSubItem active={view === 'versions'} label="Versions" onClick={() => setView('versions')} />
+                                            <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
+                                            <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => setView('partners')} />
                                             
                                             {/* Finance Submenu */}
                                             <SidebarGroupToggle isOpen={isFinanceSubmenuOpen} label="Finance" onClick={() => setIsFinanceSubmenuOpen(!isFinanceSubmenuOpen)} />

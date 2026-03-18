@@ -459,7 +459,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 selectedCompany ? (
                     <OrgChartView
                         company={selectedCompany}
-                        contacts={props.orgContacts || []}
+                        contacts={(props.orgContacts || []).filter(c => c.companyId === selectedCompany.id)}
                     />
                 ) : (
                     <CompanyRequiredState />
