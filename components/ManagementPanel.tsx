@@ -631,13 +631,13 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                                 <div key={int.id} className="flex justify-between items-center p-3 bg-black/20 rounded border border-white/5">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-2 h-2 rounded-full ${int.status === 'connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                        <div className="font-bold text-sm">{int.name}</div>
+                                        <div className="font-bold text-sm">{int.name || int.service}</div>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <span className="text-xs text-slate-500">Last Sync: {int.lastSync ? new Date(int.lastSync).toLocaleDateString() : 'N/A'}</span>
                                         <button onClick={() => {
-                                            props.onAddToast?.('info', `Testing connection to ${int.name}...`);
-                                            setTimeout(() => props.onAddToast?.('success', `${int.name} is healthy (24ms)`), 1500);
+                                            props.onAddToast?.('info', `Testing connection to ${int.name || int.service}...`);
+                                            setTimeout(() => props.onAddToast?.('success', `${int.name || int.service} is healthy (24ms)`), 1500);
                                         }} className="text-xs text-cyan-400 hover:underline">Test Connection</button>
                                     </div>
                                 </div>
