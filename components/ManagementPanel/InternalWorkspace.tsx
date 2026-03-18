@@ -25,6 +25,8 @@ interface InternalWorkspaceProps {
     auditLogs: AuditLog[];
     mockIntegrations: Integration[];
     configuredModels: any[];
+    featureMapping: { [key: string]: string };
+    onSetFeatureMapping: (mapping: { [key: string]: string }) => void;
     popularLlms: any[];
     newModelSelection: string;
     newModelKey: string;
@@ -70,6 +72,8 @@ const InternalWorkspace: React.FC<InternalWorkspaceProps> = ({
     auditLogs,
     mockIntegrations,
     configuredModels,
+    featureMapping,
+    onSetFeatureMapping,
     popularLlms,
     newModelSelection,
     newModelKey,

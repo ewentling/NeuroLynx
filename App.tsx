@@ -109,18 +109,21 @@ const SidebarSubItem = React.memo(({ active, label, onClick }: { active: boolean
     </button>
 ));
 
-const SidebarGroupToggle = React.memo(({ isOpen, label, onClick }: { isOpen: boolean, label: string, onClick: () => void }) => (
-    <button onClick={onClick} className="w-full flex justify-between items-center py-2 px-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider hover:text-slate-300 transition-colors mt-2 flex-shrink-0">
+const SidebarGroupToggle = React.memo(({ isOpen, label, onClick, isMainLabel = false }: { isOpen: boolean, label: string, onClick: () => void, isMainLabel?: boolean }) => (
+    <button onClick={onClick} className={`w-full flex justify-between items-center py-2 px-2 font-bold text-slate-500 uppercase tracking-wider hover:text-slate-300 transition-colors mt-2 flex-shrink-0 ${isMainLabel ? 'text-[12px] text-slate-400' : 'text-[10px]'}`}>
         <span>{label}</span>
         <i className={`fas fa-chevron-right transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}></i>
     </button>
 ));
 
-// Views that belong to workspace section
-const WORKSPACE_VIEWS = ['workspace', 'activity', 'vendors', 'expenses', 'compliance', 'versions', 'tickets', 'onboarding', 'sequences', 'portal', 'pipeline', 'meetings', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields', 'forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'];
+// Views that belong to workspace section (activity removed - now in Settings)
+const WORKSPACE_VIEWS = ['workspace', 'vendors', 'expenses', 'compliance', 'versions', 'tickets', 'onboarding', 'sequences', 'portal', 'pipeline', 'meetings', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields', 'forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'];
 
 // Client Workspace views that should show the client dropdown
-const CLIENT_WORKSPACE_VIEWS = ['workspace', 'meetings', 'pipeline', 'tasks', 'calendar', 'clients', 'memory', 'tickets', 'onboarding', 'sequences', 'portal', 'invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners'];
+const CLIENT_WORKSPACE_VIEWS = ['workspace', 'meetings', 'pipeline', 'tasks', 'calendar', 'clients', 'memory', 'tickets', 'onboarding', 'sequences', 'portal', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap'];
+
+// Views that belong to settings section
+const SETTINGS_VIEWS = ['activity', 'auditlogs', 'aiconfig', 'integrations'];
 
 // Display labels for views (maps internal view keys to user-friendly names)
 const VIEW_LABELS: Record<string, string> = {
@@ -463,6 +466,10 @@ export const App: React.FC = () => {
     const [isInternalMgmtOpen, setIsInternalMgmtOpen] = useState(true);
     const [isClientWorkspaceOpen, setIsClientWorkspaceOpen] = useState(true);
     const [isTasksMenuOpen, setIsTasksMenuOpen] = useState(false);
+    const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+    const [isLogsSubmenuOpen, setIsLogsSubmenuOpen] = useState(false);
+    const [isAnalyticsSubmenuOpen, setIsAnalyticsSubmenuOpen] = useState(false);
+    const [isFinanceSubmenuOpen, setIsFinanceSubmenuOpen] = useState(false);
     const [isChatPopupOpen, setIsChatPopupOpen] = useState(false);
     const [workspaceMode, setWorkspaceMode] = useState<'internal' | 'client'>('internal');
     const [internalTab, setInternalTab] = useState<'offerings' | 'team' | 'profile' | 'system' | 'data' | 'automations'>('offerings');
@@ -828,7 +835,7 @@ export const App: React.FC = () => {
             else if (action.includes('create task')) { setModalData({}); setActiveModal('save_task'); }
             else if (action.includes('go to home')) setView('home');
             else if (action.includes('go to pipeline')) setView('pipeline');
-            else if (action.includes('go to settings')) { setView('workspace'); setWorkspaceMode('internal'); setInternalTab('system'); }
+            else if (action.includes('go to settings')) { setView('aiconfig'); setIsSettingsMenuOpen(true); }
             else if (action.includes('toggle dark')) setIsDarkMode(!isDarkMode);
             else if (action.includes('focus')) setIsFocusMode(!isFocusMode);
             else addToast('info', 'Unknown Command');
@@ -1501,7 +1508,22 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
         }
 
         const activeModelId = featureMapping['chat'] || 'default';
-        const modelConfig = configuredModels.find(m => m.id === activeModelId) || configuredModels[0];
+        let modelConfig = configuredModels.find(m => m.id === activeModelId) || configuredModels[0];
+        
+        // If the selected model has no API key, find the first model with a valid API key
+        if (modelConfig && (!modelConfig.apiKey || modelConfig.apiKey.trim() === '')) {
+            const modelWithKey = configuredModels.find(m => m.apiKey && m.apiKey.trim() !== '');
+            if (modelWithKey) {
+                modelConfig = modelWithKey;
+            }
+        }
+        
+        // Guard against empty configuredModels array
+        if (!modelConfig) {
+            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: 'Error: No AI models configured. Please add a model with an API key in Settings > AI Config.', timestamp: Date.now(), type: 'text' }]);
+            setIsLoading(false);
+            return;
+        }
 
         try {
             await lynxService.current?.configure({
@@ -1916,9 +1938,9 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     className="overflow-hidden pl-10 space-y-1 border-l border-white/5 ml-6 py-1"
                                 >
                                     {/* Client Workspace - now above Internal Mgmt */}
-                                    <SidebarGroupToggle isOpen={isClientWorkspaceOpen} label="Client Workspace" onClick={() => setIsClientWorkspaceOpen(!isClientWorkspaceOpen)} />
+                                    <SidebarGroupToggle isOpen={isClientWorkspaceOpen} label="Client Workspace" onClick={() => setIsClientWorkspaceOpen(!isClientWorkspaceOpen)} isMainLabel={true} />
                                     {isClientWorkspaceOpen && (
-                                        <div className="space-y-1 mt-1 pl-2 transition-all">
+                                        <div className="space-y-1 mt-1 pl-2 transition-all submenu-glow-level-1">
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'overview'} label="Overview" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('overview'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'documents'} label="Documents" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('documents'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'client' && clientWorkspaceTab === 'contracts'} label="Contracts" onClick={() => { setView('workspace'); setWorkspaceMode('client'); setClientWorkspaceTab('contracts'); ensureClientSelected(); }} />
@@ -1929,43 +1951,53 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => { setView('onboarding'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'sequences'} label="Sequences" onClick={() => { setView('sequences'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'portal'} label="Portal" onClick={() => { setView('portal'); ensureClientSelected(); }} />
-                                            <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => { setView('invoices'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'esign'} label="E-Signature" onClick={() => { setView('esign'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'assets'} label="IT Inventory" onClick={() => { setView('assets'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'wiki'} label="Brain / Wiki" onClick={() => { setView('wiki'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'orgchart'} label="Org Viz" onClick={() => { setView('orgchart'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'roadmap'} label="Product Ops" onClick={() => { setView('roadmap'); ensureClientSelected(); }} />
-                                            <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => { setView('partners'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} />
                                         </div>
                                     )}
                                     {/* Internal Mgmt - now below Client Workspace */}
-                                    <SidebarGroupToggle isOpen={isInternalMgmtOpen} label="Internal Mgmt" onClick={() => setIsInternalMgmtOpen(!isInternalMgmtOpen)} />
+                                    <SidebarGroupToggle isOpen={isInternalMgmtOpen} label="Internal Mgmt" onClick={() => setIsInternalMgmtOpen(!isInternalMgmtOpen)} isMainLabel={true} />
                                     {isInternalMgmtOpen && (
-                                        <div className="space-y-1 mt-1 pl-2 transition-all">
+                                        <div className="space-y-1 mt-1 pl-2 transition-all submenu-glow-level-1">
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'offerings'} label="Offerings" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('offerings'); }} />
                                             {currentUser?.role === 'admin' && (
-                                                <>
-                                                    <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'team'} label="Team" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('team'); }} />
-                                                    <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'system'} label="System" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('system'); }} />
-                                                </>
+                                                <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'team'} label="Team" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('team'); }} />
                                             )}
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'profile'} label="Profile" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('profile'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('automations'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
-                                            <SidebarSubItem active={view === 'activity'} label="Activity" onClick={() => setView('activity')} />
-                                            <SidebarSubItem active={view === 'vendors'} label="Vendors" onClick={() => setView('vendors')} />
-                                            <SidebarSubItem active={view === 'expenses'} label="Expenses" onClick={() => setView('expenses')} />
                                             <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
                                             <SidebarSubItem active={view === 'versions'} label="Versions" onClick={() => setView('versions')} />
-                                            <SidebarSubItem active={view === 'forecast'} label="Flash Forecast" onClick={() => setView('forecast')} />
-                                            <SidebarSubItem active={view === 'alerts'} label="Risk Radar" onClick={() => setView('alerts')} />
-                                            <SidebarSubItem active={view === 'winloss'} label="Win/Loss Lab" onClick={() => setView('winloss')} />
-                                            <SidebarSubItem active={view === 'kpis'} label="Neural KPIs" onClick={() => setView('kpis')} />
-                                            <SidebarSubItem active={view === 'velocity'} label="Deal Velocity" onClick={() => setView('velocity')} />
-                                            <SidebarSubItem active={view === 'profitability'} label="ROI Analysis" onClick={() => setView('profitability')} />
-                                            <SidebarSubItem active={view === 'utilization'} label="Resource Ops" onClick={() => setView('utilization')} />
-                                            <SidebarSubItem active={view === 'csat'} label="Sentience/CSAT" onClick={() => setView('csat')} />
+                                            <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
+                                            <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => setView('partners')} />
+                                            
+                                            {/* Finance Submenu */}
+                                            <SidebarGroupToggle isOpen={isFinanceSubmenuOpen} label="Finance" onClick={() => setIsFinanceSubmenuOpen(!isFinanceSubmenuOpen)} />
+                                            {isFinanceSubmenuOpen && (
+                                                <div className="space-y-1 mt-1 pl-2 transition-all submenu-glow-level-2">
+                                                    <SidebarSubItem active={view === 'vendors'} label="Vendors" onClick={() => setView('vendors')} />
+                                                    <SidebarSubItem active={view === 'expenses'} label="Expenses" onClick={() => setView('expenses')} />
+                                                </div>
+                                            )}
+                                            
+                                            {/* Analytics Submenu */}
+                                            <SidebarGroupToggle isOpen={isAnalyticsSubmenuOpen} label="Analytics" onClick={() => setIsAnalyticsSubmenuOpen(!isAnalyticsSubmenuOpen)} />
+                                            {isAnalyticsSubmenuOpen && (
+                                                <div className="space-y-1 mt-1 pl-2 transition-all submenu-glow-level-2">
+                                                    <SidebarSubItem active={view === 'forecast'} label="Flash Forecast" onClick={() => setView('forecast')} />
+                                                    <SidebarSubItem active={view === 'alerts'} label="Risk Radar" onClick={() => setView('alerts')} />
+                                                    <SidebarSubItem active={view === 'winloss'} label="Win/Loss Lab" onClick={() => setView('winloss')} />
+                                                    <SidebarSubItem active={view === 'kpis'} label="Neural KPIs" onClick={() => setView('kpis')} />
+                                                    <SidebarSubItem active={view === 'velocity'} label="Deal Velocity" onClick={() => setView('velocity')} />
+                                                    <SidebarSubItem active={view === 'profitability'} label="ROI Analysis" onClick={() => setView('profitability')} />
+                                                    <SidebarSubItem active={view === 'utilization'} label="Resource Ops" onClick={() => setView('utilization')} />
+                                                    <SidebarSubItem active={view === 'csat'} label="Sentience/CSAT" onClick={() => setView('csat')} />
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </motion.div>
@@ -2004,6 +2036,39 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     <SidebarItem active={view === 'communications'} icon="fa-envelope" label="Comms" onClick={() => setView('communications')} />
 
                     <SidebarItem active={view === 'help'} icon="fa-circle-question" label="Help" onClick={() => setView('help')} />
+
+                    {/* Settings Menu */}
+                    <div className="space-y-1">
+                        <button onClick={() => setIsSettingsMenuOpen(!isSettingsMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${SETTINGS_VIEWS.includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                            <div className={`w-8 flex items-center justify-center transition-transform ${SETTINGS_VIEWS.includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
+                                <i className="fas fa-cog text-lg"></i>
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Settings</span>
+                            <ChevronRight className={`w-3 h-3 transition-transform duration-300 ${isSettingsMenuOpen ? 'rotate-90' : 'opacity-30'}`} />
+                        </button>
+                        <AnimatePresence>
+                            {isSettingsMenuOpen && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden pl-10 space-y-1 border-l border-white/5 ml-6 py-1 submenu-glow-level-1"
+                                >
+                                    {/* Logs Submenu */}
+                                    <SidebarGroupToggle isOpen={isLogsSubmenuOpen} label="Logs" onClick={() => setIsLogsSubmenuOpen(!isLogsSubmenuOpen)} />
+                                    {isLogsSubmenuOpen && (
+                                        <div className="space-y-1 mt-1 pl-2 transition-all submenu-glow-level-2">
+                                            <SidebarSubItem active={view === 'activity'} label="Activity Timeline" onClick={() => setView('activity')} />
+                                            <SidebarSubItem active={view === 'auditlogs'} label="System Audit Logs" onClick={() => setView('auditlogs')} />
+                                        </div>
+                                    )}
+                                    {/* AI Config and Integration Status */}
+                                    <SidebarSubItem active={view === 'aiconfig'} label="AI Config" onClick={() => setView('aiconfig')} />
+                                    <SidebarSubItem active={view === 'integrations'} label="Integration Status" onClick={() => setView('integrations')} />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
 
                     <div className="mt-auto px-4 w-full pt-8 pb-4">
                         <div className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] mb-2">Mental Scratchpad</div>
@@ -2073,20 +2138,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                         </div>
                         <div className="hidden xl:flex items-center gap-2">
                             <div className="glass-chip">
-                                <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                                {licenseStatus === 'valid' ? 'License Active' : `License: ${licenseStatus}`}
-                            </div>
-                            <div className="glass-chip">
-                                <Activity className={`w-3 h-3 ${isFocusMode ? 'text-orange-400' : 'text-cyan-400'}`} />
-                                {isFocusMode ? 'Focus Mode' : 'Full UI'}
-                            </div>
-                            <div className="glass-chip">
                                 {isVoiceMode ? <Mic className="w-3 h-3 text-cyan-400" /> : <MicOff className="w-3 h-3 text-slate-500" />}
                                 {isVoiceMode ? 'Voice Ready' : 'Voice Off'}
-                            </div>
-                            <div className="glass-chip" title="Model Context Protocol tools ready for natural requests (e.g. 'create a task for tomorrow')">
-                                <Sparkles className="w-3 h-3 text-purple-300" />
-                                MCP Connected · Just ask
                             </div>
                         </div>
                     </div>
@@ -2096,14 +2149,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                             <button onClick={() => setIsFocusMode(!isFocusMode)} className="glass-button text-[11px] font-black uppercase tracking-widest">
                                 <Target className="w-4 h-4" />
                                 {isFocusMode ? 'Exit Focus' : 'Focus'}
-                            </button>
-                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="glass-button text-[11px] font-black uppercase tracking-widest">
-                                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
-                                {isDarkMode ? 'Light' : 'Dark'}
-                            </button>
-                            <button onClick={() => setIsCommandPaletteOpen(true)} className="glass-button text-[11px] font-black uppercase tracking-widest">
-                                <Sparkles className="w-4 h-4 text-cyan-400" />
-                                Command
                             </button>
                             <button onClick={() => setIsQuickActionOpen(!isQuickActionOpen)} className="glass-button text-[11px] font-black uppercase tracking-widest">
                                 <PlusCircle className="w-4 h-4 text-orange-400" />
@@ -2193,11 +2238,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     <div className="flex items-center gap-2 ml-auto">
                         <div className="glass-chip">
                             <Clock className="w-3 h-3 text-amber-300" />
-                            {nextMeeting ? `Next: ${new Date(nextMeeting.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'No upcoming meeting'}
-                        </div>
-                        <div className="glass-chip">
-                            <Sparkles className="w-3 h-3 text-cyan-300" />
-                            Command: Ctrl + K
+                            {nextMeeting ? `Next Meeting: ${new Date(nextMeeting.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'No upcoming meeting'}
                         </div>
                     </div>
                 </div>
@@ -2287,6 +2328,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     // System configuration props for AI model dropdown
                                     mockIntegrations: MOCK_INTEGRATIONS,
                                     configuredModels,
+                                    featureMapping,
+                                    onSetFeatureMapping: setFeatureMapping,
                                     popularLlms: POPULAR_LLMS,
                                     newModelSelection,
                                     newModelKey,

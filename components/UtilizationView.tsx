@@ -17,7 +17,7 @@ const UtilizationView: React.FC<UtilizationViewProps> = ({ tasks, meetings, user
         return users.map(user => {
             // Mock allocated hours based on tasks and meetings
             const userTasks = tasks.filter(t => t.assignedTo === user.id && t.status !== 'done');
-            const userMeetings = meetings.filter(m => m.attendees.includes(user.name));
+            const userMeetings = meetings.filter(m => m.attendees?.includes(user.name));
 
             const taskHours = userTasks.length * 4; // Estimate 4h per task
             const meetingHours = userMeetings.length * 1; // Estimate 1h per meeting
@@ -57,6 +57,13 @@ const UtilizationView: React.FC<UtilizationViewProps> = ({ tasks, meetings, user
 
             <div className="bg-slate-800 rounded-xl border border-white/5 overflow-hidden">
                 <div className="p-6 overflow-x-auto">
+                    {utilizationData.length === 0 ? (
+                        <div className="text-center py-12 text-slate-400">
+                            <div className="text-4xl mb-4">📊</div>
+                            <div className="font-bold mb-2">No team members found</div>
+                            <div className="text-sm text-slate-500">Add team members to view resource utilization data.</div>
+                        </div>
+                    ) : (
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-white/10">
@@ -102,6 +109,7 @@ const UtilizationView: React.FC<UtilizationViewProps> = ({ tasks, meetings, user
                             ))}
                         </tbody>
                     </table>
+                    )}
                 </div>
             </div>
 

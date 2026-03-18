@@ -563,6 +563,7 @@ export interface Invoice {
 // --- R3-2: Client Org Chart ---
 export interface OrgContact {
   id: string;
+  companyId: string;
   name: string;
   title: string;
   reportsToId?: string; // Id of the manager
