@@ -134,6 +134,8 @@ const COMPANIES_VIEWS = ['clients', 'onboarding'];
 // Display labels for views (maps internal view keys to user-friendly names)
 const VIEW_LABELS: Record<string, string> = {
     alltickets: 'Tickets',
+    sequences: 'Email Campaigns',
+    communications: 'Messages',
 };
 const getViewLabel = (view: string) => VIEW_LABELS[view] || view;
 
@@ -1928,8 +1930,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 
                     {/* Companies Menu - with Onboarding and Data Export as subs */}
                     <div className="space-y-1">
-                        <button onClick={() => setIsCompaniesMenuOpen(!isCompaniesMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${COMPANIES_VIEWS.includes(view) || (view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data') ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
-                            <div className={`w-8 flex items-center justify-center transition-transform ${COMPANIES_VIEWS.includes(view) || (view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data') ? 'text-orange-400' : 'text-slate-500'}`}>
+                        <button onClick={() => setIsCompaniesMenuOpen(!isCompaniesMenuOpen)} className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden flex-shrink-0 ${COMPANIES_VIEWS.includes(view) ? 'glass-card border-orange-500/20 text-orange-400 glow-orange' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}>
+                            <div className={`w-8 flex items-center justify-center transition-transform ${COMPANIES_VIEWS.includes(view) ? 'text-orange-400' : 'text-slate-500'}`}>
                                 <i className="fas fa-building text-lg"></i>
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] flex-1 text-left">Companies</span>
@@ -2356,7 +2358,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     onSaveInvoice: (inv: any) => setInvoices(prev => [...prev, inv]),
                                     esignRequests,
                                     assets,
-                                    onAddAsset: () => setActiveModal('save_asset'),
+                                    onAddAsset: () => { setModalData({ companyId: selectedCompanyId !== 'all' ? selectedCompanyId : '' }); setActiveModal('save_asset'); },
                                     wikiPages,
                                     orgContacts,
                                     featureRequests,
