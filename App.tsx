@@ -2088,20 +2088,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                         </div>
                         <div className="hidden xl:flex items-center gap-2">
                             <div className="glass-chip">
-                                <ShieldCheck className="w-3 h-3 text-emerald-400" />
-                                {licenseStatus === 'valid' ? 'License Active' : `License: ${licenseStatus}`}
-                            </div>
-                            <div className="glass-chip">
-                                <Activity className={`w-3 h-3 ${isFocusMode ? 'text-orange-400' : 'text-cyan-400'}`} />
-                                {isFocusMode ? 'Focus Mode' : 'Full UI'}
-                            </div>
-                            <div className="glass-chip">
                                 {isVoiceMode ? <Mic className="w-3 h-3 text-cyan-400" /> : <MicOff className="w-3 h-3 text-slate-500" />}
                                 {isVoiceMode ? 'Voice Ready' : 'Voice Off'}
-                            </div>
-                            <div className="glass-chip" title="Model Context Protocol tools ready for natural requests (e.g. 'create a task for tomorrow')">
-                                <Sparkles className="w-3 h-3 text-purple-300" />
-                                MCP Connected · Just ask
                             </div>
                         </div>
                     </div>
@@ -2111,14 +2099,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                             <button onClick={() => setIsFocusMode(!isFocusMode)} className="glass-button text-[11px] font-black uppercase tracking-widest">
                                 <Target className="w-4 h-4" />
                                 {isFocusMode ? 'Exit Focus' : 'Focus'}
-                            </button>
-                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="glass-button text-[11px] font-black uppercase tracking-widest">
-                                {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-500" />}
-                                {isDarkMode ? 'Light' : 'Dark'}
-                            </button>
-                            <button onClick={() => setIsCommandPaletteOpen(true)} className="glass-button text-[11px] font-black uppercase tracking-widest">
-                                <Sparkles className="w-4 h-4 text-cyan-400" />
-                                Command
                             </button>
                             <button onClick={() => setIsQuickActionOpen(!isQuickActionOpen)} className="glass-button text-[11px] font-black uppercase tracking-widest">
                                 <PlusCircle className="w-4 h-4 text-orange-400" />
@@ -2208,11 +2188,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                     <div className="flex items-center gap-2 ml-auto">
                         <div className="glass-chip">
                             <Clock className="w-3 h-3 text-amber-300" />
-                            {nextMeeting ? `Next: ${new Date(nextMeeting.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'No upcoming meeting'}
-                        </div>
-                        <div className="glass-chip">
-                            <Sparkles className="w-3 h-3 text-cyan-300" />
-                            Command: Ctrl + K
+                            {nextMeeting ? `Next Meeting: ${new Date(nextMeeting.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'No upcoming meeting'}
                         </div>
                     </div>
                 </div>
