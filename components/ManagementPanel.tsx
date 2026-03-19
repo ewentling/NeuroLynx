@@ -182,8 +182,13 @@ interface ManagementPanelProps {
     esignRequests?: EsignRequest[];
     assets?: Asset[];
     onAddAsset?: () => void;
+    onEditAsset?: (asset: Asset) => void;
+    onRemoveAsset?: (assetId: string) => void;
     wikiPages?: WikiPage[];
+    onCreateWikiPage?: () => void;
     orgContacts?: OrgContact[];
+    onAddOrgContact?: () => void;
+    onRemoveOrgContact?: (contactId: string) => void;
     featureRequests?: FeatureRequest[];
     partners?: Partner[];
     customFields?: CustomField[];
@@ -448,12 +453,15 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     assets={props.assets || []}
                     companies={props.companies || []}
                     onAddAsset={props.onAddAsset}
+                    onEditAsset={props.onEditAsset}
+                    onRemoveAsset={props.onRemoveAsset}
                 />
             )}
             {view === 'wiki' && (
                 <WikiView
                     pages={props.wikiPages || []}
                     companies={props.companies || []}
+                    onCreatePage={props.onCreateWikiPage}
                 />
             )}
             {view === 'orgchart' && (
@@ -461,6 +469,8 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     <OrgChartView
                         company={selectedCompany}
                         contacts={(props.orgContacts || []).filter(c => c.companyId === selectedCompany.id)}
+                        onAddContact={props.onAddOrgContact}
+                        onRemoveContact={props.onRemoveOrgContact}
                     />
                 ) : (
                     <CompanyRequiredState />

@@ -6,9 +6,10 @@ import { Book, FileText, Search, Plus, Edit2, Clock, User, ChevronRight, Tag, Bo
 interface WikiViewProps {
     pages: WikiPage[];
     companies: Company[];
+    onCreatePage?: () => void;
 }
 
-const WikiView: React.FC<WikiViewProps> = ({ pages, companies }) => {
+const WikiView: React.FC<WikiViewProps> = ({ pages, companies, onCreatePage }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<WikiPage['category'] | 'all'>('all');
     const [selectedPage, setSelectedPage] = useState<WikiPage | null>(pages[0] || null);
@@ -33,7 +34,7 @@ const WikiView: React.FC<WikiViewProps> = ({ pages, companies }) => {
                     <button className="px-4 py-2 bg-slate-900 border border-white/5 rounded-xl font-bold text-slate-300 hover:bg-slate-800 transition-all flex items-center gap-2">
                         <Share2 className="w-4 h-4" /> Share
                     </button>
-                    <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-bold text-white shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2">
+                    <button onClick={onCreatePage} className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl font-bold text-white shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2">
                         <Plus className="w-4 h-4" /> New Page
                     </button>
                 </div>

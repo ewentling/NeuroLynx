@@ -2385,8 +2385,19 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     esignRequests,
                                     assets,
                                     onAddAsset: () => { setModalData({ companyId: selectedCompanyId !== 'all' ? selectedCompanyId : '' }); setActiveModal('save_asset'); },
+                                    onEditAsset: (asset: Asset) => { setModalData({ ...asset }); setActiveModal('save_asset'); },
+                                    onRemoveAsset: (assetId: string) => {
+                                        setAssets(prev => prev.filter(a => a.id !== assetId));
+                                        addToast('success', 'Asset removed');
+                                    },
                                     wikiPages,
+                                    onCreateWikiPage: () => setActiveModal('create_wiki_page'),
                                     orgContacts,
+                                    onAddOrgContact: () => { setModalData({ companyId: selectedCompanyId !== 'all' ? selectedCompanyId : '' }); setActiveModal('add_org_contact'); },
+                                    onRemoveOrgContact: (contactId: string) => {
+                                        setOrgContacts(prev => prev.filter(c => c.id !== contactId));
+                                        addToast('success', 'Contact removed from organization');
+                                    },
                                     featureRequests,
                                     partners,
                                     customFields,
@@ -2963,6 +2974,88 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         onDraftTerms={handleDraftTerms}
                                         isLoading={isLoading}
                                     />
+                                )
+                            }
+
+                            {
+                                activeModal === 'create_wiki_page' && (
+                                    <div className="space-y-4">
+                                        <h3 className="text-xl font-bold">New Wiki Page</h3>
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Page Title" value={modalData.title || ''} onChange={e => setModalData({ ...modalData, title: e.target.value })} />
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Category</label>
+                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-white" value={modalData.category || 'internal'} onChange={e => setModalData({ ...modalData, category: e.target.value })}>
+                                                <option value="sop">SOP</option>
+                                                <option value="technical">Technical</option>
+                                                <option value="internal">Internal</option>
+                                                <option value="client_specific">Client Specific</option>
+                                            </select>
+                                        </div>
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || ''} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
+                                            <option value="">No Company (General)</option>
+                                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <textarea className="w-full p-3 bg-black/20 rounded border border-white/10 h-32" placeholder="Page Content" value={modalData.content || ''} onChange={e => setModalData({ ...modalData, content: e.target.value })} />
+                                        <button onClick={() => {
+                                            if (!modalData.title) { addToast('error', 'Page title is required'); return; }
+                                            const newPage = {
+                                                id: `wiki-${Date.now()}`,
+                                                title: modalData.title,
+                                                content: modalData.content || '',
+                                                category: modalData.category || 'internal',
+                                                author: 'Current User',
+                                                lastModified: Date.now(),
+                                                companyId: modalData.companyId || undefined
+                                            };
+                                            setWikiPages(prev => [newPage, ...prev]);
+                                            addToast('success', 'Wiki page created');
+                                            setActiveModal(null);
+                                            setModalData({});
+                                        }} className="w-full py-3 bg-blue-600 rounded font-bold text-white">Create Page</button>
+                                    </div>
+                                )
+                            }
+
+                            {
+                                activeModal === 'add_org_contact' && (
+                                    <div className="space-y-4">
+                                        <h3 className="text-xl font-bold">Add Organization Contact</h3>
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || ''} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
+                                            <option value="">Select Company...</option>
+                                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Full Name" value={modalData.name || ''} onChange={e => setModalData({ ...modalData, name: e.target.value })} />
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Title / Position" value={modalData.title || ''} onChange={e => setModalData({ ...modalData, title: e.target.value })} />
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Email" value={modalData.email || ''} onChange={e => setModalData({ ...modalData, email: e.target.value })} />
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Department" value={modalData.department || ''} onChange={e => setModalData({ ...modalData, department: e.target.value })} />
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.reportsToId || ''} onChange={e => setModalData({ ...modalData, reportsToId: e.target.value })}>
+                                            <option value="">Reports To (None - Top Level)</option>
+                                            {orgContacts.filter(c => c.companyId === modalData.companyId).map(c => <option key={c.id} value={c.id}>{c.name} - {c.title}</option>)}
+                                        </select>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" checked={modalData.isDecisionMaker || false} onChange={e => setModalData({ ...modalData, isDecisionMaker: e.target.checked })} className="w-4 h-4 rounded" />
+                                            <span className="text-sm text-slate-300">Decision Maker / Key Stakeholder</span>
+                                        </label>
+                                        <button onClick={() => {
+                                            if (!modalData.companyId) { addToast('error', 'Please select a company'); return; }
+                                            if (!modalData.name) { addToast('error', 'Name is required'); return; }
+                                            if (!modalData.title) { addToast('error', 'Title is required'); return; }
+                                            const newContact = {
+                                                id: `org-${Date.now()}`,
+                                                companyId: modalData.companyId,
+                                                name: modalData.name,
+                                                title: modalData.title,
+                                                email: modalData.email || undefined,
+                                                department: modalData.department || undefined,
+                                                reportsToId: modalData.reportsToId || undefined,
+                                                isDecisionMaker: modalData.isDecisionMaker || false
+                                            };
+                                            setOrgContacts(prev => [...prev, newContact]);
+                                            addToast('success', `${modalData.name} added to organization`);
+                                            setActiveModal(null);
+                                            setModalData({});
+                                        }} className="w-full py-3 bg-cyan-600 rounded font-bold text-white">Add Contact</button>
+                                    </div>
                                 )
                             }
                         </motion.div >
