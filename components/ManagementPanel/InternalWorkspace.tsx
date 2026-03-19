@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Product, User, AuditLog, Integration, AutomationRule } from '../../types';
 
 interface InternalWorkspaceProps {
-    internalTab: 'offerings' | 'team' | 'system' | 'automations' | 'profile' | 'data';
+    internalTab: 'offerings' | 'team' | 'system' | 'automations';
     onSetInternalTab: (tab: any) => void;
 
     // Products
@@ -318,42 +318,6 @@ const InternalWorkspace: React.FC<InternalWorkspaceProps> = ({
                                 No active automations. Create one to connect to n8n.
                             </div>
                         )}
-                    </div>
-                </div>
-            )}
-
-            {internalTab === 'profile' && (
-                <div className="space-y-4">
-                    <h2 className="text-2xl font-bold">Business Profile</h2>
-                    <input className="w-full p-3 bg-slate-800 rounded border border-white/10" value={businessProfile.name} onChange={e => onSetBusinessProfile({ ...businessProfile, name: e.target.value })} placeholder="Business Name" />
-                    <input className="w-full p-3 bg-slate-800 rounded border border-white/10" value={businessProfile.address} onChange={e => onSetBusinessProfile({ ...businessProfile, address: e.target.value })} placeholder="Address" />
-                    <input className="w-full p-3 bg-slate-800 rounded border border-white/10" value={businessProfile.phone} onChange={e => onSetBusinessProfile({ ...businessProfile, phone: e.target.value })} placeholder="Phone" />
-                    <input className="w-full p-3 bg-slate-800 rounded border border-white/10" value={businessProfile.website} onChange={e => onSetBusinessProfile({ ...businessProfile, website: e.target.value })} placeholder="Website" />
-                </div>
-            )}
-
-            {internalTab === 'data' && (
-                <div className="space-y-4">
-                    <h2 className="text-2xl font-bold">Data Management</h2>
-
-                    <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
-                        <h3 className="font-bold mb-2">Import Clients (CSV)</h3>
-                        <p className="text-xs text-slate-500 mb-4">Format: Name, Email, Company, Role</p>
-                        <div className="flex gap-2">
-                            <textarea className="flex-1 bg-black/20 p-3 rounded border border-white/10 text-xs font-mono h-24" placeholder="John Doe, john@example.com, Acme Inc, CEO..." id="csv-input"></textarea>
-                            <button onClick={onImportCsv} className="px-4 bg-blue-600 rounded text-xs font-bold hover:bg-blue-500">Import</button>
-                        </div>
-                    </div>
-
-                    <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
-                        <h3 className="font-bold mb-2">Export Client Data</h3>
-                        <div className="flex gap-2">
-                            <select className="flex-1 bg-black/20 p-2 rounded border border-white/10 text-sm" value={selectedExportCompanyId} onChange={e => onSetSelectedExportCompanyId(e.target.value)}>
-                                <option value="">Select Client...</option>
-                                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                            <button onClick={onClientExport} disabled={isLoading} className="px-4 py-2 bg-cyan-600 rounded text-xs font-bold hover:bg-cyan-500">{isLoading ? 'Exporting...' : 'Export ZIP'}</button>
-                        </div>
                     </div>
                 </div>
             )}

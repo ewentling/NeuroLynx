@@ -103,8 +103,8 @@ const SidebarItem = React.memo(({ active, icon, label, onClick }: { active: bool
     </button>
 ));
 
-const SidebarSubItem = React.memo(({ active, label, onClick }: { active: boolean, label: string, onClick: () => void }) => (
-    <button onClick={onClick} className={`w-full text-left py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ml-2 flex-shrink-0 ${active ? 'text-cyan-400 bg-cyan-400/5 border-l-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300 border-l-2 border-transparent hover:border-slate-700 hover:bg-white/5'}`}>
+const SidebarSubItem = React.memo(({ active, label, onClick, noIndent }: { active: boolean, label: string, onClick: () => void, noIndent?: boolean }) => (
+    <button onClick={onClick} className={`w-full text-left py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex-shrink-0 ${noIndent ? '' : 'ml-2'} ${active ? 'text-cyan-400 bg-cyan-400/5 border-l-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300 border-l-2 border-transparent hover:border-slate-700 hover:bg-white/5'}`}>
         {label}
     </button>
 ));
@@ -123,7 +123,7 @@ const WORKSPACE_VIEWS = ['workspace', 'vendors', 'expenses', 'compliance', 'tick
 const CLIENT_WORKSPACE_VIEWS = ['workspace', 'meetings', 'pipeline', 'tasks', 'calendar', 'clients', 'tickets', 'portal', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap'];
 
 // Views that belong to settings section
-const SETTINGS_VIEWS = ['activity', 'auditlogs', 'aiconfig', 'integrations', 'memory', 'versions', 'customfields'];
+const SETTINGS_VIEWS = ['activity', 'auditlogs', 'aiconfig', 'integrations', 'memory', 'versions', 'customfields', 'profile'];
 
 // Views that belong to comms section
 const COMMS_VIEWS = ['communications', 'sequences'];
@@ -407,7 +407,7 @@ interface ConnectedModel {
 export const App: React.FC = () => {
     const [licenseStatus, setLicenseStatus] = useState<LicenseStatus>('checking');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [view, setView] = useState<'home' | 'chat' | 'workspace' | 'pipeline' | 'memory' | 'meetings' | 'clients' | 'communications' | 'tasks' | 'calendar' | 'help' | 'users' | 'activity' | 'forecast' | 'tickets' | 'alltickets' | 'alerts' | 'onboarding' | 'winloss' | 'projects' | 'referrals' | 'kpis' | 'time' | 'competitors' | 'csat' | 'sequences' | 'utilization' | 'vendors' | 'versions' | 'portal' | 'expenses' | 'compliance' | 'invoices' | 'orgchart' | 'esign' | 'profitability' | 'velocity' | 'assets' | 'roadmap' | 'wiki' | 'partners' | 'customfields'>('home');
+    const [view, setView] = useState<'home' | 'chat' | 'workspace' | 'pipeline' | 'memory' | 'meetings' | 'clients' | 'communications' | 'tasks' | 'calendar' | 'help' | 'users' | 'activity' | 'forecast' | 'tickets' | 'alltickets' | 'alerts' | 'onboarding' | 'winloss' | 'projects' | 'referrals' | 'kpis' | 'time' | 'competitors' | 'csat' | 'sequences' | 'utilization' | 'vendors' | 'versions' | 'portal' | 'expenses' | 'compliance' | 'invoices' | 'orgchart' | 'esign' | 'profitability' | 'velocity' | 'assets' | 'roadmap' | 'wiki' | 'partners' | 'customfields' | 'profile'>('home');
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [activeModal, setActiveModal] = useState<string | null>(null);
     const [modalData, setModalData] = useState<any>({});
@@ -483,7 +483,7 @@ export const App: React.FC = () => {
     const [isMemorySubmenuOpen, setIsMemorySubmenuOpen] = useState(false);
     const [isChatPopupOpen, setIsChatPopupOpen] = useState(false);
     const [workspaceMode, setWorkspaceMode] = useState<'internal' | 'client'>('internal');
-    const [internalTab, setInternalTab] = useState<'offerings' | 'team' | 'profile' | 'system' | 'data' | 'automations'>('offerings');
+    const [internalTab, setInternalTab] = useState<'offerings' | 'team' | 'system' | 'automations'>('offerings');
     const [clientWorkspaceTab, setClientWorkspaceTab] = useState<'overview' | 'documents' | 'contracts' | 'billing'>('overview');
     const [taskFilter, setTaskFilter] = useState<'all' | 'my'>('all');
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -670,6 +670,7 @@ export const App: React.FC = () => {
 
         const savedFeatures = localStorage.getItem('neurolynx_features'); if (savedFeatures) setFeatureMapping(JSON.parse(savedFeatures));
         const savedAutomations = localStorage.getItem('neurolynx_automations'); if (savedAutomations) setAutomationRules(JSON.parse(savedAutomations));
+        const savedKpiGoals = localStorage.getItem('neurolynx_kpi_goals'); if (savedKpiGoals) setKpiGoals(JSON.parse(savedKpiGoals));
     }, []);
 
     useEffect(() => { localStorage.setItem('neurolynx_biz_profile', JSON.stringify(businessProfile)); }, [businessProfile]);
@@ -684,6 +685,7 @@ export const App: React.FC = () => {
         localStorage.setItem('neurolynx_features', JSON.stringify(featureMapping));
     }, [configuredModels, featureMapping]);
     useEffect(() => { localStorage.setItem('neurolynx_automations', JSON.stringify(automationRules)); }, [automationRules]);
+    useEffect(() => { localStorage.setItem('neurolynx_kpi_goals', JSON.stringify(kpiGoals)); }, [kpiGoals]);
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
     const addToast = (type: Toast['type'], message: string) => {
@@ -1001,6 +1003,10 @@ export const App: React.FC = () => {
         if (!modalData.title) return addToast('error', 'Deal Title required');
         const stage = modalData.stage || 'qualification';
         const probability = modalData.probability ? Number(modalData.probability) : getProbabilityByStage(stage);
+        const isEdit = !!modalData.id;
+
+        // Find existing deal to preserve createdAt if editing
+        const existingDeal = isEdit ? deals.find(d => d.id === modalData.id) : null;
 
         const newDeal: Deal = {
             id: modalData.id || Date.now().toString(),
@@ -1010,16 +1016,20 @@ export const App: React.FC = () => {
             stage: stage,
             probability: probability,
             expectedCloseDate: modalData.expectedCloseDate || '',
+            ownerId: modalData.ownerId || undefined,
             notes: modalData.notes || '',
-            lastUpdated: new Date().toISOString()
+            lossReason: stage === 'closed_lost' ? (modalData.lossReason || undefined) : undefined,
+            lastUpdated: new Date().toISOString(),
+            createdAt: existingDeal?.createdAt || new Date().toISOString(),
+            isArchived: existingDeal?.isArchived || false
         };
         setDeals(prev => {
-            if (modalData.id) return prev.map(d => d.id === modalData.id ? newDeal : d);
+            if (isEdit) return prev.map(d => d.id === modalData.id ? newDeal : d);
             return [...prev, newDeal];
         });
         setActiveModal(null);
-        addToast('success', 'Deal Saved');
-        logAction(modalData.id ? 'UPDATE_DEAL' : 'CREATE_DEAL', newDeal.title, `Stage: ${newDeal.stage}, Value: $${newDeal.value}`);
+        addToast('success', isEdit ? 'Deal Updated' : 'Deal Created');
+        logAction(isEdit ? 'UPDATE_DEAL' : 'CREATE_DEAL', newDeal.title, `Stage: ${newDeal.stage}, Value: $${newDeal.value}${newDeal.ownerId ? `, Owner: ${users.find(u => u.id === newDeal.ownerId)?.name}` : ''}`);
     };
 
     const moveDeal = (dealId: string, newStage: DealStage) => {
@@ -1083,6 +1093,90 @@ export const App: React.FC = () => {
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
         addToast('success', 'Deals Exported');
+    };
+
+    // Edit deal - opens modal with existing deal data
+    const handleEditDeal = (deal: Deal) => {
+        setModalData({
+            id: deal.id,
+            title: deal.title,
+            companyId: deal.companyId,
+            value: deal.value.toString(),
+            probability: deal.probability.toString(),
+            stage: deal.stage,
+            expectedCloseDate: deal.expectedCloseDate,
+            notes: deal.notes || '',
+            ownerId: deal.ownerId || '',
+            lossReason: deal.lossReason || ''
+        });
+        setActiveModal('save_deal');
+    };
+
+    // Delete/Archive deal
+    const handleDeleteDeal = (dealId: string) => {
+        setDeals(prev => prev.map(d => d.id === dealId ? { ...d, isArchived: true, lastUpdated: new Date().toISOString() } : d));
+        addToast('success', 'Deal archived');
+        logAction('ARCHIVE_DEAL', deals.find(d => d.id === dealId)?.title || dealId, 'Deal moved to archive');
+    };
+
+    // Mark deal as lost - opens loss reason modal
+    const handleMarkLost = (dealId: string) => {
+        const deal = deals.find(d => d.id === dealId);
+        if (deal) {
+            setModalData({
+                dealId: dealId,
+                dealTitle: deal.title,
+                lossReason: ''
+            });
+            setActiveModal('deal_loss_reason');
+        }
+    };
+
+    // Save loss reason and move to closed_lost
+    const saveDealLossReason = () => {
+        const dealId = modalData.dealId;
+        const lossReason = modalData.lossReason || 'No reason provided';
+        setDeals(prev => prev.map(d => {
+            if (d.id === dealId) {
+                return {
+                    ...d,
+                    stage: 'closed_lost' as DealStage,
+                    probability: 0,
+                    lossReason: lossReason,
+                    lastUpdated: new Date().toISOString()
+                };
+            }
+            return d;
+        }));
+        logAction('DEAL_LOST', modalData.dealTitle || dealId, `Reason: ${lossReason}`);
+        setActiveModal(null);
+        addToast('info', 'Deal marked as lost');
+    };
+
+    // View deal details
+    const handleViewDeal = (deal: Deal) => {
+        setModalData({
+            ...deal,
+            value: deal.value.toString(),
+            probability: deal.probability.toString()
+        });
+        setActiveModal('view_deal');
+    };
+
+    // Duplicate deal
+    const handleDuplicateDeal = (deal: Deal) => {
+        const duplicatedDeal: Deal = {
+            ...deal,
+            id: `deal_${Date.now()}`,
+            title: `${deal.title} (Copy)`,
+            stage: 'qualification',
+            probability: 20,
+            lastUpdated: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+        };
+        setDeals(prev => [...prev, duplicatedDeal]);
+        addToast('success', 'Deal duplicated successfully');
+        logAction('DUPLICATE_DEAL', deal.title, `Created copy: ${duplicatedDeal.title}`);
     };
 
     const handleTaskExport = () => {
@@ -1484,6 +1578,24 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             products.map(p => `- ${p.name}: $${p.price}`),
             MAX_ITEMS_PER_SECTION, 'products'
         );
+        const allMeetings = truncateList(
+            meetings.map(m => {
+                const compName = m.clientId ? (companies.find(c => c.id === m.clientId)?.name || 'Unknown') : 'No client';
+                const meetingDate = new Date(m.date).toLocaleDateString();
+                const actionItemsStr = m.actionItems?.length ? ` Action items: ${m.actionItems.join('; ')}` : '';
+                const sentimentStr = m.sentiment ? ` Sentiment: ${m.sentiment}` : '';
+                return `- Meeting "${m.title}" with ${compName} on ${meetingDate} (${m.status}): ${m.summary}${actionItemsStr}${sentimentStr}`;
+            }),
+            MAX_ITEMS_PER_SECTION, 'meetings'
+        );
+        const allTickets = truncateList(
+            tickets.map(t => {
+                const compName = companies.find(c => c.id === t.companyId)?.name || 'Unknown';
+                const createdDate = new Date(t.createdAt).toLocaleDateString();
+                return `- Ticket "${t.title}" for ${compName} (${t.priority} priority, ${t.status}): ${t.category} - ${t.description.substring(0, 100)}${t.description.length > 100 ? '...' : ''} [Created: ${createdDate}]`;
+            }),
+            MAX_ITEMS_PER_SECTION, 'tickets'
+        );
 
         let contextData = `
 [NEUROLYNX INTERNAL DATABASE]
@@ -1504,10 +1616,18 @@ ${allTasks}
 PRODUCTS/OFFERINGS (${products.length} total):
 ${productsList}
 
+MEETINGS/MEETING INTELLIGENCE (${meetings.length} total):
+${allMeetings}
+
+SUPPORT TICKETS (${tickets.length} total):
+${allTickets}
+
 INSTRUCTIONS: 
 You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 - Answer questions based on the data provided above
 - You can create tasks, schedule meetings, and more via natural language
+- You have access to Meeting Intelligence data including meeting summaries, action items, and sentiment analysis
+- You have access to Support Tickets data including priority, status, and category
 - Be helpful, concise, and professional
 - If asked about "highest paying customer", use the Revenue figures
 - If the data doesn't contain the answer, say so honestly
@@ -1974,7 +2094,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             {currentUser?.role === 'admin' && (
                                                 <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'team'} label="Team" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('team'); }} />
                                             )}
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'profile'} label="Profile" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('profile'); }} />
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('automations'); }} />
                                             <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
                                             <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
@@ -2079,7 +2198,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                 >
                                     <SidebarSubItem active={view === 'clients'} label="All Companies" onClick={() => setView('clients')} />
                                     <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => { setView('onboarding'); ensureClientSelected(); }} />
-                                    <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -2119,9 +2237,10 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         </div>
                                     )}
                                     {/* AI Config and Integration Status */}
-                                    <SidebarSubItem active={view === 'aiconfig'} label="AI Config" onClick={() => setView('aiconfig')} />
-                                    <SidebarSubItem active={view === 'integrations'} label="Integration Status" onClick={() => setView('integrations')} />
-                                    <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} />
+                                    <SidebarSubItem active={view === 'aiconfig'} label="AI Config" onClick={() => setView('aiconfig')} noIndent />
+                                    <SidebarSubItem active={view === 'integrations'} label="Integration Status" onClick={() => setView('integrations')} noIndent />
+                                    <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} noIndent />
+                                    <SidebarSubItem active={view === 'profile'} label="Business Profile" onClick={() => setView('profile')} noIndent />
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -2344,11 +2463,66 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     onSetCurrentDate: setCurrentDate,
                                     onMeetingClick: handleMeetingClick,
                                     onMemoryUpload: handleMemoryUpload,
+                                    // Meeting Intelligence handlers
+                                    onScheduleMeeting: (meetingData: Partial<Meeting>) => {
+                                        const newMeeting: Meeting = {
+                                            id: `meeting_${Date.now()}`,
+                                            title: meetingData.title || 'New Meeting',
+                                            date: meetingData.date || Date.now(),
+                                            duration: meetingData.duration || 0,
+                                            transcript: meetingData.transcript || '',
+                                            summary: meetingData.summary || 'Meeting scheduled',
+                                            status: meetingData.status || 'scheduled',
+                                            clientId: meetingData.clientId,
+                                            time: meetingData.time,
+                                            type: meetingData.type,
+                                            link: meetingData.link,
+                                            attendees: meetingData.attendees
+                                        };
+                                        setMeetings(prev => [newMeeting, ...prev]);
+                                        addToast('success', 'Meeting scheduled successfully');
+                                    },
+                                    onAddTaskFromMeeting: (taskData: Omit<Task, 'id'>) => {
+                                        const newTask: Task = {
+                                            ...taskData,
+                                            id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+                                        };
+                                        setTasks(prev => [...prev, newTask]);
+                                    },
+                                    onUpdateMeeting: (id: string, updates: Partial<Meeting>) => {
+                                        setMeetings(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+                                        addToast('success', 'Meeting updated');
+                                    },
+                                    onDeleteMeeting: (id: string) => {
+                                        setMeetings(prev => prev.filter(m => m.id !== id));
+                                        addToast('success', 'Meeting deleted');
+                                    },
                                     // Additional props for extended views
                                     tickets,
                                     onUpdateTicket: (id: string, updates: any) => setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t)),
+                                    onCreateTicketFromPortal: (ticketData: Omit<SupportTicket, 'id' | 'createdAt'>) => {
+                                        const newTicket: SupportTicket = {
+                                            ...ticketData,
+                                            id: `ticket_${Date.now()}`,
+                                            createdAt: Date.now()
+                                        };
+                                        setTickets(prev => [...prev, newTicket]);
+                                        addToast('success', 'Support ticket submitted successfully');
+                                    },
                                     kpiGoals,
                                     onUpdateKpiGoal: (id: string, current: number) => setKpiGoals(prev => prev.map(g => g.id === id ? { ...g, current } : g)),
+                                    onAddKpiGoal: (goal: KPIGoal) => {
+                                        setKpiGoals(prev => [...prev, goal]);
+                                        addToast('success', 'KPI Goal created successfully');
+                                    },
+                                    onEditKpiGoal: (goal: KPIGoal) => {
+                                        setKpiGoals(prev => prev.map(g => g.id === goal.id ? goal : g));
+                                        addToast('success', 'KPI Goal updated successfully');
+                                    },
+                                    onDeleteKpiGoal: (id: string) => {
+                                        setKpiGoals(prev => prev.filter(g => g.id !== id));
+                                        addToast('success', 'KPI Goal deleted');
+                                    },
                                     projects,
                                     expenses,
                                     timeEntries,
@@ -2359,8 +2533,19 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     esignRequests,
                                     assets,
                                     onAddAsset: () => { setModalData({ companyId: selectedCompanyId !== 'all' ? selectedCompanyId : '' }); setActiveModal('save_asset'); },
+                                    onEditAsset: (asset: Asset) => { setModalData({ ...asset }); setActiveModal('save_asset'); },
+                                    onRemoveAsset: (assetId: string) => {
+                                        setAssets(prev => prev.filter(a => a.id !== assetId));
+                                        addToast('success', 'Asset removed');
+                                    },
                                     wikiPages,
+                                    onCreateWikiPage: () => setActiveModal('create_wiki_page'),
                                     orgContacts,
+                                    onAddOrgContact: () => { setModalData({ companyId: selectedCompanyId !== 'all' ? selectedCompanyId : '' }); setActiveModal('add_org_contact'); },
+                                    onRemoveOrgContact: (contactId: string) => {
+                                        setOrgContacts(prev => prev.filter(c => c.id !== contactId));
+                                        addToast('success', 'Contact removed from organization');
+                                    },
                                     featureRequests,
                                     partners,
                                     customFields,
@@ -2478,7 +2663,40 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         )}
 
                                         {view === 'clients' && <ClientsView companies={companies} deals={deals} contracts={contracts} isMapView={isMapView} setIsMapView={setIsMapView} setModalData={setModalData} setActiveModal={setActiveModal} isDarkMode={isDarkMode} />}
-                                        {view === 'pipeline' && <ManagementPanel view="pipeline" {...commonPanelProps} draggedDealId={draggedDealId} onDealDragStart={(e, id) => setDraggedDealId(id)} onDealDragOver={(e) => e.preventDefault()} onDealDrop={(e, stage) => { const deal = deals.find(d => d.id === draggedDealId); if (deal) setDeals(deals.map(d => d.id === draggedDealId ? { ...d, stage } : d)); setDraggedDealId(null); }} onMoveDeal={(id, stage) => setDeals(deals.map(d => d.id === id ? { ...d, stage } : d))} onAddDeal={() => setActiveModal('save_deal')} onDealExport={() => { }} />}
+                                        {view === 'pipeline' && (
+                                            <ManagementPanel
+                                                view="pipeline"
+                                                {...commonPanelProps}
+                                                draggedDealId={draggedDealId}
+                                                onDealDragStart={(e, id) => setDraggedDealId(id)}
+                                                onDealDragOver={(e) => e.preventDefault()}
+                                                onDealDrop={(e, stage) => {
+                                                    const deal = deals.find(d => d.id === draggedDealId);
+                                                    if (deal) {
+                                                        if (stage === 'closed_lost' && deal.stage !== 'closed_lost') {
+                                                            handleMarkLost(deal.id);
+                                                        } else {
+                                                            moveDeal(deal.id, stage);
+                                                        }
+                                                    }
+                                                    setDraggedDealId(null);
+                                                }}
+                                                onMoveDeal={(id, stage) => {
+                                                    if (stage === 'closed_lost') {
+                                                        handleMarkLost(id);
+                                                    } else {
+                                                        moveDeal(id, stage);
+                                                    }
+                                                }}
+                                                onAddDeal={() => { setModalData({}); setActiveModal('save_deal'); }}
+                                                onEditDeal={handleEditDeal}
+                                                onDeleteDeal={handleDeleteDeal}
+                                                onMarkLost={handleMarkLost}
+                                                onViewDeal={handleViewDeal}
+                                                onDuplicateDeal={handleDuplicateDeal}
+                                                onDealExport={handleDealExport}
+                                            />
+                                        )}
                                         {view === 'tasks' && <TasksView tasks={tasks} setTasks={setTasks} currentUser={currentUser} selectedCompanyId={selectedCompanyId} taskFilter={taskFilter} selectedTasks={selectedTasks} setSelectedTasks={setSelectedTasks} moveTask={handleMoveTask} handleTaskExport={() => { }} addToast={addToast} setModalData={setModalData} setActiveModal={setActiveModal} />}
                                         {view === 'meetings' && <ManagementPanel view="meetings" {...commonPanelProps} />}
                                         {view === 'calendar' && <CalendarView calYear={currentDate.getFullYear()} calMonth={currentDate.getMonth()} monthNames={['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']} firstDay={new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay()} days={new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()} onSetCurrentDate={setCurrentDate} meetings={meetings} onMeetingClick={handleMeetingClick} />}
@@ -2502,7 +2720,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                 tickets={tickets}
                                             />
                                         )}
-                                        {['invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields'].includes(view) && (
+                                        {['invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields', 'profile'].includes(view) && (
                                             <ManagementPanel
                                                 {...commonPanelProps}
                                                 view={view}
@@ -2567,31 +2785,205 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 
                             {activeModal === 'save_deal' && (
                                 <div className="space-y-4">
-                                    <h3 className="text-xl font-bold">New Deal Opportunity</h3>
+                                    <h3 className="text-xl font-bold">{modalData.id ? 'Edit Deal' : 'New Deal Opportunity'}</h3>
                                     <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Deal Title (e.g. Q3 Migration)" value={modalData.title || ''} onChange={e => setModalData({ ...modalData, title: e.target.value })} />
-                                    <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : '')} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
-                                        <option value="">Select Client...</option>
-                                        {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <input type="number" className="p-3 bg-black/20 rounded border border-white/10" placeholder="Value ($)" value={modalData.value || ''} onChange={e => setModalData({ ...modalData, value: e.target.value })} />
-                                        <input type="number" className="p-3 bg-black/20 rounded border border-white/10" placeholder="Probability (%)" value={modalData.probability || '20'} onChange={e => setModalData({ ...modalData, probability: e.target.value })} />
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Client</label>
+                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : '')} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
+                                                <option value="">Select Client...</option>
+                                                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Owner</label>
+                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.ownerId || ''} onChange={e => setModalData({ ...modalData, ownerId: e.target.value })}>
+                                                <option value="">Unassigned</option>
+                                                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                            </select>
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <select className="p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.stage || 'qualification'} onChange={e => setModalData({ ...modalData, stage: e.target.value })}>
-                                            <option value="qualification">Qualification</option>
-                                            <option value="proposal">Proposal</option>
-                                            <option value="negotiation">Negotiation</option>
-                                            <option value="closed_won">Closed Won</option>
-                                            <option value="closed_lost">Closed Lost</option>
-                                        </select>
-                                        <input type="date" className="p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.expectedCloseDate || ''} onChange={e => setModalData({ ...modalData, expectedCloseDate: e.target.value })} />
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Value ($)</label>
+                                            <input type="number" className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Deal value" value={modalData.value || ''} onChange={e => setModalData({ ...modalData, value: e.target.value })} />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Probability (%)</label>
+                                            <input type="number" min="0" max="100" className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Win probability" value={modalData.probability || '20'} onChange={e => setModalData({ ...modalData, probability: e.target.value })} />
+                                        </div>
                                     </div>
-                                    <textarea className="w-full p-3 bg-black/20 rounded border border-white/10 h-24" placeholder="Notes / Next Steps" value={modalData.notes || ''} onChange={e => setModalData({ ...modalData, notes: e.target.value })} />
-                                    <button onClick={saveDeal} className="w-full py-3 bg-orange-600 rounded font-bold text-white">Create Deal</button>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Stage</label>
+                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.stage || 'qualification'} onChange={e => setModalData({ ...modalData, stage: e.target.value })}>
+                                                <option value="qualification">Qualification</option>
+                                                <option value="proposal">Proposal</option>
+                                                <option value="negotiation">Negotiation</option>
+                                                <option value="closed_won">Closed Won</option>
+                                                <option value="closed_lost">Closed Lost</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Expected Close Date</label>
+                                            <input type="date" className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.expectedCloseDate || ''} onChange={e => setModalData({ ...modalData, expectedCloseDate: e.target.value })} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-slate-500 uppercase mb-1 block">Notes / Next Steps</label>
+                                        <textarea className="w-full p-3 bg-black/20 rounded border border-white/10 h-24" placeholder="Add notes about this deal..." value={modalData.notes || ''} onChange={e => setModalData({ ...modalData, notes: e.target.value })} />
+                                    </div>
+                                    {modalData.stage === 'closed_lost' && (
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Loss Reason</label>
+                                            <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Why was this deal lost?" value={modalData.lossReason || ''} onChange={e => setModalData({ ...modalData, lossReason: e.target.value })} />
+                                        </div>
+                                    )}
+                                    <button onClick={saveDeal} className="w-full py-3 bg-orange-600 rounded font-bold text-white hover:bg-orange-500 transition-colors">
+                                        {modalData.id ? 'Update Deal' : 'Create Deal'}
+                                    </button>
                                 </div>
-                            )
-                            }
+                            )}
+
+                            {activeModal === 'deal_loss_reason' && (
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-bold text-red-400">Mark Deal as Lost</h3>
+                                    <p className="text-slate-400 text-sm">
+                                        You're about to mark "<span className="text-white font-semibold">{modalData.dealTitle}</span>" as lost.
+                                    </p>
+                                    <div>
+                                        <label className="text-xs text-slate-500 uppercase mb-1 block">Loss Reason *</label>
+                                        <select
+                                            className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300 mb-2"
+                                            value={modalData.lossReasonCategory || ''}
+                                            onChange={e => setModalData({ ...modalData, lossReasonCategory: e.target.value, lossReason: e.target.value === 'Other' ? '' : e.target.value })}
+                                        >
+                                            <option value="">Select a reason...</option>
+                                            <option value="Budget constraints">Budget constraints</option>
+                                            <option value="Chose competitor">Chose competitor</option>
+                                            <option value="Project cancelled">Project cancelled</option>
+                                            <option value="Timeline mismatch">Timeline mismatch</option>
+                                            <option value="No decision">No decision / Went silent</option>
+                                            <option value="Feature gap">Missing features</option>
+                                            <option value="Poor fit">Not a good fit</option>
+                                            <option value="Other">Other (specify)</option>
+                                        </select>
+                                        {modalData.lossReasonCategory === 'Other' && (
+                                            <input
+                                                className="w-full p-3 bg-black/20 rounded border border-white/10"
+                                                placeholder="Please specify the reason..."
+                                                value={modalData.lossReason || ''}
+                                                onChange={e => setModalData({ ...modalData, lossReason: e.target.value })}
+                                            />
+                                        )}
+                                    </div>
+                                    <div className="flex gap-3 mt-4">
+                                        <button onClick={() => setActiveModal(null)} className="flex-1 py-3 bg-slate-700 rounded font-bold text-white hover:bg-slate-600">
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={saveDealLossReason}
+                                            disabled={!modalData.lossReasonCategory || (modalData.lossReasonCategory === 'Other' && !modalData.lossReason)}
+                                            className="flex-1 py-3 bg-red-600 rounded font-bold text-white hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Mark as Lost
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeModal === 'view_deal' && (
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="text-2xl font-bold">{modalData.title}</h3>
+                                            <p className="text-cyan-400 font-semibold">{companies.find(c => c.id === modalData.companyId)?.name}</p>
+                                        </div>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                                            modalData.stage === 'closed_won' ? 'bg-emerald-500/20 text-emerald-400' :
+                                            modalData.stage === 'closed_lost' ? 'bg-red-500/20 text-red-400' :
+                                            'bg-cyan-500/20 text-cyan-400'
+                                        }`}>
+                                            {modalData.stage?.replace('_', ' ')}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-white/10">
+                                        <div>
+                                            <div className="text-xs text-slate-500 uppercase">Value</div>
+                                            <div className="text-xl font-bold font-mono text-emerald-400">${Number(modalData.value || 0).toLocaleString()}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs text-slate-500 uppercase">Probability</div>
+                                            <div className={`text-xl font-bold ${
+                                                Number(modalData.probability) >= 70 ? 'text-emerald-400' :
+                                                Number(modalData.probability) >= 40 ? 'text-yellow-400' : 'text-slate-400'
+                                            }`}>{modalData.probability}%</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs text-slate-500 uppercase">Weighted Value</div>
+                                            <div className="text-xl font-bold font-mono text-cyan-400">
+                                                ${Math.round(Number(modalData.value || 0) * Number(modalData.probability || 0) / 100).toLocaleString()}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs text-slate-500 uppercase">Expected Close</div>
+                                            <div className="text-lg font-semibold">{modalData.expectedCloseDate || 'Not set'}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <div className="text-xs text-slate-500 uppercase mb-1">Owner</div>
+                                            <div className="text-sm">{users.find(u => u.id === modalData.ownerId)?.name || 'Unassigned'}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs text-slate-500 uppercase mb-1">Last Updated</div>
+                                            <div className="text-sm">{modalData.lastUpdated ? new Date(modalData.lastUpdated).toLocaleDateString() : 'N/A'}</div>
+                                        </div>
+                                    </div>
+
+                                    {modalData.notes && (
+                                        <div>
+                                            <div className="text-xs text-slate-500 uppercase mb-1">Notes</div>
+                                            <div className="p-3 bg-black/20 rounded border border-white/10 text-sm whitespace-pre-wrap">{modalData.notes}</div>
+                                        </div>
+                                    )}
+
+                                    {modalData.stage === 'closed_lost' && modalData.lossReason && (
+                                        <div>
+                                            <div className="text-xs text-red-400 uppercase mb-1">Loss Reason</div>
+                                            <div className="p-3 bg-red-500/10 rounded border border-red-500/20 text-sm text-red-300">{modalData.lossReason}</div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-3 mt-4">
+                                        <button
+                                            onClick={() => {
+                                                handleEditDeal({
+                                                    id: modalData.id,
+                                                    title: modalData.title,
+                                                    companyId: modalData.companyId,
+                                                    value: Number(modalData.value),
+                                                    probability: Number(modalData.probability),
+                                                    stage: modalData.stage,
+                                                    expectedCloseDate: modalData.expectedCloseDate,
+                                                    notes: modalData.notes,
+                                                    ownerId: modalData.ownerId,
+                                                    lossReason: modalData.lossReason,
+                                                    lastUpdated: modalData.lastUpdated
+                                                } as Deal);
+                                            }}
+                                            className="flex-1 py-3 bg-cyan-600 rounded font-bold text-white hover:bg-cyan-500"
+                                        >
+                                            <i className="fas fa-edit mr-2"></i> Edit Deal
+                                        </button>
+                                        <button onClick={() => setActiveModal(null)} className="flex-1 py-3 bg-slate-700 rounded font-bold text-white hover:bg-slate-600">
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {
                                 activeModal === 'diagnostics' && (
@@ -2799,6 +3191,13 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <input type="date" className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" placeholder="Purchase Date" value={modalData.purchaseDate || ''} onChange={e => setModalData({ ...modalData, purchaseDate: e.target.value })} />
                                             <input type="number" className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Value ($)" value={modalData.value ?? ''} onChange={e => setModalData({ ...modalData, value: e.target.value === '' ? undefined : parseFloat(e.target.value) })} />
                                         </div>
+                                        {/* License-specific fields */}
+                                        {modalData.type === 'license' && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="License Key" value={modalData.licenseKey || ''} onChange={e => setModalData({ ...modalData, licenseKey: e.target.value })} />
+                                                <input type="date" className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" placeholder="Expiration Date" value={modalData.expirationDate || ''} onChange={e => setModalData({ ...modalData, expirationDate: e.target.value })} />
+                                            </div>
+                                        )}
                                         <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Assigned To" value={modalData.assignedTo || ''} onChange={e => setModalData({ ...modalData, assignedTo: e.target.value })} />
                                         <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.status || 'active'} onChange={e => setModalData({ ...modalData, status: e.target.value })}>
                                             <option value="active">Active</option>
@@ -2806,6 +3205,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <option value="maintenance">Maintenance</option>
                                             <option value="retired">Retired</option>
                                         </select>
+                                        <textarea className="w-full p-3 bg-black/20 rounded border border-white/10 h-20 resize-none" placeholder="Notes (optional)" value={modalData.notes || ''} onChange={e => setModalData({ ...modalData, notes: e.target.value })} />
                                         <button 
                                             disabled={!modalData.companyId && selectedCompanyId === 'all'}
                                             onClick={() => {
@@ -2814,7 +3214,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                     addToast('error', 'Please select a company');
                                                     return;
                                                 }
-                                                const newAsset = {
+                                                const newAsset: Asset = {
                                                     id: modalData.id || `asset_${Date.now()}`,
                                                     companyId: companyId,
                                                     name: modalData.name || '',
@@ -2823,7 +3223,10 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                     purchaseDate: modalData.purchaseDate,
                                                     value: modalData.value,
                                                     assignedTo: modalData.assignedTo,
-                                                    status: modalData.status || 'active'
+                                                    status: modalData.status || 'active',
+                                                    notes: modalData.notes,
+                                                    licenseKey: modalData.type === 'license' ? modalData.licenseKey : undefined,
+                                                    expirationDate: modalData.type === 'license' ? modalData.expirationDate : undefined
                                                 };
                                                 setAssets(prev => modalData.id ? prev.map(a => a.id === modalData.id ? newAsset : a) : [...prev, newAsset]);
                                                 setActiveModal(null);
@@ -2937,6 +3340,88 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         onDraftTerms={handleDraftTerms}
                                         isLoading={isLoading}
                                     />
+                                )
+                            }
+
+                            {
+                                activeModal === 'create_wiki_page' && (
+                                    <div className="space-y-4">
+                                        <h3 className="text-xl font-bold">New Wiki Page</h3>
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Page Title" value={modalData.title || ''} onChange={e => setModalData({ ...modalData, title: e.target.value })} />
+                                        <div>
+                                            <label className="text-xs text-slate-500 uppercase mb-1 block">Category</label>
+                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-white" value={modalData.category || 'internal'} onChange={e => setModalData({ ...modalData, category: e.target.value })}>
+                                                <option value="sop">SOP</option>
+                                                <option value="technical">Technical</option>
+                                                <option value="internal">Internal</option>
+                                                <option value="client_specific">Client Specific</option>
+                                            </select>
+                                        </div>
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || ''} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
+                                            <option value="">No Company (General)</option>
+                                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <textarea className="w-full p-3 bg-black/20 rounded border border-white/10 h-32" placeholder="Page Content" value={modalData.content || ''} onChange={e => setModalData({ ...modalData, content: e.target.value })} />
+                                        <button onClick={() => {
+                                            if (!modalData.title) { addToast('error', 'Page title is required'); return; }
+                                            const newPage = {
+                                                id: `wiki-${Date.now()}`,
+                                                title: modalData.title,
+                                                content: modalData.content || '',
+                                                category: modalData.category || 'internal',
+                                                author: 'Current User',
+                                                lastModified: Date.now(),
+                                                companyId: modalData.companyId || undefined
+                                            };
+                                            setWikiPages(prev => [newPage, ...prev]);
+                                            addToast('success', 'Wiki page created');
+                                            setActiveModal(null);
+                                            setModalData({});
+                                        }} className="w-full py-3 bg-blue-600 rounded font-bold text-white">Create Page</button>
+                                    </div>
+                                )
+                            }
+
+                            {
+                                activeModal === 'add_org_contact' && (
+                                    <div className="space-y-4">
+                                        <h3 className="text-xl font-bold">Add Organization Contact</h3>
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || ''} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
+                                            <option value="">Select Company...</option>
+                                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Full Name" value={modalData.name || ''} onChange={e => setModalData({ ...modalData, name: e.target.value })} />
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Title / Position" value={modalData.title || ''} onChange={e => setModalData({ ...modalData, title: e.target.value })} />
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Email" value={modalData.email || ''} onChange={e => setModalData({ ...modalData, email: e.target.value })} />
+                                        <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Department" value={modalData.department || ''} onChange={e => setModalData({ ...modalData, department: e.target.value })} />
+                                        <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.reportsToId || ''} onChange={e => setModalData({ ...modalData, reportsToId: e.target.value })}>
+                                            <option value="">Reports To (None - Top Level)</option>
+                                            {orgContacts.filter(c => c.companyId === modalData.companyId).map(c => <option key={c.id} value={c.id}>{c.name} - {c.title}</option>)}
+                                        </select>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input type="checkbox" checked={modalData.isDecisionMaker || false} onChange={e => setModalData({ ...modalData, isDecisionMaker: e.target.checked })} className="w-4 h-4 rounded" />
+                                            <span className="text-sm text-slate-300">Decision Maker / Key Stakeholder</span>
+                                        </label>
+                                        <button onClick={() => {
+                                            if (!modalData.companyId) { addToast('error', 'Please select a company'); return; }
+                                            if (!modalData.name) { addToast('error', 'Name is required'); return; }
+                                            if (!modalData.title) { addToast('error', 'Title is required'); return; }
+                                            const newContact = {
+                                                id: `org-${Date.now()}`,
+                                                companyId: modalData.companyId,
+                                                name: modalData.name,
+                                                title: modalData.title,
+                                                email: modalData.email || undefined,
+                                                department: modalData.department || undefined,
+                                                reportsToId: modalData.reportsToId || undefined,
+                                                isDecisionMaker: modalData.isDecisionMaker || false
+                                            };
+                                            setOrgContacts(prev => [...prev, newContact]);
+                                            addToast('success', `${modalData.name} added to organization`);
+                                            setActiveModal(null);
+                                            setModalData({});
+                                        }} className="w-full py-3 bg-cyan-600 rounded font-bold text-white">Add Contact</button>
+                                    </div>
                                 )
                             }
                         </motion.div >

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Asset, Company, AssetType } from '../types';
-import { Laptop, Server, Smartphone, Key, Settings, Trash2, Plus, Search, Tag, User, Calendar, DollarSign, Activity } from 'lucide-react';
+import { Laptop, Server, Smartphone, Key, Settings, Trash2, Plus, Search, Tag, User, Calendar, DollarSign, Activity, Edit2 } from 'lucide-react';
 
 interface AssetTrackerProps {
     assets: Asset[];
     companies: Company[];
     onAddAsset?: () => void;
+    onEditAsset?: (asset: Asset) => void;
+    onRemoveAsset?: (assetId: string) => void;
 }
 
-const AssetTracker: React.FC<AssetTrackerProps> = ({ assets, companies, onAddAsset }) => {
+const AssetTracker: React.FC<AssetTrackerProps> = ({ assets, companies, onAddAsset, onEditAsset, onRemoveAsset }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState<AssetType | 'all'>('all');
 
@@ -110,8 +112,28 @@ const AssetTracker: React.FC<AssetTrackerProps> = ({ assets, companies, onAddAss
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-colors ${getStatusColor(asset.status)}`}>
                                         {getAssetIcon(asset.type)}
                                     </div>
-                                    <div className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-tighter ${getStatusColor(asset.status)}`}>
-                                        {asset.status}
+                                    <div className="flex items-center gap-2">
+                                        <div className={`px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-tighter ${getStatusColor(asset.status)}`}>
+                                            {asset.status}
+                                        </div>
+                                        {onEditAsset && (
+                                            <button
+                                                onClick={() => onEditAsset(asset)}
+                                                className="p-1.5 rounded-lg text-slate-600 hover:text-cyan-400 hover:bg-cyan-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                                                title="Edit asset"
+                                            >
+                                                <Edit2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
+                                        {onRemoveAsset && (
+                                            <button
+                                                onClick={() => onRemoveAsset(asset.id)}
+                                                className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                                                title="Remove asset"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                                 <h4 className="font-bold text-white text-lg group-hover:text-cyan-400 transition-colors truncate">{asset.name}</h4>

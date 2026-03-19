@@ -49,6 +49,7 @@ interface ManagementPanelProps {
     // Deals / Pipeline
     deals?: Deal[];
     companies?: Company[];
+    users?: User[];
     selectedCompanyId?: string;
     draggedDealId?: string | null;
     onDealDragStart?: (e: React.DragEvent, id: string) => void;
@@ -57,6 +58,11 @@ interface ManagementPanelProps {
     onDealExport?: () => void;
     onMoveDeal?: (id: string, stage: DealStage) => void;
     onAddDeal?: () => void;
+    onEditDeal?: (deal: Deal) => void;
+    onDeleteDeal?: (dealId: string) => void;
+    onMarkLost?: (dealId: string) => void;
+    onViewDeal?: (deal: Deal) => void;
+    onDuplicateDeal?: (deal: Deal) => void;
     onEditCompany?: (company: Company) => void;
 
     // Meetings
@@ -64,6 +70,10 @@ interface ManagementPanelProps {
     isLiveMeeting?: boolean;
     onToggleLiveMeeting?: (status: boolean) => void;
     onLogMeeting?: () => void;
+    onScheduleMeeting?: (meeting: Partial<Meeting>) => void;
+    onAddTaskFromMeeting?: (task: Omit<Task, 'id'>) => void;
+    onUpdateMeeting?: (id: string, updates: Partial<Meeting>) => void;
+    onDeleteMeeting?: (id: string) => void;
 
     // Chat - simplified (no more mode)
     messages?: Message[];
@@ -76,7 +86,7 @@ interface ManagementPanelProps {
 
     // Workspace
     workspaceMode?: 'internal' | 'client';
-    internalTab?: 'offerings' | 'team' | 'system' | 'automations' | 'profile' | 'data';
+    internalTab?: 'offerings' | 'team' | 'system' | 'automations';
     clientWorkspaceTab?: 'overview' | 'contracts' | 'documents' | 'billing';
     onSetWorkspaceMode?: (mode: 'internal' | 'client') => void;
     onSetInternalTab?: (tab: any) => void;
@@ -89,7 +99,6 @@ interface ManagementPanelProps {
     onDeleteProduct?: (id: string) => void;
 
     // Users / Team
-    users?: User[];
     currentUser?: User | null;
     maxUsers?: number;
     tasks?: Task[];
@@ -170,8 +179,12 @@ interface ManagementPanelProps {
     tickets?: SupportTicket[];
     onSaveTicket?: (ticket: SupportTicket) => void;
     onUpdateTicket?: (id: string, updates: Partial<SupportTicket>) => void;
+    onCreateTicketFromPortal?: (ticket: Omit<SupportTicket, 'id' | 'createdAt'>) => void;
     kpiGoals?: KPIGoal[];
     onUpdateKpiGoal?: (id: string, current: number) => void;
+    onAddKpiGoal?: (goal: KPIGoal) => void;
+    onEditKpiGoal?: (goal: KPIGoal) => void;
+    onDeleteKpiGoal?: (id: string) => void;
     projects?: Project[];
     expenses?: Expense[];
     timeEntries?: TimeEntry[];
@@ -182,8 +195,13 @@ interface ManagementPanelProps {
     esignRequests?: EsignRequest[];
     assets?: Asset[];
     onAddAsset?: () => void;
+    onEditAsset?: (asset: Asset) => void;
+    onRemoveAsset?: (assetId: string) => void;
     wikiPages?: WikiPage[];
+    onCreateWikiPage?: () => void;
     orgContacts?: OrgContact[];
+    onAddOrgContact?: () => void;
+    onRemoveOrgContact?: (contactId: string) => void;
     featureRequests?: FeatureRequest[];
     partners?: Partner[];
     customFields?: CustomField[];
@@ -227,6 +245,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 <PipelineView
                     deals={props.deals || []}
                     companies={props.companies || []}
+                    users={props.users || []}
                     selectedCompanyId={props.selectedCompanyId || ''}
                     draggedDealId={props.draggedDealId || null}
                     onDealDragStart={props.onDealDragStart || (() => {})}
@@ -235,6 +254,11 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     onDealExport={props.onDealExport || (() => {})}
                     onMoveDeal={props.onMoveDeal || (() => {})}
                     onAddDeal={props.onAddDeal || (() => {})}
+                    onEditDeal={props.onEditDeal}
+                    onDeleteDeal={props.onDeleteDeal}
+                    onMarkLost={props.onMarkLost}
+                    onViewDeal={props.onViewDeal}
+                    onDuplicateDeal={props.onDuplicateDeal}
                 />
             )}
             {view === 'meetings' && (
@@ -246,6 +270,10 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     onToggleLiveMeeting={props.onToggleLiveMeeting || (() => {})}
                     onLogMeeting={props.onLogMeeting || (() => {})}
                     onAddToast={props.onAddToast || (() => {})}
+                    onScheduleMeeting={props.onScheduleMeeting}
+                    onAddTaskFromMeeting={props.onAddTaskFromMeeting}
+                    onUpdateMeeting={props.onUpdateMeeting}
+                    onDeleteMeeting={props.onDeleteMeeting}
                 />
             )}
             {view === 'chat' && (
@@ -272,7 +300,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     {props.workspaceMode === 'internal' ? (
                         <>
                             <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar border-b border-white/5 mb-6">
-                                {['offerings', 'team', 'system', 'automations', 'profile', 'data'].map(tab => (
+                                {['offerings', 'team', 'system', 'automations'].map(tab => (
                                     <button
                                         key={tab}
                                         onClick={() => props.onSetInternalTab?.(tab)}
@@ -387,6 +415,9 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 <KPIView
                     goals={props.kpiGoals || []}
                     onUpdateGoal={props.onUpdateKpiGoal || (() => {})}
+                    onAddGoal={props.onAddKpiGoal}
+                    onEditGoal={props.onEditKpiGoal}
+                    onDeleteGoal={props.onDeleteKpiGoal}
                 />
             )}
             {view === 'velocity' && (
@@ -448,12 +479,15 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     assets={props.assets || []}
                     companies={props.companies || []}
                     onAddAsset={props.onAddAsset}
+                    onEditAsset={props.onEditAsset}
+                    onRemoveAsset={props.onRemoveAsset}
                 />
             )}
             {view === 'wiki' && (
                 <WikiView
                     pages={props.wikiPages || []}
                     companies={props.companies || []}
+                    onCreatePage={props.onCreateWikiPage}
                 />
             )}
             {view === 'orgchart' && (
@@ -461,6 +495,8 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     <OrgChartView
                         company={selectedCompany}
                         contacts={(props.orgContacts || []).filter(c => c.companyId === selectedCompany.id)}
+                        onAddContact={props.onAddOrgContact}
+                        onRemoveContact={props.onRemoveOrgContact}
                     />
                 ) : (
                     <CompanyRequiredState />
@@ -521,6 +557,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                         billing={props.billingRecords || []}
                         documents={props.workspaceItems || []}
                         messages={props.messages || []}
+                        onCreateTicket={props.onCreateTicketFromPortal}
                     />
                 ) : (
                     <CompanyRequiredState />
@@ -648,6 +685,30 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                             {(props.mockIntegrations || []).length === 0 && (
                                 <div className="text-center text-slate-500 py-8">No integrations configured</div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {view === 'profile' && (
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-bold">Business Profile</h2>
+                    <div className="p-6 bg-slate-800 rounded-xl border border-white/10 space-y-4">
+                        <div>
+                            <label className="text-xs text-slate-500 uppercase mb-1 block">Business Name</label>
+                            <input className="w-full p-3 bg-black/20 rounded border border-white/10" value={props.businessProfile?.name || ''} onChange={e => props.onSetBusinessProfile?.({ ...props.businessProfile, name: e.target.value })} placeholder="Business Name" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500 uppercase mb-1 block">Address</label>
+                            <input className="w-full p-3 bg-black/20 rounded border border-white/10" value={props.businessProfile?.address || ''} onChange={e => props.onSetBusinessProfile?.({ ...props.businessProfile, address: e.target.value })} placeholder="Address" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500 uppercase mb-1 block">Phone</label>
+                            <input className="w-full p-3 bg-black/20 rounded border border-white/10" value={props.businessProfile?.phone || ''} onChange={e => props.onSetBusinessProfile?.({ ...props.businessProfile, phone: e.target.value })} placeholder="Phone" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500 uppercase mb-1 block">Website</label>
+                            <input className="w-full p-3 bg-black/20 rounded border border-white/10" value={props.businessProfile?.website || ''} onChange={e => props.onSetBusinessProfile?.({ ...props.businessProfile, website: e.target.value })} placeholder="Website" />
                         </div>
                     </div>
                 </div>

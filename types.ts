@@ -285,6 +285,20 @@ export interface Deal {
   notes?: string;
   lossReason?: string;
   lastUpdated: string; // ISO Date
+  createdAt?: string; // ISO Date - when deal was created
+  isArchived?: boolean; // Soft delete flag
+}
+
+// Pipeline filter options
+export interface DealFilters {
+  search?: string;
+  stages?: DealStage[];
+  minValue?: number;
+  maxValue?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  ownerId?: string;
+  showArchived?: boolean;
 }
 
 export type AutomationEvent = 'DEAL_WON' | 'CONTRACT_CREATED' | 'CLIENT_ADDED';
@@ -597,6 +611,10 @@ export interface Asset {
   value?: number;
   assignedTo?: string; // User/Contact Name
   status: 'active' | 'deployed' | 'maintenance' | 'retired';
+  notes?: string; // General notes for any asset
+  // License-specific fields
+  licenseKey?: string;
+  expirationDate?: string;
 }
 
 // --- R3-7: Client Feedback / Roadmap ---

@@ -1,14 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { OrgContact, Company } from '../types';
-import { Users, User, Shield, ChevronRight, Mail, Phone, Building2 } from 'lucide-react';
+import { Users, User, Shield, ChevronRight, Mail, Phone, Building2, Plus, Trash2 } from 'lucide-react';
 
 interface OrgChartViewProps {
     company: Company;
     contacts: OrgContact[];
+    onAddContact?: () => void;
+    onRemoveContact?: (contactId: string) => void;
 }
 
-const OrgChartView: React.FC<OrgChartViewProps> = ({ company, contacts }) => {
+const OrgChartView: React.FC<OrgChartViewProps> = ({ company, contacts, onAddContact, onRemoveContact }) => {
     // Helper to get subordinates recursively
     const renderNode = (contact: OrgContact, level: number = 0) => {
         const subordinates = contacts.filter(c => c.reportsToId === contact.id);
@@ -43,9 +45,20 @@ const OrgChartView: React.FC<OrgChartViewProps> = ({ company, contacts }) => {
                         </div>
                     </div>
 
-                    <button className="self-center p-2 rounded-xl text-slate-600 hover:text-white hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all">
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        {onRemoveContact && (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onRemoveContact(contact.id); }}
+                                className="self-center p-2 rounded-xl text-slate-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                                title="Remove contact"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        )}
+                        <button className="self-center p-2 rounded-xl text-slate-600 hover:text-white hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-all">
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
+                    </div>
                 </motion.div>
 
                 {subordinates.length > 0 && (
@@ -67,9 +80,19 @@ const OrgChartView: React.FC<OrgChartViewProps> = ({ company, contacts }) => {
                     <h2 className="text-2xl font-bold text-white mb-2">Internal Organization</h2>
                     <p className="text-slate-400 text-sm">Visualizing the hierarchy and key decision-makers at <span className="text-orange-400 font-bold">{company.name}</span>.</p>
                 </div>
-                <div className="flex gap-2 text-xs font-bold uppercase text-slate-500 border border-white/5 rounded-2xl p-2 bg-slate-900/50">
-                    <span className="px-3 py-1 flex items-center gap-2 border-r border-white/10"><Users className="w-4 h-4 text-cyan-400" /> {contacts.length} Total Contacts</span>
-                    <span className="px-3 py-1 flex items-center gap-2"><Shield className="w-4 h-4 text-orange-400" /> {contacts.filter(c => c.isDecisionMaker).length} Stakeholders</span>
+                <div className="flex items-center gap-4">
+                    {onAddContact && (
+                        <button 
+                            onClick={onAddContact}
+                            className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-bold text-white shadow-lg hover:shadow-cyan-500/30 transition-all flex items-center gap-2"
+                        >
+                            <Plus className="w-4 h-4" /> Add Contact
+                        </button>
+                    )}
+                    <div className="flex gap-2 text-xs font-bold uppercase text-slate-500 border border-white/5 rounded-2xl p-2 bg-slate-900/50">
+                        <span className="px-3 py-1 flex items-center gap-2 border-r border-white/10"><Users className="w-4 h-4 text-cyan-400" /> {contacts.length} Total Contacts</span>
+                        <span className="px-3 py-1 flex items-center gap-2"><Shield className="w-4 h-4 text-orange-400" /> {contacts.filter(c => c.isDecisionMaker).length} Stakeholders</span>
+                    </div>
                 </div>
             </div>
 
