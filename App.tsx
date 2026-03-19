@@ -2819,7 +2819,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         </button>
                                         <button
                                             onClick={saveDealLossReason}
-                                            disabled={!modalData.lossReason && !modalData.lossReasonCategory}
+                                            disabled={!modalData.lossReasonCategory || (modalData.lossReasonCategory === 'Other' && !modalData.lossReason)}
                                             className="flex-1 py-3 bg-red-600 rounded font-bold text-white hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             Mark as Lost

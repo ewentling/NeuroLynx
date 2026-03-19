@@ -93,8 +93,7 @@ interface ManagementPanelProps {
     onEditProduct?: (p: Product) => void;
     onDeleteProduct?: (id: string) => void;
 
-    // Users / Team
-    users?: User[];
+    // Users / Team (users prop is already defined above for deals/pipeline)
     currentUser?: User | null;
     maxUsers?: number;
     tasks?: Task[];

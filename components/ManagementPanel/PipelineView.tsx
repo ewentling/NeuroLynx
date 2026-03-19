@@ -21,6 +21,10 @@ interface PipelineViewProps {
 
 const STAGES: DealStage[] = ['qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost'];
 
+// Stagnant deal threshold - deals without updates for this duration are flagged
+const STAGNANT_THRESHOLD_DAYS = 30;
+const STAGNANT_THRESHOLD_MS = STAGNANT_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+
 const PipelineView: React.FC<PipelineViewProps> = ({
     deals,
     companies,
@@ -320,7 +324,7 @@ const PipelineView: React.FC<PipelineViewProps> = ({
                                 {/* Deal Cards */}
                                 <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
                                     {stageDeals.map(deal => {
-                                        const isStagnant = (new Date().getTime() - new Date(deal.lastUpdated).getTime()) > (30 * 24 * 60 * 60 * 1000);
+                                        const isStagnant = (new Date().getTime() - new Date(deal.lastUpdated).getTime()) > STAGNANT_THRESHOLD_MS;
                                         const ownerName = getOwnerName(deal.ownerId);
 
                                         return (
