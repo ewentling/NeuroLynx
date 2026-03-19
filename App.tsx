@@ -1494,6 +1494,14 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             }),
             MAX_ITEMS_PER_SECTION, 'meetings'
         );
+        const allTickets = truncateList(
+            tickets.map(t => {
+                const compName = companies.find(c => c.id === t.companyId)?.name || 'Unknown';
+                const createdDate = new Date(t.createdAt).toLocaleDateString();
+                return `- Ticket "${t.title}" for ${compName} (${t.priority} priority, ${t.status}): ${t.category} - ${t.description.substring(0, 100)}${t.description.length > 100 ? '...' : ''} [Created: ${createdDate}]`;
+            }),
+            MAX_ITEMS_PER_SECTION, 'tickets'
+        );
 
         let contextData = `
 [NEUROLYNX INTERNAL DATABASE]
@@ -1517,11 +1525,15 @@ ${productsList}
 MEETINGS/MEETING INTELLIGENCE (${meetings.length} total):
 ${allMeetings}
 
+SUPPORT TICKETS (${tickets.length} total):
+${allTickets}
+
 INSTRUCTIONS: 
 You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 - Answer questions based on the data provided above
 - You can create tasks, schedule meetings, and more via natural language
 - You have access to Meeting Intelligence data including meeting summaries, action items, and sentiment analysis
+- You have access to Support Tickets data including priority, status, and category
 - Be helpful, concise, and professional
 - If asked about "highest paying customer", use the Revenue figures
 - If the data doesn't contain the answer, say so honestly
