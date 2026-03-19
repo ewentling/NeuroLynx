@@ -2447,6 +2447,40 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     onSetCurrentDate: setCurrentDate,
                                     onMeetingClick: handleMeetingClick,
                                     onMemoryUpload: handleMemoryUpload,
+                                    // Meeting Intelligence handlers
+                                    onScheduleMeeting: (meetingData: Partial<Meeting>) => {
+                                        const newMeeting: Meeting = {
+                                            id: `meeting_${Date.now()}`,
+                                            title: meetingData.title || 'New Meeting',
+                                            date: meetingData.date || Date.now(),
+                                            duration: meetingData.duration || 0,
+                                            transcript: meetingData.transcript || '',
+                                            summary: meetingData.summary || 'Meeting scheduled',
+                                            status: meetingData.status || 'scheduled',
+                                            clientId: meetingData.clientId,
+                                            time: meetingData.time,
+                                            type: meetingData.type,
+                                            link: meetingData.link,
+                                            attendees: meetingData.attendees
+                                        };
+                                        setMeetings(prev => [newMeeting, ...prev]);
+                                        addToast('success', 'Meeting scheduled successfully');
+                                    },
+                                    onAddTaskFromMeeting: (taskData: Omit<Task, 'id'>) => {
+                                        const newTask: Task = {
+                                            ...taskData,
+                                            id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+                                        };
+                                        setTasks(prev => [...prev, newTask]);
+                                    },
+                                    onUpdateMeeting: (id: string, updates: Partial<Meeting>) => {
+                                        setMeetings(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+                                        addToast('success', 'Meeting updated');
+                                    },
+                                    onDeleteMeeting: (id: string) => {
+                                        setMeetings(prev => prev.filter(m => m.id !== id));
+                                        addToast('success', 'Meeting deleted');
+                                    },
                                     // Additional props for extended views
                                     tickets,
                                     onUpdateTicket: (id: string, updates: any) => setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t)),

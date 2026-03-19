@@ -39,6 +39,7 @@ const KPIView: React.FC<KPIViewProps> = ({ goals, onUpdateGoal, onAddGoal, onEdi
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [adjustingGoal, setAdjustingGoal] = useState<string | null>(null);
     const [adjustValue, setAdjustValue] = useState<number>(0);
+    const [formError, setFormError] = useState<string | null>(null);
     
     // Form state
     const [formData, setFormData] = useState({
@@ -80,8 +81,6 @@ const KPIView: React.FC<KPIViewProps> = ({ goals, onUpdateGoal, onAddGoal, onEdi
         });
         setIsModalOpen(true);
     };
-
-    const [formError, setFormError] = useState<string | null>(null);
 
     const handleSave = () => {
         setFormError(null);
