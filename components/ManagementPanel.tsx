@@ -49,6 +49,7 @@ interface ManagementPanelProps {
     // Deals / Pipeline
     deals?: Deal[];
     companies?: Company[];
+    users?: User[];
     selectedCompanyId?: string;
     draggedDealId?: string | null;
     onDealDragStart?: (e: React.DragEvent, id: string) => void;
@@ -57,6 +58,10 @@ interface ManagementPanelProps {
     onDealExport?: () => void;
     onMoveDeal?: (id: string, stage: DealStage) => void;
     onAddDeal?: () => void;
+    onEditDeal?: (deal: Deal) => void;
+    onDeleteDeal?: (dealId: string) => void;
+    onMarkLost?: (dealId: string) => void;
+    onViewDeal?: (deal: Deal) => void;
     onEditCompany?: (company: Company) => void;
 
     // Meetings
@@ -233,6 +238,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 <PipelineView
                     deals={props.deals || []}
                     companies={props.companies || []}
+                    users={props.users || []}
                     selectedCompanyId={props.selectedCompanyId || ''}
                     draggedDealId={props.draggedDealId || null}
                     onDealDragStart={props.onDealDragStart || (() => {})}
@@ -241,6 +247,10 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     onDealExport={props.onDealExport || (() => {})}
                     onMoveDeal={props.onMoveDeal || (() => {})}
                     onAddDeal={props.onAddDeal || (() => {})}
+                    onEditDeal={props.onEditDeal}
+                    onDeleteDeal={props.onDeleteDeal}
+                    onMarkLost={props.onMarkLost}
+                    onViewDeal={props.onViewDeal}
                 />
             )}
             {view === 'meetings' && (
