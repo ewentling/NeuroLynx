@@ -170,6 +170,7 @@ interface ManagementPanelProps {
     tickets?: SupportTicket[];
     onSaveTicket?: (ticket: SupportTicket) => void;
     onUpdateTicket?: (id: string, updates: Partial<SupportTicket>) => void;
+    onCreateTicketFromPortal?: (ticket: Omit<SupportTicket, 'id' | 'createdAt'>) => void;
     kpiGoals?: KPIGoal[];
     onUpdateKpiGoal?: (id: string, current: number) => void;
     projects?: Project[];
@@ -531,6 +532,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                         billing={props.billingRecords || []}
                         documents={props.workspaceItems || []}
                         messages={props.messages || []}
+                        onCreateTicket={props.onCreateTicketFromPortal}
                     />
                 ) : (
                     <CompanyRequiredState />

@@ -2373,6 +2373,15 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     // Additional props for extended views
                                     tickets,
                                     onUpdateTicket: (id: string, updates: any) => setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t)),
+                                    onCreateTicketFromPortal: (ticketData: Omit<SupportTicket, 'id' | 'createdAt'>) => {
+                                        const newTicket: SupportTicket = {
+                                            ...ticketData,
+                                            id: `ticket_${Date.now()}`,
+                                            createdAt: Date.now()
+                                        };
+                                        setTickets(prev => [...prev, newTicket]);
+                                        addToast('success', 'Support ticket submitted successfully');
+                                    },
                                     kpiGoals,
                                     onUpdateKpiGoal: (id: string, current: number) => setKpiGoals(prev => prev.map(g => g.id === id ? { ...g, current } : g)),
                                     projects,
@@ -2836,6 +2845,13 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <input type="date" className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" placeholder="Purchase Date" value={modalData.purchaseDate || ''} onChange={e => setModalData({ ...modalData, purchaseDate: e.target.value })} />
                                             <input type="number" className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Value ($)" value={modalData.value ?? ''} onChange={e => setModalData({ ...modalData, value: e.target.value === '' ? undefined : parseFloat(e.target.value) })} />
                                         </div>
+                                        {/* License-specific fields */}
+                                        {modalData.type === 'license' && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="License Key" value={modalData.licenseKey || ''} onChange={e => setModalData({ ...modalData, licenseKey: e.target.value })} />
+                                                <input type="date" className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" placeholder="Expiration Date" value={modalData.expirationDate || ''} onChange={e => setModalData({ ...modalData, expirationDate: e.target.value })} />
+                                            </div>
+                                        )}
                                         <input className="w-full p-3 bg-black/20 rounded border border-white/10" placeholder="Assigned To" value={modalData.assignedTo || ''} onChange={e => setModalData({ ...modalData, assignedTo: e.target.value })} />
                                         <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.status || 'active'} onChange={e => setModalData({ ...modalData, status: e.target.value })}>
                                             <option value="active">Active</option>
@@ -2843,6 +2859,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <option value="maintenance">Maintenance</option>
                                             <option value="retired">Retired</option>
                                         </select>
+                                        <textarea className="w-full p-3 bg-black/20 rounded border border-white/10 h-20 resize-none" placeholder="Notes (optional)" value={modalData.notes || ''} onChange={e => setModalData({ ...modalData, notes: e.target.value })} />
                                         <button 
                                             disabled={!modalData.companyId && selectedCompanyId === 'all'}
                                             onClick={() => {
@@ -2851,7 +2868,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                     addToast('error', 'Please select a company');
                                                     return;
                                                 }
-                                                const newAsset = {
+                                                const newAsset: Asset = {
                                                     id: modalData.id || `asset_${Date.now()}`,
                                                     companyId: companyId,
                                                     name: modalData.name || '',
@@ -2860,7 +2877,10 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                     purchaseDate: modalData.purchaseDate,
                                                     value: modalData.value,
                                                     assignedTo: modalData.assignedTo,
-                                                    status: modalData.status || 'active'
+                                                    status: modalData.status || 'active',
+                                                    notes: modalData.notes,
+                                                    licenseKey: modalData.type === 'license' ? modalData.licenseKey : undefined,
+                                                    expirationDate: modalData.type === 'license' ? modalData.expirationDate : undefined
                                                 };
                                                 setAssets(prev => modalData.id ? prev.map(a => a.id === modalData.id ? newAsset : a) : [...prev, newAsset]);
                                                 setActiveModal(null);

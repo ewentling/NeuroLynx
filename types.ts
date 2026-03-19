@@ -597,6 +597,10 @@ export interface Asset {
   value?: number;
   assignedTo?: string; // User/Contact Name
   status: 'active' | 'deployed' | 'maintenance' | 'retired';
+  notes?: string; // General notes for any asset
+  // License-specific fields
+  licenseKey?: string;
+  expirationDate?: string;
 }
 
 // --- R3-7: Client Feedback / Roadmap ---
