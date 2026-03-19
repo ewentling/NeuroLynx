@@ -1390,14 +1390,17 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
 
     const runMcpTool = (toolId: string, payload: any, clientContext?: string): { result: string, log: ToolCallLog } => {
         const queued = dispatchMcpEnvelope(toolId, payload);
+        const isInternal = clientContext === 'internal';
 
         if (toolId === 'create_task') {
             const title = payload?.title || 'Follow up';
             const priority = payload?.priority || 'high';
             const dueDate = payload?.dueDate || new Date(Date.now() + 86400000).toISOString().split('T')[0];
-            const newTask: Task = { id: `task-${Date.now()}`, title, description: payload?.description || '', status: 'todo', priority, dueDate, clientId: clientContext };
+            // For internal context, set clientId to undefined to mark as internal task
+            const newTask: Task = { id: `task-${Date.now()}`, title, description: payload?.description || '', status: 'todo', priority, dueDate, clientId: isInternal ? undefined : clientContext };
             setTasks(prev => [newTask, ...prev]);
-            return { result: `Task created: "${title}" due ${dueDate}`, log: { ...queued, status: 'success' } };
+            const contextLabel = isInternal ? ' (Internal Organization)' : '';
+            return { result: `Task created${contextLabel}: "${title}" due ${dueDate}`, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'complete_task') {
             const keyword = (payload?.title || payload?.keyword || '').toLowerCase();
@@ -1413,7 +1416,9 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             return { result: resultText, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'list_tasks') {
-            const buckets = tasks.reduce((acc: Record<string, string[]>, t) => {
+            // When in internal context, show all tasks including internal ones
+            const relevantTasks = isInternal ? tasks : (clientContext ? tasks.filter(t => t.clientId === clientContext) : tasks);
+            const buckets = relevantTasks.reduce((acc: Record<string, string[]>, t) => {
                 acc[t.status] = acc[t.status] || [];
                 acc[t.status].push(t.title);
                 return acc;
@@ -1422,23 +1427,25 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             return { result: `Tasks overview -> ${summary || 'no tasks yet'}`, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'schedule_meeting') {
-            const title = payload?.title || 'Client Sync';
+            const title = payload?.title || (isInternal ? 'Team Sync' : 'Client Sync');
             const start = payload?.date ? new Date(payload.date).getTime() : Date.now() + 3600000;
             const newMeeting: Meeting = {
                 id: `meet-${Date.now()}`,
                 title,
                 date: start,
                 duration: payload?.duration || 30,
-                summary: payload?.agenda || 'Quick sync',
+                summary: payload?.agenda || (isInternal ? 'Internal team sync' : 'Quick sync'),
                 transcript: '',
                 status: 'scheduled',
                 attendees: payload?.attendees || [],
-                clientId: clientContext,
+                // For internal context, set clientId to undefined to mark as internal meeting
+                clientId: isInternal ? undefined : clientContext,
                 link: payload?.link || 'https://meet.neurolynx.ai/room',
                 type: 'video'
             };
             setMeetings(prev => [newMeeting, ...prev]);
-            return { result: `Meeting scheduled: ${title} on ${new Date(start).toLocaleString()}`, log: { ...queued, status: 'success' } };
+            const contextLabel = isInternal ? ' (Internal Organization)' : '';
+            return { result: `Meeting scheduled${contextLabel}: ${title} on ${new Date(start).toLocaleString()}`, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'summarize_client') {
             const comps = companies.map(c => `${c.name} (${c.status})`).join(', ');
@@ -1520,7 +1527,8 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
         if (!input.trim() || isLoading) return;
 
         // Derive client context from selected company (for MCP tool scoping)
-        const clientContext = selectedCompanyId !== 'all' ? selectedCompanyId : undefined;
+        // When in internal workspace mode, use 'internal' to allow chat to read/write internal org data
+        const clientContext = selectedCompanyId !== 'all' ? selectedCompanyId : (workspaceMode === 'internal' ? 'internal' : undefined);
 
         // Add user message to chat
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: input, timestamp: Date.now(), type: 'text' }]);
@@ -1597,10 +1605,24 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             MAX_ITEMS_PER_SECTION, 'tickets'
         );
 
+        // Build internal organization context when in internal workspace mode
+        const internalOrgContext = workspaceMode === 'internal' ? `
+INTERNAL ORGANIZATION CONTEXT:
+You are currently viewing the Internal Organization workspace. You can read/write to internal data.
+
+TEAM MEMBERS (${users.length} total):
+${users.map(u => `- ${u.name} (${u.role}): ${u.email}`).join('\n')}
+
+AUTOMATION RULES (${automations.length} total):
+${automations.map(a => `- ${a.name}: ${a.event} trigger (${a.active ? 'Active' : 'Inactive'})`).join('\n')}
+
+CURRENT INTERNAL TAB: ${internalTab}
+` : '';
+
         let contextData = `
 [NEUROLYNX INTERNAL DATABASE]
 You have access to all company data. Base your answers strictly on this data.
-
+${internalOrgContext}
 COMPANIES/CLIENTS (${companies.length} total):
 ${allCompanies}
 
@@ -1628,6 +1650,9 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 - You can create tasks, schedule meetings, and more via natural language
 - You have access to Meeting Intelligence data including meeting summaries, action items, and sentiment analysis
 - You have access to Support Tickets data including priority, status, and category
+${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATION workspace and can read/write internal org data
+- You have access to team members, products/offerings, and automation rules
+- You can create internal tasks and meetings not associated with any client` : ''}
 - Be helpful, concise, and professional
 - If asked about "highest paying customer", use the Revenue figures
 - If the data doesn't contain the answer, say so honestly
