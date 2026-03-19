@@ -2076,7 +2076,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             {currentUser?.role === 'admin' && (
                                                 <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'team'} label="Team" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('team'); }} />
                                             )}
-
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('automations'); }} />
                                             <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
                                             <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
