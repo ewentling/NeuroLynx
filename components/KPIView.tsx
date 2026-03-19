@@ -55,6 +55,7 @@ const KPIView: React.FC<KPIViewProps> = ({ goals, onUpdateGoal, onAddGoal, onEdi
 
     const openAddModal = () => {
         setEditingGoal(null);
+        setFormError(null);
         setFormData({
             label: '',
             metric: 'revenue',
@@ -68,6 +69,7 @@ const KPIView: React.FC<KPIViewProps> = ({ goals, onUpdateGoal, onAddGoal, onEdi
 
     const openEditModal = (goal: KPIGoal) => {
         setEditingGoal(goal);
+        setFormError(null);
         setFormData({
             label: goal.label,
             metric: goal.metric,
@@ -79,8 +81,18 @@ const KPIView: React.FC<KPIViewProps> = ({ goals, onUpdateGoal, onAddGoal, onEdi
         setIsModalOpen(true);
     };
 
+    const [formError, setFormError] = useState<string | null>(null);
+
     const handleSave = () => {
-        if (!formData.label.trim() || formData.target <= 0) return;
+        setFormError(null);
+        if (!formData.label.trim()) {
+            setFormError('Goal name is required');
+            return;
+        }
+        if (formData.target <= 0) {
+            setFormError('Target must be greater than 0');
+            return;
+        }
 
         const goalData: KPIGoal = {
             id: editingGoal?.id || `kpi_${Date.now()}`,
@@ -301,6 +313,15 @@ const KPIView: React.FC<KPIViewProps> = ({ goals, onUpdateGoal, onAddGoal, onEdi
                                 <i className="fas fa-times"></i>
                             </button>
                         </div>
+
+                        {formError && (
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+                                <p className="text-red-400 text-sm flex items-center gap-2">
+                                    <i className="fas fa-exclamation-circle"></i>
+                                    {formError}
+                                </p>
+                            </div>
+                        )}
 
                         <div className="space-y-4">
                             <div>
