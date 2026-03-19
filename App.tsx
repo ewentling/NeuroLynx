@@ -103,8 +103,8 @@ const SidebarItem = React.memo(({ active, icon, label, onClick }: { active: bool
     </button>
 ));
 
-const SidebarSubItem = React.memo(({ active, label, onClick }: { active: boolean, label: string, onClick: () => void }) => (
-    <button onClick={onClick} className={`w-full text-left py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ml-2 flex-shrink-0 ${active ? 'text-cyan-400 bg-cyan-400/5 border-l-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300 border-l-2 border-transparent hover:border-slate-700 hover:bg-white/5'}`}>
+const SidebarSubItem = React.memo(({ active, label, onClick, noIndent }: { active: boolean, label: string, onClick: () => void, noIndent?: boolean }) => (
+    <button onClick={onClick} className={`w-full text-left py-2.5 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex-shrink-0 ${noIndent ? '' : 'ml-2'} ${active ? 'text-cyan-400 bg-cyan-400/5 border-l-2 border-cyan-400' : 'text-slate-500 hover:text-slate-300 border-l-2 border-transparent hover:border-slate-700 hover:bg-white/5'}`}>
         {label}
     </button>
 ));
@@ -2119,9 +2119,9 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         </div>
                                     )}
                                     {/* AI Config and Integration Status */}
-                                    <SidebarSubItem active={view === 'aiconfig'} label="AI Config" onClick={() => setView('aiconfig')} />
-                                    <SidebarSubItem active={view === 'integrations'} label="Integration Status" onClick={() => setView('integrations')} />
-                                    <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} />
+                                    <SidebarSubItem active={view === 'aiconfig'} label="AI Config" onClick={() => setView('aiconfig')} noIndent />
+                                    <SidebarSubItem active={view === 'integrations'} label="Integration Status" onClick={() => setView('integrations')} noIndent />
+                                    <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} noIndent />
                                 </motion.div>
                             )}
                         </AnimatePresence>
