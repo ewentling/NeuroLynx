@@ -27,7 +27,7 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-import { Message, WorkspaceItem, MemoryEntry, Integration, Toast, ToolCallLog, Meeting, Client, Template, QuickLink, Product, Contract, ContractItem, Task, ClientNote, BattleCard, User, BillingRecord, Company, LicenseStatus, Deal, DealStage, AutomationRule, AutomationEvent, AuditLog, Notification, TestResult, ActivityEntry, SupportTicket, OnboardingChecklist, Project, Referral, KPIGoal, Quote, TimeEntry, Competitor, CSATResponse, EmailSequence, SequenceStep, Vendor, DocVersion, Expense, ComplianceItem, Invoice, OrgContact, EsignRequest, Asset, FeatureRequest, WikiPage, Partner, CustomField, CustomFieldValue } from './types';
+import { Message, WorkspaceItem, MemoryEntry, Integration, Toast, ToolCallLog, Meeting, Client, Template, QuickLink, Product, Contract, ContractItem, Task, ClientNote, BattleCard, User, BillingRecord, Company, LicenseStatus, Deal, DealStage, AutomationRule, AutomationEvent, AuditLog, Notification, TestResult, ActivityEntry, SupportTicket, OnboardingChecklist, Project, Referral, KPIGoal, Quote, TimeEntry, Competitor, CSATResponse, EmailSequence, SequenceStep, Vendor, DocVersion, Expense, ComplianceItem, Invoice, OrgContact, EsignRequest, Asset, FeatureRequest, WikiPage, Partner, CustomField, CustomFieldValue, ProductRecommendation } from './types';
 import { MOCK_WORKSPACE_DATA, MOCK_CLIENTS, MOCK_TEMPLATES, DEFAULT_QUICK_LINKS, MOCK_PRODUCTS, MOCK_CONTRACTS, SYSTEM_INSTRUCTION, MOCK_INTEGRATIONS, PLATFORM_OPTIONS, MOCK_MEETINGS, MOCK_TASKS, HELP_DOCS, MOCK_CLIENT_NOTES, MOCK_USERS, MOCK_COMPANIES, POPULAR_LLMS, APP_FEATURES, MOCK_DEALS, MOCK_AUDIT_LOGS, MOCK_NOTIFICATIONS, MOCK_ACTIVITIES, MOCK_TICKETS, DEFAULT_ONBOARDING_STEPS, MOCK_PROJECTS, MOCK_REFERRALS, MOCK_KPI_GOALS, MOCK_TIME_ENTRIES, MOCK_COMPETITORS, MOCK_CSAT, MOCK_SEQUENCES, MOCK_VENDORS, MOCK_DOC_VERSIONS, MOCK_EXPENSES, MOCK_COMPLIANCE, MOCK_INVOICES, MOCK_ORG_CONTACTS, MOCK_ESIGN_REQUESTS, MOCK_ASSETS, MOCK_FEATURE_REQUESTS, MOCK_WIKI_PAGES, MOCK_PARTNERS, MOCK_CUSTOM_FIELDS } from './constants';
 import { NeuroLynxService } from './services/geminiService';
 import { transcribeAudio } from './services/openaiService';
@@ -549,6 +549,8 @@ export const App: React.FC = () => {
     const [esignRequests, setEsignRequests] = useState<EsignRequest[]>(MOCK_ESIGN_REQUESTS);
     const [assets, setAssets] = useState<Asset[]>(MOCK_ASSETS);
     const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>(MOCK_FEATURE_REQUESTS);
+    const [productRecommendations, setProductRecommendations] = useState<ProductRecommendation[]>([]);
+    const [lastRecommendationScan, setLastRecommendationScan] = useState<string>('');
     const [wikiPages, setWikiPages] = useState<WikiPage[]>(MOCK_WIKI_PAGES);
     const [partners, setPartners] = useState<Partner[]>(MOCK_PARTNERS);
     const [customFields, setCustomFields] = useState<CustomField[]>(MOCK_CUSTOM_FIELDS);
@@ -946,6 +948,156 @@ export const App: React.FC = () => {
     const deleteAutomationRule = (id: string) => {
         setAutomationRules(prev => prev.filter(r => r.id !== id));
         addToast('success', 'Rule Deleted');
+    };
+
+    // --- PRODUCT RECOMMENDATIONS ---
+    const runRecommendationScan = () => {
+        // Analyze client data and generate AI recommendations
+        const newRecommendations: ProductRecommendation[] = [];
+        const externalCompanies = companies.filter(c => !c.isInternal);
+        const activeProducts = products.filter(p => p.status === 'active');
+        
+        externalCompanies.forEach(company => {
+            // Get company's existing contracts to avoid recommending what they already have
+            const companyContracts = contracts.filter(c => c.companyId === company.id);
+            const existingProductIds = companyContracts.flatMap(c => c.items.map(i => i.productId));
+            
+            // Get company's meetings and tasks for context
+            const companyMeetings = meetings.filter(m => m.clientId === company.id);
+            const companyTasks = tasks.filter(t => t.clientId === company.id);
+            const companyDeals = deals.filter(d => d.companyId === company.id);
+            
+            // Analyze each product for potential fit
+            activeProducts.forEach(product => {
+                // Skip if company already has this product
+                if (existingProductIds.includes(product.id)) return;
+                
+                // Calculate benefit score based on various factors
+                let score = 50; // Base score
+                const dataPoints: string[] = [];
+                
+                // Industry alignment (simple heuristic)
+                if (company.industry?.toLowerCase().includes('tech') && product.category === 'software') {
+                    score += 15;
+                    dataPoints.push('Industry aligned with software solutions');
+                }
+                if (company.industry?.toLowerCase().includes('tech') && product.category === 'service') {
+                    score += 10;
+                    dataPoints.push('Tech companies benefit from professional services');
+                }
+                
+                // Revenue-based scoring - higher revenue = more likely to afford premium products
+                if (company.revenue > 1000000 && product.price > 5000) {
+                    score += 10;
+                    dataPoints.push(`Company revenue ($${(company.revenue / 1000000).toFixed(1)}M) supports premium pricing`);
+                }
+                
+                // Active engagement scoring
+                if (companyMeetings.length > 2) {
+                    score += 8;
+                    dataPoints.push(`High engagement: ${companyMeetings.length} meetings recorded`);
+                }
+                
+                // Open tasks indicate active project work
+                const openTasks = companyTasks.filter(t => t.status !== 'done').length;
+                if (openTasks > 3) {
+                    score += 5;
+                    dataPoints.push(`${openTasks} active tasks show ongoing collaboration`);
+                }
+                
+                // Deal pipeline activity
+                const activeDeals = companyDeals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage));
+                if (activeDeals.length > 0) {
+                    score += 12;
+                    dataPoints.push(`${activeDeals.length} active deals in pipeline`);
+                }
+                
+                // Lead score consideration
+                if (company.leadScore && company.leadScore > 70) {
+                    score += 10;
+                    dataPoints.push(`High lead score: ${company.leadScore}/100`);
+                }
+                
+                // Cap score at 95 to indicate there's always room for human judgment
+                score = Math.min(95, score);
+                
+                // Only recommend if score is above threshold and we have supporting data
+                if (score >= 55 && dataPoints.length >= 2) {
+                    // Generate reasoning with safe array access
+                    const primaryReason = dataPoints[0] || '';
+                    const additionalReasons = dataPoints.length > 1 ? ` Additionally, ${dataPoints.slice(1).join('. ')}.` : '';
+                    const reasoning = `Based on ${company.name}'s profile and engagement data, ${product.name} would provide significant value. ${primaryReason}.${additionalReasons}`;
+                    
+                    newRecommendations.push({
+                        id: `rec_${Date.now()}_${company.id}_${product.id}`,
+                        companyId: company.id,
+                        productId: product.id,
+                        benefitScore: score,
+                        reasoning,
+                        dataPoints,
+                        status: 'pending',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+            });
+        });
+        
+        // Merge with existing recommendations (don't duplicate)
+        setProductRecommendations(prev => {
+            const existingKeys = new Set(prev.map(r => `${r.companyId}_${r.productId}`));
+            const uniqueNew = newRecommendations.filter(r => !existingKeys.has(`${r.companyId}_${r.productId}`));
+            return [...prev, ...uniqueNew];
+        });
+        
+        setLastRecommendationScan(new Date().toISOString());
+        addToast('success', `Analysis complete. Found ${newRecommendations.length} new recommendations.`);
+    };
+
+    const acceptRecommendation = (id: string) => {
+        setProductRecommendations(prev => prev.map(r => 
+            r.id === id ? { ...r, status: 'accepted', updatedAt: new Date().toISOString() } : r
+        ));
+        addToast('success', 'Recommendation accepted');
+    };
+
+    const dismissRecommendation = (id: string) => {
+        setProductRecommendations(prev => prev.map(r => 
+            r.id === id ? { ...r, status: 'dismissed', updatedAt: new Date().toISOString() } : r
+        ));
+    };
+
+    const convertRecommendationToDeal = (rec: ProductRecommendation) => {
+        const product = products.find(p => p.id === rec.productId);
+        const company = companies.find(c => c.id === rec.companyId);
+        
+        if (!product || !company) {
+            addToast('error', 'Could not find product or company');
+            return;
+        }
+        
+        // Create a new deal from the recommendation
+        const newDeal: Deal = {
+            id: `deal_${Date.now()}`,
+            title: `${product.name} for ${company.name}`,
+            companyId: rec.companyId,
+            value: product.price,
+            stage: 'prospect',
+            probability: Math.min(rec.benefitScore, 80),
+            expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            notes: `Created from AI recommendation.\n\nReasoning: ${rec.reasoning}\n\nData Points:\n${rec.dataPoints.map(dp => `• ${dp}`).join('\n')}`,
+            lastUpdated: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+        };
+        
+        setDeals(prev => [...prev, newDeal]);
+        
+        // Mark recommendation as converted
+        setProductRecommendations(prev => prev.map(r => 
+            r.id === rec.id ? { ...r, status: 'converted', updatedAt: new Date().toISOString() } : r
+        ));
+        
+        addToast('success', `Deal created: ${newDeal.title}`);
     };
 
     // --- HEALTH SCORE CALCULATION ---
@@ -2131,7 +2283,7 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                             <SidebarSubItem active={view === 'assets'} label="IT Inventory" onClick={() => { setView('assets'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'wiki'} label="Brain / Wiki" onClick={() => { setView('wiki'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'orgchart'} label="Org Viz" onClick={() => { setView('orgchart'); ensureClientSelected(); }} />
-                                            <SidebarSubItem active={view === 'roadmap'} label="Product Ops" onClick={() => { setView('roadmap'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'roadmap'} label="AI Recommendations" onClick={() => { setView('roadmap'); ensureClientSelected(); }} />
                                         </div>
                                     )}
                                     {/* Internal Mgmt - now below Client Workspace */}
@@ -2618,6 +2770,14 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                     onRestoreVersion: (versionId: string) => addToast('info', `Restored version ${versionId}`),
                                     onAddExpense: () => setActiveModal('add_expense'),
                                     workspaceItems,
+                                    // Product Recommendations
+                                    productRecommendations,
+                                    lastRecommendationScan,
+                                    onAcceptRecommendation: acceptRecommendation,
+                                    onDismissRecommendation: dismissRecommendation,
+                                    onConvertRecommendationToDeal: convertRecommendationToDeal,
+                                    onRunRecommendationScan: runRecommendationScan,
+                                    products,
                                     // System configuration props for AI model dropdown
                                     mockIntegrations: MOCK_INTEGRATIONS,
                                     configuredModels,

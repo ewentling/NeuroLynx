@@ -239,6 +239,18 @@ export interface Product {
   recurringInterval?: 'one_time' | 'monthly' | 'yearly'; // New Field
 }
 
+export interface ProductRecommendation {
+  id: string;
+  companyId: string;
+  productId: string;
+  benefitScore: number; // 0-100 percentage
+  reasoning: string;
+  dataPoints: string[]; // What data influenced this recommendation
+  status: 'pending' | 'accepted' | 'dismissed' | 'converted';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ContractItem {
   productId: string;
   productName: string;

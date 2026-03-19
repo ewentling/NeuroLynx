@@ -7,7 +7,7 @@ import {
     WikiPage, OrgContact, FeatureRequest, Partner, CustomField,
     ActivityEntry, OnboardingChecklist, EmailSequence, Vendor,
     BillingRecord, Expense, ComplianceItem, DocVersion, CSATResponse,
-    Project, TimeEntry
+    Project, TimeEntry, ProductRecommendation
 } from '../types';
 
 // Sub-components for better organization
@@ -32,7 +32,7 @@ import EsignTracker from './EsignTracker';
 import AssetTracker from './AssetTracker';
 import WikiView from './WikiView';
 import OrgChartView from './OrgChartView';
-import RoadmapView from './RoadmapView';
+import ProductRecommendationsView from './ProductRecommendationsView';
 import PartnerView from './PartnerView';
 import MetadataManager from './MetadataManager';
 import ActivityTimeline from './ActivityTimeline';
@@ -220,6 +220,14 @@ interface ManagementPanelProps {
     docVersions?: DocVersion[];
     onRestoreVersion?: (versionId: string) => void;
     onAddExpense?: () => void;
+    
+    // Product Recommendations
+    productRecommendations?: ProductRecommendation[];
+    lastRecommendationScan?: string;
+    onAcceptRecommendation?: (id: string) => void;
+    onDismissRecommendation?: (id: string) => void;
+    onConvertRecommendationToDeal?: (rec: ProductRecommendation) => void;
+    onRunRecommendationScan?: () => void;
 }
 
 const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
@@ -503,9 +511,20 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 )
             )}
             {view === 'roadmap' && (
-                <RoadmapView
-                    requests={props.featureRequests || []}
+                <ProductRecommendationsView
+                    recommendations={props.productRecommendations || []}
+                    products={props.products || []}
                     companies={props.companies || []}
+                    contracts={props.contracts || []}
+                    meetings={props.meetings || []}
+                    tasks={props.tasks || []}
+                    deals={props.deals || []}
+                    selectedCompanyId={props.selectedCompanyId}
+                    onAcceptRecommendation={props.onAcceptRecommendation || (() => {})}
+                    onDismissRecommendation={props.onDismissRecommendation || (() => {})}
+                    onConvertToDeal={props.onConvertRecommendationToDeal || (() => {})}
+                    onRunScan={props.onRunRecommendationScan || (() => {})}
+                    lastScanDate={props.lastRecommendationScan}
                 />
             )}
             {view === 'partners' && (
