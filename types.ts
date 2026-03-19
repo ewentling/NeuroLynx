@@ -192,6 +192,7 @@ export interface Company {
   leadScore?: number; // 0-100
   leadSource?: LeadSource;
   coordinates?: { lat: number; lng: number };
+  isInternal?: boolean; // True for internal organization entry
 }
 
 export interface Client { // Represents a Contact Person

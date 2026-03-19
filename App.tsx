@@ -468,7 +468,7 @@ export const App: React.FC = () => {
     const [memories, setMemories] = useState<MemoryEntry[]>(MOCK_WORKSPACE_DATA.map(item => ({ id: item.id, key: item.title, value: item.snippet, timestamp: Date.now(), type: 'text', createdBy: 'user1' })));
     const [messages, setMessages] = useState<Message[]>([]);
     const [documents, setDocuments] = useState<any[]>([]);
-    const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string>('internal');
     const [clientStatusFilter, setClientStatusFilter] = useState<'all' | 'active' | 'inactive' | 'lead'>('all');
     const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(true);
     const [isInternalMgmtOpen, setIsInternalMgmtOpen] = useState(true);
@@ -674,6 +674,16 @@ export const App: React.FC = () => {
     }, []);
 
     useEffect(() => { localStorage.setItem('neurolynx_biz_profile', JSON.stringify(businessProfile)); }, [businessProfile]);
+    // Sync businessProfile changes with internal company record in database
+    useEffect(() => {
+        setCompanies(prev => prev.map(c => c.isInternal ? {
+            ...c,
+            name: businessProfile.name,
+            address: businessProfile.address,
+            phone: businessProfile.phone,
+            website: businessProfile.website
+        } : c));
+    }, [businessProfile]);
     useEffect(() => {
         const saveModels = async () => {
             if (configuredModels.length > 0) {
@@ -862,13 +872,16 @@ export const App: React.FC = () => {
 
     // Helper function to ensure a company is selected when navigating to client workspace views
     const ensureClientSelected = useCallback(() => {
-        if (selectedCompanyId === 'all' && companies.length > 0) {
-            setSelectedCompanyId(companies[0].id);
+        // If internal org is selected, switch to first external client
+        const internalCompany = companies.find(c => c.isInternal);
+        if (selectedCompanyId === 'internal' || selectedCompanyId === internalCompany?.id) {
+            const firstClient = companies.find(c => !c.isInternal);
+            if (firstClient) setSelectedCompanyId(firstClient.id);
         }
     }, [selectedCompanyId, companies]);
 
     const getMonthlyRunRate = useCallback((companyId: string) => {
-        const activeContracts = contracts.filter(c => c.status === 'active' && (companyId === 'all' || c.companyId === companyId));
+        const activeContracts = contracts.filter(c => c.status === 'active' && c.companyId === companyId);
         return activeContracts.reduce((sum, c) => sum + c.totalValue, 0);
     }, [contracts]);
 
@@ -938,9 +951,10 @@ export const App: React.FC = () => {
     // --- HEALTH SCORE CALCULATION ---
     // Using the standalone service
     const clientHealth = useMemo(() => {
-        if (!selectedCompanyId || selectedCompanyId === 'all') return { score: 0, trend: 'stable' as const };
+        const internalCompany = companies.find(c => c.isInternal);
+        if (!selectedCompanyId || selectedCompanyId === 'internal' || selectedCompanyId === internalCompany?.id) return { score: 0, trend: 'stable' as const };
         return calculateClientHealth(selectedCompanyId, meetings, billingRecords, contracts);
-    }, [selectedCompanyId, meetings, billingRecords, contracts]);
+    }, [selectedCompanyId, meetings, billingRecords, contracts, companies]);
 
     // --- CONTRACT & DOC GENERATION ---
     const openContractBuilder = (contract?: Contract) => {
@@ -1007,11 +1021,12 @@ export const App: React.FC = () => {
 
         // Find existing deal to preserve createdAt if editing
         const existingDeal = isEdit ? deals.find(d => d.id === modalData.id) : null;
+        const firstClient = companies.find(c => !c.isInternal);
 
         const newDeal: Deal = {
             id: modalData.id || Date.now().toString(),
             title: modalData.title,
-            companyId: modalData.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : companies[0].id),
+            companyId: modalData.companyId || (selectedCompanyId !== 'internal' ? selectedCompanyId : firstClient?.id || ''),
             value: Number(modalData.value) || 0,
             stage: stage,
             probability: probability,
@@ -1396,8 +1411,8 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             const title = payload?.title || 'Follow up';
             const priority = payload?.priority || 'high';
             const dueDate = payload?.dueDate || new Date(Date.now() + 86400000).toISOString().split('T')[0];
-            // For internal context, set clientId to undefined to mark as internal task
-            const newTask: Task = { id: `task-${Date.now()}`, title, description: payload?.description || '', status: 'todo', priority, dueDate, clientId: isInternal ? undefined : clientContext };
+            // For internal context, use 'internal' company ID to store in same database
+            const newTask: Task = { id: `task-${Date.now()}`, title, description: payload?.description || '', status: 'todo', priority, dueDate, clientId: isInternal ? 'internal' : clientContext };
             setTasks(prev => [newTask, ...prev]);
             const contextLabel = isInternal ? ' (Internal Organization)' : '';
             return { result: `Task created${contextLabel}: "${title}" due ${dueDate}`, log: { ...queued, status: 'success' } };
@@ -1416,8 +1431,8 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             return { result: resultText, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'list_tasks') {
-            // When in internal context, show all tasks including internal ones
-            const relevantTasks = isInternal ? tasks : (clientContext ? tasks.filter(t => t.clientId === clientContext) : tasks);
+            // When in internal context, show tasks for internal org; otherwise filter by client
+            const relevantTasks = isInternal ? tasks.filter(t => t.clientId === 'internal' || !t.clientId) : (clientContext ? tasks.filter(t => t.clientId === clientContext) : tasks);
             const buckets = relevantTasks.reduce((acc: Record<string, string[]>, t) => {
                 acc[t.status] = acc[t.status] || [];
                 acc[t.status].push(t.title);
@@ -1438,8 +1453,8 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
                 transcript: '',
                 status: 'scheduled',
                 attendees: payload?.attendees || [],
-                // For internal context, set clientId to undefined to mark as internal meeting
-                clientId: isInternal ? undefined : clientContext,
+                // For internal context, use 'internal' company ID to store in same database
+                clientId: isInternal ? 'internal' : clientContext,
                 link: payload?.link || 'https://meet.neurolynx.ai/room',
                 type: 'video'
             };
@@ -1527,8 +1542,8 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
         if (!input.trim() || isLoading) return;
 
         // Derive client context from selected company (for MCP tool scoping)
-        // When in internal workspace mode, use 'internal' to allow chat to read/write internal org data
-        const clientContext = selectedCompanyId !== 'all' ? selectedCompanyId : (workspaceMode === 'internal' ? 'internal' : undefined);
+        // Use 'internal' for internal org, or the specific company ID
+        const clientContext = selectedCompanyId;
 
         // Add user message to chat
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: input, timestamp: Date.now(), type: 'text' }]);
@@ -1606,9 +1621,15 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
         );
 
         // Build internal organization context when in internal workspace mode
-        const internalOrgContext = workspaceMode === 'internal' ? `
+        const internalCompany = companies.find(c => c.isInternal);
+        const internalOrgContext = (workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `
 INTERNAL ORGANIZATION CONTEXT:
 You are currently viewing the Internal Organization workspace. You can read/write to internal data.
+
+YOUR ORGANIZATION: ${internalCompany?.name || businessProfile.name}
+ADDRESS: ${internalCompany?.address || businessProfile.address}
+PHONE: ${internalCompany?.phone || businessProfile.phone}
+WEBSITE: ${internalCompany?.website || businessProfile.website}
 
 TEAM MEMBERS (${users.length} total):
 ${users.map(u => `- ${u.name} (${u.role}): ${u.email}`).join('\n')}
@@ -1650,9 +1671,10 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 - You can create tasks, schedule meetings, and more via natural language
 - You have access to Meeting Intelligence data including meeting summaries, action items, and sentiment analysis
 - You have access to Support Tickets data including priority, status, and category
-${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATION workspace and can read/write internal org data
+- Internal organization and external companies are all stored in the same database
+${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You are currently in the INTERNAL ORGANIZATION workspace and can read/write internal org data
 - You have access to team members, products/offerings, and automation rules
-- You can create internal tasks and meetings not associated with any client` : ''}
+- You can create internal tasks and meetings associated with your organization` : ''}
 - Be helpful, concise, and professional
 - If asked about "highest paying customer", use the Revenue figures
 - If the data doesn't contain the answer, say so honestly
@@ -1758,7 +1780,8 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
     // --- Real Document Generation ---
     const handleCreateDocument = (template: Template) => {
         const doc = new jsPDF();
-        const company = companies.find(c => c.id === (selectedCompanyId !== 'all' ? selectedCompanyId : companies[0].id));
+        const firstClient = companies.find(c => !c.isInternal);
+        const company = companies.find(c => c.id === (selectedCompanyId !== 'internal' ? selectedCompanyId : firstClient?.id));
         const clientName = clients.find(c => c.companyId === company?.id)?.name || 'Client Name';
         const companyName = company?.name || 'Company Name';
         const date = new Date().toLocaleDateString();
@@ -1960,8 +1983,8 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
     };
     const handleMeetingClick = (meeting: Meeting) => { setSelectedMeeting(meeting); setMeetingRecommendationsSelected(new Set()); setMeetingRecommendationDates({}); };
     const handleAddRecommendationsToTasks = () => { if (!selectedMeeting) return; const tasksToAdd: Task[] = Array.from(meetingRecommendationsSelected).map((recText: string) => ({ id: Date.now().toString() + Math.random(), title: recText, description: `Generated from meeting: ${selectedMeeting.title}`, status: 'todo', priority: 'medium', clientId: selectedMeeting.clientId || 'comp1', assignedTo: currentUser?.id, source: 'meeting', dueDate: meetingRecommendationDates[recText] })); setTasks(prev => [...prev, ...tasksToAdd]); addToast('success', `${tasksToAdd.length} tasks added`); setMeetingRecommendationsSelected(new Set()); setMeetingRecommendationDates({}); };
-    const handleMemoryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; const text = await extractTextFromPDF(file); setMemories(prev => [{ id: Date.now().toString(), key: file.name, value: text.substring(0, 200) + '...', timestamp: Date.now(), createdBy: currentUser?.name || 'User', type: 'file', fileName: file.name, clientId: selectedCompanyId !== 'all' ? selectedCompanyId : undefined }, ...prev]); addToast('success', 'Memory Uploaded'); };
-    const saveManualMemory = () => { if (!modalData.content) return; setMemories(prev => [{ id: Date.now().toString(), key: 'Manual Note', value: modalData.content, timestamp: Date.now(), createdBy: currentUser?.name || 'User', type: 'text', clientId: selectedCompanyId !== 'all' ? selectedCompanyId : undefined }, ...prev]); setActiveModal(null); addToast('success', 'Note Added'); };
+    const handleMemoryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; const text = await extractTextFromPDF(file); setMemories(prev => [{ id: Date.now().toString(), key: file.name, value: text.substring(0, 200) + '...', timestamp: Date.now(), createdBy: currentUser?.name || 'User', type: 'file', fileName: file.name, clientId: selectedCompanyId }, ...prev]); addToast('success', 'Memory Uploaded'); };
+    const saveManualMemory = () => { if (!modalData.content) return; setMemories(prev => [{ id: Date.now().toString(), key: 'Manual Note', value: modalData.content, timestamp: Date.now(), createdBy: currentUser?.name || 'User', type: 'text', clientId: selectedCompanyId }, ...prev]); setActiveModal(null); addToast('success', 'Note Added'); };
 
     const calculateContractTotals = () => { const subtotal = contractBuilderItems.reduce((acc, i) => acc + (i.quantity * i.unitPrice), 0); const taxable = Math.max(0, subtotal - contractDiscount); const tax = taxable * contractTaxRate; const total = taxable + tax; return { subtotal, tax, total }; };
     const totals = calculateContractTotals();
@@ -2115,11 +2138,11 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                                     <SidebarGroupToggle isOpen={isInternalMgmtOpen} label="Internal Mgmt" onClick={() => setIsInternalMgmtOpen(!isInternalMgmtOpen)} isMainLabel={true} />
                                     {isInternalMgmtOpen && (
                                         <div className="space-y-1 mt-1 pl-2 transition-all submenu-glow-level-1">
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'offerings'} label="Offerings" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('offerings'); }} />
+                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'offerings'} label="Offerings" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('internal'); setInternalTab('offerings'); }} />
                                             {currentUser?.role === 'admin' && (
-                                                <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'team'} label="Team" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('team'); }} />
+                                                <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'team'} label="Team" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('internal'); setInternalTab('team'); }} />
                                             )}
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('automations'); }} />
+                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('internal'); setInternalTab('automations'); }} />
                                             <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
                                             <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
                                             <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => setView('partners')} />
@@ -2314,7 +2337,7 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                 <header className={`h-20 border-b flex items-center justify-between px-8 flex-shrink-0 z-40 ${isDarkMode ? 'bg-slate-900/60 border-white/5 backdrop-blur-md' : 'bg-white/80 border-gray-200 backdrop-blur-md'}`}>
                     <div className="flex items-center gap-6 flex-1">
                         <div className="flex flex-col">
-                            <Breadcrumbs view={view} companyName={selectedCompanyId !== 'all' ? companies.find(c => c.id === selectedCompanyId)?.name : undefined} />
+                            <Breadcrumbs view={view} companyName={companies.find(c => c.id === selectedCompanyId)?.name} />
                             <h1 className="font-extrabold text-2xl neuro-text-gradient uppercase hidden md:block leading-tight">{getViewLabel(view)}</h1>
                         </div>
 
@@ -2374,11 +2397,11 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                         {CLIENT_WORKSPACE_VIEWS.includes(view) && (
                             <select
                                 value={selectedCompanyId}
-                                onChange={(e) => { setSelectedCompanyId(e.target.value); if (view === 'workspace') setWorkspaceMode(e.target.value === 'all' ? 'internal' : 'client'); }}
+                                onChange={(e) => { setSelectedCompanyId(e.target.value); if (view === 'workspace') setWorkspaceMode(e.target.value === 'internal' ? 'internal' : 'client'); }}
                                 className="bg-slate-800 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-500 max-w-[150px] truncate"
                             >
-                                <option value="all">Internal / All</option>
-                                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                <option value="internal">Internal Organization</option>
+                                {companies.filter(c => !c.isInternal).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         )}
                         <div className="relative">
@@ -2557,7 +2580,7 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                                     onSaveInvoice: (inv: any) => setInvoices(prev => [...prev, inv]),
                                     esignRequests,
                                     assets,
-                                    onAddAsset: () => { setModalData({ companyId: selectedCompanyId !== 'all' ? selectedCompanyId : '' }); setActiveModal('save_asset'); },
+                                    onAddAsset: () => { setModalData({ companyId: selectedCompanyId }); setActiveModal('save_asset'); },
                                     onEditAsset: (asset: Asset) => { setModalData({ ...asset }); setActiveModal('save_asset'); },
                                     onRemoveAsset: (assetId: string) => {
                                         setAssets(prev => prev.filter(a => a.id !== assetId));
@@ -2566,7 +2589,7 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                                     wikiPages,
                                     onCreateWikiPage: () => setActiveModal('create_wiki_page'),
                                     orgContacts,
-                                    onAddOrgContact: () => { setModalData({ companyId: selectedCompanyId !== 'all' ? selectedCompanyId : '' }); setActiveModal('add_org_contact'); },
+                                    onAddOrgContact: () => { setModalData({ companyId: selectedCompanyId }); setActiveModal('add_org_contact'); },
                                     onRemoveOrgContact: (contactId: string) => {
                                         setOrgContacts(prev => prev.filter(c => c.id !== contactId));
                                         addToast('success', 'Contact removed from organization');
@@ -2675,7 +2698,7 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                                             />
                                         )}
 
-                                        {view === 'workspace' && workspaceMode === 'client' && selectedCompanyId !== 'all' && (
+                                        {view === 'workspace' && workspaceMode === 'client' && selectedCompanyId !== 'internal' && (
                                             <ManagementPanel
                                                 {...commonPanelProps}
                                                 view="workspace"
@@ -2733,7 +2756,7 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                                         )}
                                         {view === 'memory' && <MemoryView memory={memories} onMemoryUpload={handleMemoryUpload} onSetActiveModal={setActiveModal} />}
                                         {/* Client Workspace Tickets - filtered by selected company */}
-                                        {view === 'tickets' && <ManagementPanel view="tickets" tickets={selectedCompanyId !== 'all' ? tickets.filter(t => t.companyId === selectedCompanyId) : tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
+                                        {view === 'tickets' && <ManagementPanel view="tickets" tickets={tickets.filter(t => t.companyId === selectedCompanyId)} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
                                         {/* Global Tickets - shows all tickets across all clients */}
                                         {view === 'alltickets' && <ManagementPanel view="tickets" tickets={tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
                                         {['forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'].includes(view) && (
@@ -2815,7 +2838,7 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-xs text-slate-500 uppercase mb-1 block">Client</label>
-                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : '')} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
+                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || selectedCompanyId} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
                                                 <option value="">Select Client...</option>
                                                 {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                             </select>
@@ -3232,9 +3255,9 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                                         </select>
                                         <textarea className="w-full p-3 bg-black/20 rounded border border-white/10 h-20 resize-none" placeholder="Notes (optional)" value={modalData.notes || ''} onChange={e => setModalData({ ...modalData, notes: e.target.value })} />
                                         <button 
-                                            disabled={!modalData.companyId && selectedCompanyId === 'all'}
+                                            disabled={!modalData.companyId && !selectedCompanyId}
                                             onClick={() => {
-                                                const companyId = modalData.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : '');
+                                                const companyId = modalData.companyId || selectedCompanyId;
                                                 if (!companyId) {
                                                     addToast('error', 'Please select a company');
                                                     return;
@@ -3257,7 +3280,7 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                                                 setActiveModal(null);
                                                 setModalData({});
                                                 addToast('success', `Asset ${modalData.id ? 'updated' : 'created'} successfully`);
-                                        }} className={`w-full py-3 rounded font-bold text-white ${!modalData.companyId && selectedCompanyId === 'all' ? 'bg-slate-600 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500'}`}>Save Asset</button>
+                                        }} className={`w-full py-3 rounded font-bold text-white ${!modalData.companyId && !selectedCompanyId ? 'bg-slate-600 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500'}`}>Save Asset</button>
                                     </div>
                                 )
                             }
@@ -3346,7 +3369,7 @@ ${workspaceMode === 'internal' ? `- You are currently in the INTERNAL ORGANIZATI
                                     <ContractBuilder
                                         isOpen={true}
                                         onClose={() => setActiveModal(null)}
-                                        selectedCompanyId={selectedCompanyId !== 'all' ? selectedCompanyId : 'unknown'}
+                                        selectedCompanyId={selectedCompanyId}
                                         companies={companies}
                                         products={products}
                                         businessProfile={businessProfile}
