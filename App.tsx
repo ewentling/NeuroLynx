@@ -1026,7 +1026,7 @@ export const App: React.FC = () => {
         const newDeal: Deal = {
             id: modalData.id || Date.now().toString(),
             title: modalData.title,
-            companyId: modalData.companyId || (selectedCompanyId !== 'internal' ? selectedCompanyId : firstClient?.id || ''),
+            companyId: modalData.companyId || (selectedCompanyId !== 'internal' ? selectedCompanyId : (firstClient?.id || 'internal')),
             value: Number(modalData.value) || 0,
             stage: stage,
             probability: probability,
@@ -1431,7 +1431,7 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             return { result: resultText, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'list_tasks') {
-            // When in internal context, show tasks for internal org; otherwise filter by client
+            // When in internal context, show tasks for internal org (includes legacy tasks without clientId for backward compatibility)
             const relevantTasks = isInternal ? tasks.filter(t => t.clientId === 'internal' || !t.clientId) : (clientContext ? tasks.filter(t => t.clientId === clientContext) : tasks);
             const buckets = relevantTasks.reduce((acc: Record<string, string[]>, t) => {
                 acc[t.status] = acc[t.status] || [];
