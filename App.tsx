@@ -1484,6 +1484,16 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             products.map(p => `- ${p.name}: $${p.price}`),
             MAX_ITEMS_PER_SECTION, 'products'
         );
+        const allMeetings = truncateList(
+            meetings.map(m => {
+                const compName = m.clientId ? (companies.find(c => c.id === m.clientId)?.name || 'Unknown') : 'No client';
+                const meetingDate = new Date(m.date).toLocaleDateString();
+                const actionItemsStr = m.actionItems?.length ? ` Action items: ${m.actionItems.join('; ')}` : '';
+                const sentimentStr = m.sentiment ? ` Sentiment: ${m.sentiment}` : '';
+                return `- Meeting "${m.title}" with ${compName} on ${meetingDate} (${m.status}): ${m.summary}${actionItemsStr}${sentimentStr}`;
+            }),
+            MAX_ITEMS_PER_SECTION, 'meetings'
+        );
 
         let contextData = `
 [NEUROLYNX INTERNAL DATABASE]
@@ -1504,10 +1514,14 @@ ${allTasks}
 PRODUCTS/OFFERINGS (${products.length} total):
 ${productsList}
 
+MEETINGS/MEETING INTELLIGENCE (${meetings.length} total):
+${allMeetings}
+
 INSTRUCTIONS: 
 You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 - Answer questions based on the data provided above
 - You can create tasks, schedule meetings, and more via natural language
+- You have access to Meeting Intelligence data including meeting summaries, action items, and sentiment analysis
 - Be helpful, concise, and professional
 - If asked about "highest paying customer", use the Revenue figures
 - If the data doesn't contain the answer, say so honestly
