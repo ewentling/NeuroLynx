@@ -130,10 +130,12 @@ const MeetingsView: React.FC<MeetingsViewProps> = ({
             duration: 0
         };
         
-        onScheduleMeeting?.(newMeeting);
+        if (onScheduleMeeting) {
+            onScheduleMeeting(newMeeting);
+            onAddToast('success', 'Meeting scheduled successfully');
+        }
         setShowScheduleModal(false);
         setScheduleForm({ title: '', date: '', time: '', type: 'video', clientId: selectedCompanyId || '', link: '', attendees: '' });
-        onAddToast('success', 'Meeting scheduled successfully');
     };
 
     const handleAddActionItemsAsTasks = () => {

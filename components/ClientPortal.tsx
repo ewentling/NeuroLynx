@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Company, Project, BillingRecord, WorkspaceItem, Message, SupportTicket, TicketPriority } from '../types';
 
+// Delay before revoking object URLs - allows browser time to load the URL in new tab
+const URL_REVOKE_DELAY_MS = 1000;
+
 interface ClientPortalProps {
     company: Company;
     projects: Project[];
@@ -32,6 +35,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ company, projects, billing,
                 const blob = new Blob([Uint8Array.from(atob(doc.contentData), c => c.charCodeAt(0))], { type: mimeType });
                 const url = URL.createObjectURL(blob);
                 window.open(url, '_blank');
+                // Revoke object URL after delay to prevent memory leak
+                setTimeout(() => URL.revokeObjectURL(url), URL_REVOKE_DELAY_MS);
             } catch (error) {
                 alert(`Unable to preview "${doc.title}". The document data may be corrupted.`);
             }
@@ -40,6 +45,8 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ company, projects, billing,
             const blob = new Blob([doc.fullContent], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             window.open(url, '_blank');
+            // Revoke object URL after delay to prevent memory leak
+            setTimeout(() => URL.revokeObjectURL(url), URL_REVOKE_DELAY_MS);
         } else {
             // Fallback: show alert that document is not available for preview
             alert(`Document "${doc.title}" - Preview not available. Contact your advisor for access.`);

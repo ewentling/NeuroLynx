@@ -62,6 +62,7 @@ interface ManagementPanelProps {
     onDeleteDeal?: (dealId: string) => void;
     onMarkLost?: (dealId: string) => void;
     onViewDeal?: (deal: Deal) => void;
+    onDuplicateDeal?: (deal: Deal) => void;
     onEditCompany?: (company: Company) => void;
 
     // Meetings
@@ -257,6 +258,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     onDeleteDeal={props.onDeleteDeal}
                     onMarkLost={props.onMarkLost}
                     onViewDeal={props.onViewDeal}
+                    onDuplicateDeal={props.onDuplicateDeal}
                 />
             )}
             {view === 'meetings' && (

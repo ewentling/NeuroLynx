@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Deal, DealStage, DealFilters, Company, User } from '../../types';
 import { PLAYBOOKS } from '../../constants';
 
@@ -77,7 +77,7 @@ const PipelineView: React.FC<PipelineViewProps> = ({
             const searchLower = filters.search.toLowerCase();
             result = result.filter(d =>
                 d.title.toLowerCase().includes(searchLower) ||
-                companies.find(c => c.id === d.companyId)?.name.toLowerCase().includes(searchLower)
+                (companies.find(c => c.id === d.companyId)?.name?.toLowerCase() || '').includes(searchLower)
             );
         }
 
@@ -109,6 +109,19 @@ const PipelineView: React.FC<PipelineViewProps> = ({
 
         return result;
     }, [deals, selectedCompanyId, filters, companies]);
+
+    // Clear selectedDeals when filters/company selection change (keeps only visible deals selected)
+    useEffect(() => {
+        const visibleDealIds = new Set(filteredDeals.map(d => d.id));
+        setSelectedDeals(prev => {
+            const intersected = new Set([...prev].filter(id => visibleDealIds.has(id)));
+            // Only update if there's a difference to avoid infinite loops
+            if (intersected.size !== prev.size) {
+                return intersected;
+            }
+            return prev;
+        });
+    }, [filteredDeals]);
 
     // Calculate pipeline metrics
     const pipelineMetrics = useMemo(() => {
@@ -528,9 +541,9 @@ const PipelineView: React.FC<PipelineViewProps> = ({
                                                     </div>
                                                 )}
 
-                                                {/* Archived badge */}
+                                                {/* Archived badge - positioned bottom-left to avoid overlap with selection checkbox */}
                                                 {deal.isArchived && (
-                                                    <div className="absolute top-2 left-2 text-[9px] bg-slate-600 px-1.5 py-0.5 rounded uppercase">
+                                                    <div className="absolute bottom-2 left-2 text-[9px] bg-slate-600 px-1.5 py-0.5 rounded uppercase">
                                                         Archived
                                                     </div>
                                                 )}
