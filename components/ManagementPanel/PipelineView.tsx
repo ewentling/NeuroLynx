@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Deal, DealStage, DealFilters, Company, User } from '../../types';
+import { PLAYBOOKS } from '../../constants';
 
 interface PipelineViewProps {
     deals: Deal[];
@@ -17,6 +18,7 @@ interface PipelineViewProps {
     onDeleteDeal?: (dealId: string) => void;
     onMarkLost?: (dealId: string) => void;
     onViewDeal?: (deal: Deal) => void;
+    onDuplicateDeal?: (deal: Deal) => void;
 }
 
 const STAGES: DealStage[] = ['qualification', 'proposal', 'negotiation', 'closed_won', 'closed_lost'];
@@ -24,6 +26,8 @@ const STAGES: DealStage[] = ['qualification', 'proposal', 'negotiation', 'closed
 // Stagnant deal threshold - deals without updates for this duration are flagged
 const STAGNANT_THRESHOLD_DAYS = 30;
 const STAGNANT_THRESHOLD_MS = STAGNANT_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+
+type ViewMode = 'kanban' | 'list';
 
 const PipelineView: React.FC<PipelineViewProps> = ({
     deals,
@@ -40,10 +44,14 @@ const PipelineView: React.FC<PipelineViewProps> = ({
     onEditDeal,
     onDeleteDeal,
     onMarkLost,
-    onViewDeal
+    onViewDeal,
+    onDuplicateDeal
 }) => {
     // Filter state
     const [showFilters, setShowFilters] = useState(false);
+    const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+    const [selectedDeals, setSelectedDeals] = useState<Set<string>>(new Set());
+    const [showPlaybook, setShowPlaybook] = useState<string | null>(null);
     const [filters, setFilters] = useState<DealFilters>({
         search: '',
         stages: [],
@@ -108,8 +116,46 @@ const PipelineView: React.FC<PipelineViewProps> = ({
         const totalValue = activeDeals.reduce((acc, d) => acc + d.value, 0);
         const weightedValue = activeDeals.reduce((acc, d) => acc + (d.value * d.probability / 100), 0);
         const dealCount = activeDeals.length;
-        return { totalValue, weightedValue, dealCount };
+        
+        // Calculate stagnant deals
+        const stagnantDeals = activeDeals.filter(d => (new Date().getTime() - new Date(d.lastUpdated).getTime()) > STAGNANT_THRESHOLD_MS);
+        
+        // Calculate win rate
+        const closedWon = filteredDeals.filter(d => d.stage === 'closed_won').length;
+        const closedLost = filteredDeals.filter(d => d.stage === 'closed_lost').length;
+        const winRate = (closedWon + closedLost) > 0 ? Math.round((closedWon / (closedWon + closedLost)) * 100) : 0;
+        
+        // Calculate avg deal size
+        const avgDealSize = activeDeals.length > 0 ? Math.round(totalValue / activeDeals.length) : 0;
+        
+        // Calculate deals closing this month
+        const thisMonth = new Date().toISOString().substring(0, 7);
+        const closingThisMonth = activeDeals.filter(d => d.expectedCloseDate?.substring(0, 7) === thisMonth).length;
+        
+        return { totalValue, weightedValue, dealCount, stagnantDeals: stagnantDeals.length, winRate, avgDealSize, closingThisMonth };
     }, [filteredDeals]);
+
+    // Toggle deal selection for bulk operations
+    const toggleDealSelection = (dealId: string, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        setSelectedDeals(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(dealId)) {
+                newSet.delete(dealId);
+            } else {
+                newSet.add(dealId);
+            }
+            return newSet;
+        });
+    };
+
+    // Bulk move selected deals
+    const bulkMoveDeals = (stage: DealStage) => {
+        selectedDeals.forEach(dealId => {
+            onMoveDeal(dealId, stage);
+        });
+        setSelectedDeals(new Set());
+    };
 
     const clearFilters = () => {
         setFilters({
@@ -128,8 +174,8 @@ const PipelineView: React.FC<PipelineViewProps> = ({
         filters.minValue !== undefined || filters.maxValue !== undefined ||
         filters.dateFrom || filters.dateTo || filters.ownerId || filters.showArchived;
 
-    const handleMarkLost = (dealId: string, e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleMarkLost = (dealId: string, e?: React.MouseEvent) => {
+        e?.stopPropagation();
         if (onMarkLost) {
             onMarkLost(dealId);
         } else {
@@ -143,25 +189,36 @@ const PipelineView: React.FC<PipelineViewProps> = ({
         return owner?.name;
     };
 
+    const getDaysInStage = (deal: Deal) => {
+        const lastUpdated = new Date(deal.lastUpdated).getTime();
+        const now = Date.now();
+        return Math.floor((now - lastUpdated) / (24 * 60 * 60 * 1000));
+    };
+
     return (
         <div className="h-full flex flex-col">
             {/* Header */}
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
                 <div>
                     <h2 className="text-2xl font-bold">Deal Pipeline</h2>
-                    <div className="text-sm text-slate-400 mt-1 flex gap-4">
-                        <span>
-                            Pipeline Value: <span className="text-emerald-400 font-mono font-bold">${pipelineMetrics.totalValue.toLocaleString()}</span>
-                        </span>
-                        <span>
-                            Weighted: <span className="text-cyan-400 font-mono font-bold">${Math.round(pipelineMetrics.weightedValue).toLocaleString()}</span>
-                        </span>
-                        <span>
-                            Deals: <span className="text-white font-mono">{pipelineMetrics.dealCount}</span>
-                        </span>
-                    </div>
+                    <p className="text-sm text-slate-400 mt-1">Track and manage your sales opportunities</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                    {/* View Mode Toggle */}
+                    <div className="flex bg-slate-800 rounded-lg p-1 border border-white/10">
+                        <button
+                            onClick={() => setViewMode('kanban')}
+                            className={`px-3 py-1 rounded text-xs font-bold transition-all ${viewMode === 'kanban' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            <i className="fas fa-columns"></i>
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`px-3 py-1 rounded text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            <i className="fas fa-list"></i>
+                        </button>
+                    </div>
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`px-4 py-2 rounded text-xs font-bold shadow-lg transition-all ${showFilters || hasActiveFilters ? 'bg-cyan-600 text-white' : 'bg-slate-700 hover:bg-slate-600'}`}
@@ -178,6 +235,68 @@ const PipelineView: React.FC<PipelineViewProps> = ({
                     </button>
                 </div>
             </div>
+
+            {/* Quick Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-4 flex-shrink-0">
+                <div className="bg-slate-800/70 rounded-xl p-4 border border-white/5">
+                    <div className="text-xs text-slate-500 uppercase font-bold">Pipeline Value</div>
+                    <div className="text-xl font-bold font-mono text-emerald-400">${pipelineMetrics.totalValue.toLocaleString()}</div>
+                </div>
+                <div className="bg-slate-800/70 rounded-xl p-4 border border-white/5">
+                    <div className="text-xs text-slate-500 uppercase font-bold">Weighted</div>
+                    <div className="text-xl font-bold font-mono text-cyan-400">${Math.round(pipelineMetrics.weightedValue).toLocaleString()}</div>
+                </div>
+                <div className="bg-slate-800/70 rounded-xl p-4 border border-white/5">
+                    <div className="text-xs text-slate-500 uppercase font-bold">Active Deals</div>
+                    <div className="text-xl font-bold font-mono text-white">{pipelineMetrics.dealCount}</div>
+                </div>
+                <div className="bg-slate-800/70 rounded-xl p-4 border border-white/5">
+                    <div className="text-xs text-slate-500 uppercase font-bold">Avg Deal Size</div>
+                    <div className="text-xl font-bold font-mono text-purple-400">${pipelineMetrics.avgDealSize.toLocaleString()}</div>
+                </div>
+                <div className="bg-slate-800/70 rounded-xl p-4 border border-white/5">
+                    <div className="text-xs text-slate-500 uppercase font-bold">Win Rate</div>
+                    <div className={`text-xl font-bold font-mono ${pipelineMetrics.winRate >= 50 ? 'text-green-400' : 'text-yellow-400'}`}>{pipelineMetrics.winRate}%</div>
+                </div>
+                <div className={`rounded-xl p-4 border ${pipelineMetrics.stagnantDeals > 0 ? 'bg-red-500/10 border-red-500/30' : 'bg-slate-800/70 border-white/5'}`}>
+                    <div className="text-xs text-slate-500 uppercase font-bold">Stagnant</div>
+                    <div className={`text-xl font-bold font-mono ${pipelineMetrics.stagnantDeals > 0 ? 'text-red-400' : 'text-slate-400'}`}>{pipelineMetrics.stagnantDeals}</div>
+                </div>
+                <div className="bg-slate-800/70 rounded-xl p-4 border border-white/5">
+                    <div className="text-xs text-slate-500 uppercase font-bold">Closing Soon</div>
+                    <div className="text-xl font-bold font-mono text-orange-400">{pipelineMetrics.closingThisMonth}</div>
+                </div>
+            </div>
+
+            {/* Bulk Actions Bar (when deals are selected) */}
+            {selectedDeals.size > 0 && (
+                <div className="mb-4 p-3 bg-cyan-600/20 border border-cyan-500/30 rounded-xl flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold text-cyan-400">{selectedDeals.size} deal{selectedDeals.size > 1 ? 's' : ''} selected</span>
+                        <button onClick={() => setSelectedDeals(new Set())} className="text-xs text-slate-400 hover:text-white">
+                            Clear
+                        </button>
+                    </div>
+                    <div className="flex gap-2">
+                        <select
+                            className="px-3 py-1 bg-slate-800 border border-white/10 rounded text-xs"
+                            onChange={(e) => { if (e.target.value) bulkMoveDeals(e.target.value as DealStage); e.target.value = ''; }}
+                            defaultValue=""
+                        >
+                            <option value="">Move to...</option>
+                            {STAGES.filter(s => s !== 'closed_lost').map(stage => (
+                                <option key={stage} value={stage}>{stage.replace('_', ' ')}</option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={() => { selectedDeals.forEach(id => onDeleteDeal?.(id)); setSelectedDeals(new Set()); }}
+                            className="px-3 py-1 bg-red-600/20 border border-red-500/30 text-red-400 rounded text-xs font-bold hover:bg-red-600/30"
+                        >
+                            <i className="fas fa-archive mr-1"></i> Archive All
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Filter Panel */}
             {showFilters && (
@@ -294,6 +413,7 @@ const PipelineView: React.FC<PipelineViewProps> = ({
             )}
 
             {/* Kanban Board */}
+            {viewMode === 'kanban' && (
             <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
                 <div className="flex gap-4 h-full min-w-[1000px]">
                     {STAGES.map((stage) => {
@@ -326,6 +446,8 @@ const PipelineView: React.FC<PipelineViewProps> = ({
                                     {stageDeals.map(deal => {
                                         const isStagnant = (new Date().getTime() - new Date(deal.lastUpdated).getTime()) > STAGNANT_THRESHOLD_MS;
                                         const ownerName = getOwnerName(deal.ownerId);
+                                        const daysInStage = getDaysInStage(deal);
+                                        const isSelected = selectedDeals.has(deal.id);
 
                                         return (
                                             <div
@@ -333,11 +455,37 @@ const PipelineView: React.FC<PipelineViewProps> = ({
                                                 draggable
                                                 onDragStart={(e) => onDealDragStart(e, deal.id)}
                                                 onClick={() => onViewDeal?.(deal)}
-                                                className={`p-4 bg-slate-700 rounded-lg border shadow-sm group hover:border-cyan-500/50 transition-all relative cursor-grab active:cursor-grabbing ${deal.isArchived ? 'opacity-60 border-white/5' : 'border-white/5'
-                                                    }`}
+                                                className={`p-4 bg-slate-700 rounded-lg border shadow-sm group hover:border-cyan-500/50 transition-all relative cursor-grab active:cursor-grabbing ${
+                                                    deal.isArchived ? 'opacity-60 border-white/5' : 
+                                                    isSelected ? 'border-cyan-500 bg-cyan-500/10' : 'border-white/5'
+                                                }`}
                                             >
+                                                {/* Selection checkbox */}
+                                                <div 
+                                                    className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={(e) => toggleDealSelection(deal.id, e)}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => {}}
+                                                        className="w-4 h-4 rounded border-white/20 bg-black/30 cursor-pointer"
+                                                    />
+                                                </div>
+
+                                                {/* Days in stage badge */}
+                                                {stage !== 'closed_won' && stage !== 'closed_lost' && daysInStage > 0 && (
+                                                    <div className={`absolute top-2 right-8 text-[9px] px-1.5 py-0.5 rounded ${
+                                                        daysInStage > 30 ? 'bg-red-500/20 text-red-400' :
+                                                        daysInStage > 14 ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        'bg-slate-600 text-slate-400'
+                                                    }`}>
+                                                        {daysInStage}d
+                                                    </div>
+                                                )}
+
                                                 {/* Company name */}
-                                                <div className="text-xs text-cyan-400 font-bold mb-1 truncate">
+                                                <div className="text-xs text-cyan-400 font-bold mb-1 truncate pl-5 group-hover:pl-0">
                                                     {companies.find(c => c.id === deal.companyId)?.name}
                                                 </div>
 
@@ -390,6 +538,14 @@ const PipelineView: React.FC<PipelineViewProps> = ({
                                                 {/* Action buttons */}
                                                 <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <div className="flex gap-1">
+                                                        {/* Playbook button */}
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setShowPlaybook(showPlaybook === deal.id ? null : deal.id); }}
+                                                            className="text-[10px] hover:text-purple-400 p-1"
+                                                            title="View Playbook"
+                                                        >
+                                                            <i className="fas fa-book"></i>
+                                                        </button>
                                                         {/* Edit button */}
                                                         {onEditDeal && (
                                                             <button
@@ -420,6 +576,16 @@ const PipelineView: React.FC<PipelineViewProps> = ({
                                                                 title="Move to Start"
                                                             >
                                                                 <i className="fas fa-backward"></i>
+                                                            </button>
+                                                        )}
+                                                        {/* Duplicate button */}
+                                                        {onDuplicateDeal && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); onDuplicateDeal(deal); }}
+                                                                className="text-[10px] hover:text-green-400 p-1"
+                                                                title="Duplicate Deal"
+                                                            >
+                                                                <i className="fas fa-copy"></i>
                                                             </button>
                                                         )}
                                                     </div>
@@ -464,6 +630,34 @@ const PipelineView: React.FC<PipelineViewProps> = ({
                                                         )}
                                                     </div>
                                                 </div>
+
+                                                {/* Playbook Popup */}
+                                                {showPlaybook === deal.id && (
+                                                    <div 
+                                                        className="mt-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-xs font-bold text-purple-400">
+                                                                <i className="fas fa-book mr-1"></i> Stage Playbook
+                                                            </span>
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); setShowPlaybook(null); }}
+                                                                className="text-slate-400 hover:text-white text-xs"
+                                                            >
+                                                                <i className="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                        <ul className="space-y-1">
+                                                            {(PLAYBOOKS[deal.stage] || []).map((step, i) => (
+                                                                <li key={i} className="text-[10px] text-slate-300 flex items-start gap-2">
+                                                                    <span className="text-purple-400 font-bold mt-0.5">{i + 1}.</span>
+                                                                    <span>{step}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -479,6 +673,159 @@ const PipelineView: React.FC<PipelineViewProps> = ({
                     })}
                 </div>
             </div>
+            )}
+
+            {/* List View */}
+            {viewMode === 'list' && (
+                <div className="flex-1 overflow-y-auto">
+                    <div className="bg-slate-800 rounded-xl border border-white/5 overflow-hidden">
+                        <table className="w-full">
+                            <thead className="bg-slate-900/50">
+                                <tr className="text-xs text-slate-400 uppercase">
+                                    <th className="text-left p-4 w-10">
+                                        <input 
+                                            type="checkbox"
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedDeals(new Set(filteredDeals.map(d => d.id)));
+                                                } else {
+                                                    setSelectedDeals(new Set());
+                                                }
+                                            }}
+                                            checked={selectedDeals.size === filteredDeals.length && filteredDeals.length > 0}
+                                            className="rounded border-white/20 bg-black/30"
+                                        />
+                                    </th>
+                                    <th className="text-left p-4">Deal</th>
+                                    <th className="text-left p-4">Company</th>
+                                    <th className="text-left p-4">Value</th>
+                                    <th className="text-left p-4">Probability</th>
+                                    <th className="text-left p-4">Stage</th>
+                                    <th className="text-left p-4">Close Date</th>
+                                    <th className="text-left p-4">Owner</th>
+                                    <th className="text-left p-4">Days</th>
+                                    <th className="text-right p-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {filteredDeals.map(deal => {
+                                    const isStagnant = (new Date().getTime() - new Date(deal.lastUpdated).getTime()) > STAGNANT_THRESHOLD_MS;
+                                    const daysInStage = getDaysInStage(deal);
+                                    const isSelected = selectedDeals.has(deal.id);
+
+                                    return (
+                                        <tr 
+                                            key={deal.id} 
+                                            className={`hover:bg-white/5 transition-colors cursor-pointer ${isSelected ? 'bg-cyan-500/10' : ''}`}
+                                            onClick={() => onViewDeal?.(deal)}
+                                        >
+                                            <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => toggleDealSelection(deal.id)}
+                                                    className="rounded border-white/20 bg-black/30"
+                                                />
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="font-bold">{deal.title}</div>
+                                                {deal.notes && <div className="text-xs text-slate-400 truncate max-w-[200px]">{deal.notes}</div>}
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-cyan-400 text-sm font-bold">{companies.find(c => c.id === deal.companyId)?.name || '-'}</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="font-mono font-bold text-emerald-400">${deal.value.toLocaleString()}</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`font-bold ${
+                                                    deal.probability >= 70 ? 'text-emerald-400' :
+                                                    deal.probability >= 40 ? 'text-yellow-400' : 'text-slate-400'
+                                                }`}>
+                                                    {deal.probability}%
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                                    deal.stage === 'closed_won' ? 'bg-emerald-500/20 text-emerald-400' :
+                                                    deal.stage === 'closed_lost' ? 'bg-red-500/20 text-red-400' :
+                                                    'bg-cyan-500/20 text-cyan-400'
+                                                }`}>
+                                                    {deal.stage.replace('_', ' ')}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-sm">{deal.expectedCloseDate}</td>
+                                            <td className="p-4 text-sm text-slate-400">{getOwnerName(deal.ownerId) || '-'}</td>
+                                            <td className="p-4">
+                                                <span className={`text-xs px-2 py-1 rounded ${
+                                                    isStagnant ? 'bg-red-500/20 text-red-400' :
+                                                    daysInStage > 14 ? 'bg-yellow-500/20 text-yellow-400' :
+                                                    'bg-slate-600 text-slate-400'
+                                                }`}>
+                                                    {daysInStage}d
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button
+                                                        onClick={() => onEditDeal?.(deal)}
+                                                        className="p-2 rounded hover:bg-white/10 text-slate-400 hover:text-cyan-400"
+                                                        title="Edit"
+                                                    >
+                                                        <i className="fas fa-edit"></i>
+                                                    </button>
+                                                    {onDuplicateDeal && (
+                                                        <button
+                                                            onClick={() => onDuplicateDeal(deal)}
+                                                            className="p-2 rounded hover:bg-white/10 text-slate-400 hover:text-green-400"
+                                                            title="Duplicate"
+                                                        >
+                                                            <i className="fas fa-copy"></i>
+                                                        </button>
+                                                    )}
+                                                    {deal.stage !== 'closed_won' && deal.stage !== 'closed_lost' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => onMoveDeal(deal.id, 'closed_won')}
+                                                                className="p-2 rounded hover:bg-white/10 text-slate-400 hover:text-emerald-400"
+                                                                title="Mark Won"
+                                                            >
+                                                                <i className="fas fa-check"></i>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleMarkLost(deal.id)}
+                                                                className="p-2 rounded hover:bg-white/10 text-slate-400 hover:text-red-400"
+                                                                title="Mark Lost"
+                                                            >
+                                                                <i className="fas fa-times"></i>
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {onDeleteDeal && (
+                                                        <button
+                                                            onClick={() => onDeleteDeal(deal.id)}
+                                                            className="p-2 rounded hover:bg-white/10 text-slate-400 hover:text-red-400"
+                                                            title="Archive"
+                                                        >
+                                                            <i className="fas fa-archive"></i>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        {filteredDeals.length === 0 && (
+                            <div className="text-center py-16 text-slate-500">
+                                <i className="fas fa-inbox text-4xl mb-4"></i>
+                                <p>No deals found</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

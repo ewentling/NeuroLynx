@@ -1163,6 +1163,22 @@ export const App: React.FC = () => {
         setActiveModal('view_deal');
     };
 
+    // Duplicate deal
+    const handleDuplicateDeal = (deal: Deal) => {
+        const duplicatedDeal: Deal = {
+            ...deal,
+            id: `deal_${Date.now()}`,
+            title: `${deal.title} (Copy)`,
+            stage: 'qualification',
+            probability: 20,
+            lastUpdated: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+        };
+        setDeals(prev => [...prev, duplicatedDeal]);
+        addToast('success', 'Deal duplicated successfully');
+        logAction('DUPLICATE_DEAL', deal.title, `Created copy: ${duplicatedDeal.title}`);
+    };
+
     const handleTaskExport = () => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tasks, null, 2));
         const downloadAnchorNode = document.createElement('a');
@@ -2677,6 +2693,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                 onDeleteDeal={handleDeleteDeal}
                                                 onMarkLost={handleMarkLost}
                                                 onViewDeal={handleViewDeal}
+                                                onDuplicateDeal={handleDuplicateDeal}
                                                 onDealExport={handleDealExport}
                                             />
                                         )}
