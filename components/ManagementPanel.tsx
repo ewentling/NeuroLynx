@@ -177,6 +177,9 @@ interface ManagementPanelProps {
     onCreateTicketFromPortal?: (ticket: Omit<SupportTicket, 'id' | 'createdAt'>) => void;
     kpiGoals?: KPIGoal[];
     onUpdateKpiGoal?: (id: string, current: number) => void;
+    onAddKpiGoal?: (goal: KPIGoal) => void;
+    onEditKpiGoal?: (goal: KPIGoal) => void;
+    onDeleteKpiGoal?: (id: string) => void;
     projects?: Project[];
     expenses?: Expense[];
     timeEntries?: TimeEntry[];
@@ -402,6 +405,9 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 <KPIView
                     goals={props.kpiGoals || []}
                     onUpdateGoal={props.onUpdateKpiGoal || (() => {})}
+                    onAddGoal={props.onAddKpiGoal}
+                    onEditGoal={props.onEditKpiGoal}
+                    onDeleteGoal={props.onDeleteKpiGoal}
                 />
             )}
             {view === 'velocity' && (

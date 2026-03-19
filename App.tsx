@@ -670,6 +670,7 @@ export const App: React.FC = () => {
 
         const savedFeatures = localStorage.getItem('neurolynx_features'); if (savedFeatures) setFeatureMapping(JSON.parse(savedFeatures));
         const savedAutomations = localStorage.getItem('neurolynx_automations'); if (savedAutomations) setAutomationRules(JSON.parse(savedAutomations));
+        const savedKpiGoals = localStorage.getItem('neurolynx_kpi_goals'); if (savedKpiGoals) setKpiGoals(JSON.parse(savedKpiGoals));
     }, []);
 
     useEffect(() => { localStorage.setItem('neurolynx_biz_profile', JSON.stringify(businessProfile)); }, [businessProfile]);
@@ -684,6 +685,7 @@ export const App: React.FC = () => {
         localStorage.setItem('neurolynx_features', JSON.stringify(featureMapping));
     }, [configuredModels, featureMapping]);
     useEffect(() => { localStorage.setItem('neurolynx_automations', JSON.stringify(automationRules)); }, [automationRules]);
+    useEffect(() => { localStorage.setItem('neurolynx_kpi_goals', JSON.stringify(kpiGoals)); }, [kpiGoals]);
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
     const addToast = (type: Toast['type'], message: string) => {
@@ -2459,6 +2461,18 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     },
                                     kpiGoals,
                                     onUpdateKpiGoal: (id: string, current: number) => setKpiGoals(prev => prev.map(g => g.id === id ? { ...g, current } : g)),
+                                    onAddKpiGoal: (goal: KPIGoal) => {
+                                        setKpiGoals(prev => [...prev, goal]);
+                                        addToast('success', 'KPI Goal created successfully');
+                                    },
+                                    onEditKpiGoal: (goal: KPIGoal) => {
+                                        setKpiGoals(prev => prev.map(g => g.id === goal.id ? goal : g));
+                                        addToast('success', 'KPI Goal updated successfully');
+                                    },
+                                    onDeleteKpiGoal: (id: string) => {
+                                        setKpiGoals(prev => prev.filter(g => g.id !== id));
+                                        addToast('success', 'KPI Goal deleted');
+                                    },
                                     projects,
                                     expenses,
                                     timeEntries,
