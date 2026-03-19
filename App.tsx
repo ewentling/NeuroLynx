@@ -123,7 +123,7 @@ const WORKSPACE_VIEWS = ['workspace', 'vendors', 'expenses', 'compliance', 'tick
 const CLIENT_WORKSPACE_VIEWS = ['workspace', 'meetings', 'pipeline', 'tasks', 'calendar', 'clients', 'tickets', 'portal', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap'];
 
 // Views that belong to settings section
-const SETTINGS_VIEWS = ['activity', 'auditlogs', 'aiconfig', 'integrations', 'memory', 'versions', 'customfields'];
+const SETTINGS_VIEWS = ['activity', 'auditlogs', 'aiconfig', 'integrations', 'memory', 'versions', 'customfields', 'profile'];
 
 // Views that belong to comms section
 const COMMS_VIEWS = ['communications', 'sequences'];
@@ -407,7 +407,7 @@ interface ConnectedModel {
 export const App: React.FC = () => {
     const [licenseStatus, setLicenseStatus] = useState<LicenseStatus>('checking');
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [view, setView] = useState<'home' | 'chat' | 'workspace' | 'pipeline' | 'memory' | 'meetings' | 'clients' | 'communications' | 'tasks' | 'calendar' | 'help' | 'users' | 'activity' | 'forecast' | 'tickets' | 'alltickets' | 'alerts' | 'onboarding' | 'winloss' | 'projects' | 'referrals' | 'kpis' | 'time' | 'competitors' | 'csat' | 'sequences' | 'utilization' | 'vendors' | 'versions' | 'portal' | 'expenses' | 'compliance' | 'invoices' | 'orgchart' | 'esign' | 'profitability' | 'velocity' | 'assets' | 'roadmap' | 'wiki' | 'partners' | 'customfields'>('home');
+    const [view, setView] = useState<'home' | 'chat' | 'workspace' | 'pipeline' | 'memory' | 'meetings' | 'clients' | 'communications' | 'tasks' | 'calendar' | 'help' | 'users' | 'activity' | 'forecast' | 'tickets' | 'alltickets' | 'alerts' | 'onboarding' | 'winloss' | 'projects' | 'referrals' | 'kpis' | 'time' | 'competitors' | 'csat' | 'sequences' | 'utilization' | 'vendors' | 'versions' | 'portal' | 'expenses' | 'compliance' | 'invoices' | 'orgchart' | 'esign' | 'profitability' | 'velocity' | 'assets' | 'roadmap' | 'wiki' | 'partners' | 'customfields' | 'profile'>('home');
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [activeModal, setActiveModal] = useState<string | null>(null);
     const [modalData, setModalData] = useState<any>({});
@@ -483,7 +483,7 @@ export const App: React.FC = () => {
     const [isMemorySubmenuOpen, setIsMemorySubmenuOpen] = useState(false);
     const [isChatPopupOpen, setIsChatPopupOpen] = useState(false);
     const [workspaceMode, setWorkspaceMode] = useState<'internal' | 'client'>('internal');
-    const [internalTab, setInternalTab] = useState<'offerings' | 'team' | 'profile' | 'system' | 'data' | 'automations'>('offerings');
+    const [internalTab, setInternalTab] = useState<'offerings' | 'team' | 'system' | 'automations'>('offerings');
     const [clientWorkspaceTab, setClientWorkspaceTab] = useState<'overview' | 'documents' | 'contracts' | 'billing'>('overview');
     const [taskFilter, setTaskFilter] = useState<'all' | 'my'>('all');
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -2076,7 +2076,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             {currentUser?.role === 'admin' && (
                                                 <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'team'} label="Team" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('team'); }} />
                                             )}
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'profile'} label="Profile" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('profile'); }} />
+
                                             <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('automations'); }} />
                                             <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
                                             <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
@@ -2181,7 +2181,6 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                 >
                                     <SidebarSubItem active={view === 'clients'} label="All Companies" onClick={() => setView('clients')} />
                                     <SidebarSubItem active={view === 'onboarding'} label="Onboarding" onClick={() => { setView('onboarding'); ensureClientSelected(); }} />
-                                    <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'data'} label="Data & Export" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('data'); }} />
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -2224,6 +2223,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     <SidebarSubItem active={view === 'aiconfig'} label="AI Config" onClick={() => setView('aiconfig')} noIndent />
                                     <SidebarSubItem active={view === 'integrations'} label="Integration Status" onClick={() => setView('integrations')} noIndent />
                                     <SidebarSubItem active={view === 'customfields'} label="Data Schema" onClick={() => setView('customfields')} noIndent />
+                                    <SidebarSubItem active={view === 'profile'} label="Business Profile" onClick={() => setView('profile')} noIndent />
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -2656,7 +2656,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                 tickets={tickets}
                                             />
                                         )}
-                                        {['invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields'].includes(view) && (
+                                        {['invoices', 'esign', 'assets', 'wiki', 'orgchart', 'roadmap', 'partners', 'customfields', 'profile'].includes(view) && (
                                             <ManagementPanel
                                                 {...commonPanelProps}
                                                 view={view}

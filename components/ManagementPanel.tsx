@@ -81,7 +81,7 @@ interface ManagementPanelProps {
 
     // Workspace
     workspaceMode?: 'internal' | 'client';
-    internalTab?: 'offerings' | 'team' | 'system' | 'automations' | 'profile' | 'data';
+    internalTab?: 'offerings' | 'team' | 'system' | 'automations';
     clientWorkspaceTab?: 'overview' | 'contracts' | 'documents' | 'billing';
     onSetWorkspaceMode?: (mode: 'internal' | 'client') => void;
     onSetInternalTab?: (tab: any) => void;
@@ -287,7 +287,7 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     {props.workspaceMode === 'internal' ? (
                         <>
                             <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar border-b border-white/5 mb-6">
-                                {['offerings', 'team', 'system', 'automations', 'profile', 'data'].map(tab => (
+                                {['offerings', 'team', 'system', 'automations'].map(tab => (
                                     <button
                                         key={tab}
                                         onClick={() => props.onSetInternalTab?.(tab)}
@@ -669,6 +669,30 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                             {(props.mockIntegrations || []).length === 0 && (
                                 <div className="text-center text-slate-500 py-8">No integrations configured</div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {view === 'profile' && (
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-bold">Business Profile</h2>
+                    <div className="p-6 bg-slate-800 rounded-xl border border-white/10 space-y-4">
+                        <div>
+                            <label className="text-xs text-slate-500 uppercase mb-1 block">Business Name</label>
+                            <input className="w-full p-3 bg-black/20 rounded border border-white/10" value={props.businessProfile?.name || ''} onChange={e => props.onSetBusinessProfile?.({ ...props.businessProfile, name: e.target.value })} placeholder="Business Name" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500 uppercase mb-1 block">Address</label>
+                            <input className="w-full p-3 bg-black/20 rounded border border-white/10" value={props.businessProfile?.address || ''} onChange={e => props.onSetBusinessProfile?.({ ...props.businessProfile, address: e.target.value })} placeholder="Address" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500 uppercase mb-1 block">Phone</label>
+                            <input className="w-full p-3 bg-black/20 rounded border border-white/10" value={props.businessProfile?.phone || ''} onChange={e => props.onSetBusinessProfile?.({ ...props.businessProfile, phone: e.target.value })} placeholder="Phone" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-slate-500 uppercase mb-1 block">Website</label>
+                            <input className="w-full p-3 bg-black/20 rounded border border-white/10" value={props.businessProfile?.website || ''} onChange={e => props.onSetBusinessProfile?.({ ...props.businessProfile, website: e.target.value })} placeholder="Website" />
                         </div>
                     </div>
                 </div>
