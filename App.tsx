@@ -2919,9 +2919,9 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                         )}
                                         {view === 'memory' && <MemoryView memory={memories} onMemoryUpload={handleMemoryUpload} onSetActiveModal={setActiveModal} />}
                                         {/* Client Workspace Tickets - filtered by selected company */}
-                                        {view === 'tickets' && <ManagementPanel view="tickets" tickets={tickets.filter(t => t.companyId === selectedCompanyId)} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
+                                        {view === 'tickets' && <ManagementPanel {...commonPanelProps} view="tickets" tickets={tickets.filter(t => t.companyId === selectedCompanyId)} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} />}
                                         {/* Global Tickets - shows all tickets across all clients */}
-                                        {view === 'alltickets' && <ManagementPanel view="tickets" tickets={tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
+                                        {view === 'alltickets' && <ManagementPanel {...commonPanelProps} view="tickets" tickets={tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} />}
                                         {['forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'].includes(view) && (
                                             <ManagementPanel
                                                 {...commonPanelProps}
