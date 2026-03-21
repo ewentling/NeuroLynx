@@ -43,7 +43,7 @@ The application will be available at `http://localhost:3000`.
 ## Technology Stack
 
 - **Frontend**: React 19, TypeScript, Tailwind CSS, Framer Motion
-- **AI/ML**: Google Gemini, OpenAI (Whisper), LangChain
+- **AI/ML**: Google Gemini, OpenAI (Whisper)
 - **Charts**: Recharts
 - **PDF**: jsPDF, PDF.js
 - **Maps**: Leaflet, React-Leaflet

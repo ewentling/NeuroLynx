@@ -59,7 +59,7 @@ const ProductRecommendationsView: React.FC<ProductRecommendationsViewProps> = ({
             ? companyFilteredRecs 
             : companyFilteredRecs.filter(r => r.status === statusFilter);
         
-        return filtered.sort((a, b) => {
+        return [...filtered].sort((a, b) => {
             switch (sortBy) {
                 case 'score':
                     return b.benefitScore - a.benefitScore;
@@ -312,10 +312,16 @@ const ProductRecommendationsView: React.FC<ProductRecommendationsViewProps> = ({
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
                             className="bg-slate-900 border border-white/10 rounded-3xl p-8 max-w-2xl w-full shadow-2xl overflow-hidden relative max-h-[90vh] overflow-y-auto"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Recommendation details"
                         >
                             <button
+                                type="button"
                                 onClick={() => setSelectedRecommendation(null)}
                                 className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full text-slate-500"
+                                aria-label="Close recommendation details"
+                                autoFocus
                             >
                                 <XCircle className="w-6 h-6" />
                             </button>

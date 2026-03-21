@@ -468,7 +468,10 @@ export const App: React.FC = () => {
     const [memories, setMemories] = useState<MemoryEntry[]>(MOCK_WORKSPACE_DATA.map(item => ({ id: item.id, key: item.title, value: item.snippet, timestamp: Date.now(), type: 'text', createdBy: 'user1' })));
     const [messages, setMessages] = useState<Message[]>([]);
     const [documents, setDocuments] = useState<any[]>([]);
-    const [selectedCompanyId, setSelectedCompanyId] = useState<string>('internal');
+    const [selectedCompanyId, _setSelectedCompanyId] = useState<string>('internal');
+    const setSelectedCompanyId = (value: string) => {
+        _setSelectedCompanyId(value === 'all' ? 'internal' : value);
+    };
     const [clientStatusFilter, setClientStatusFilter] = useState<'all' | 'active' | 'inactive' | 'lead'>('all');
     const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(true);
     const [isInternalMgmtOpen, setIsInternalMgmtOpen] = useState(true);
@@ -1044,14 +1047,14 @@ export const App: React.FC = () => {
         });
         
         // Merge with existing recommendations (don't duplicate)
-        setProductRecommendations(prev => {
-            const existingKeys = new Set(prev.map(r => `${r.companyId}_${r.productId}`));
-            const uniqueNew = newRecommendations.filter(r => !existingKeys.has(`${r.companyId}_${r.productId}`));
-            return [...prev, ...uniqueNew];
-        });
+        const existingKeys = new Set(productRecommendations.map(r => `${r.companyId}_${r.productId}`));
+        const uniqueNew = newRecommendations.filter(r => !existingKeys.has(`${r.companyId}_${r.productId}`));
         
+        setProductRecommendations(prev => [...prev, ...uniqueNew]);
+        
+        const addedCount = uniqueNew.length;
         setLastRecommendationScan(new Date().toISOString());
-        addToast('success', `Analysis complete. Found ${newRecommendations.length} new recommendations.`);
+        addToast('success', `Analysis complete. Found ${addedCount} new recommendation${addedCount === 1 ? '' : 's'}.`);
     };
 
     const acceptRecommendation = (id: string) => {
@@ -1082,7 +1085,7 @@ export const App: React.FC = () => {
             title: `${product.name} for ${company.name}`,
             companyId: rec.companyId,
             value: product.price,
-            stage: 'prospect',
+            stage: 'qualification',
             probability: Math.min(rec.benefitScore, 80),
             expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             notes: `Created from AI recommendation.\n\nReasoning: ${rec.reasoning}\n\nData Points:\n${rec.dataPoints.map(dp => `• ${dp}`).join('\n')}`,
@@ -1784,7 +1787,7 @@ PHONE: ${internalCompany?.phone || businessProfile.phone}
 WEBSITE: ${internalCompany?.website || businessProfile.website}
 
 TEAM MEMBERS (${users.length} total):
-${users.map(u => `- ${u.name} (${u.role}): ${u.email}`).join('\n')}
+${users.map(u => `- ${u.name} (${u.role})`).join('\n')}
 
 AUTOMATION RULES (${automations.length} total):
 ${automations.map(a => `- ${a.name}: ${a.event} trigger (${a.active ? 'Active' : 'Inactive'})`).join('\n')}
