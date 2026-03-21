@@ -1688,8 +1688,15 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
                 }
             }
             
+            // Helper to check if a title indicates a decision maker
+            const isDecisionMakerTitle = (t: string): boolean => {
+                const lower = t.toLowerCase();
+                const decisionMakerKeywords = ['ceo', 'chief', 'president', 'vp', 'vice president', 'director', 'head of', 'senior'];
+                return decisionMakerKeywords.some(keyword => lower.includes(keyword));
+            };
+            
             const newContact: OrgContact = {
-                id: `org-${Date.now()}`,
+                id: `org-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 companyId,
                 name,
                 title,
@@ -1697,14 +1704,15 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
                 phone: payload?.phone,
                 department: payload?.department,
                 reportsToId,
-                isDecisionMaker: payload?.isDecisionMaker || title.toLowerCase().includes('ceo') || title.toLowerCase().includes('chief') || title.toLowerCase().includes('president') || title.toLowerCase().includes('vp') || title.toLowerCase().includes('director')
+                isDecisionMaker: payload?.isDecisionMaker || isDecisionMakerTitle(title)
             };
             
             setOrgContacts(prev => [...prev, newContact]);
             const company = companies.find(c => c.id === companyId);
             const companyName = company?.name || 'selected company';
+            const managerName = reportsToId ? orgContacts.find(c => c.id === reportsToId)?.name : null;
             return { 
-                result: `Added ${name} (${title}) to ${companyName}'s organization chart${reportsToId ? ` reporting to ${orgContacts.find(c => c.id === reportsToId)?.name}` : ' as a top-level contact'}`, 
+                result: `Added ${name} (${title}) to ${companyName}'s organization chart${managerName ? ` reporting to ${managerName}` : ' as a top-level contact'}`, 
                 log: { ...queued, status: 'success' } 
             };
         }
@@ -1744,9 +1752,12 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             // Parse "add [Name] as [Title]" or "add [Title] [Name]" patterns
             const args: { name?: string; title?: string; email?: string; department?: string; reportsTo?: string } = {};
             
+            // Flexible name pattern: matches capitalized words (supports 1-4 word names like "Mary Jane Watson" or "Dr. John Smith Jr.")
+            const namePattern = '[A-Z][a-z]+(?:\\s+(?:[A-Z][a-z]+|Jr\\.|Sr\\.|III|II|IV))*';
+            
             // Try to extract name and title from common patterns
             // Pattern: "add John Smith as CEO"
-            let match = text.match(/add\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+as\s+(?:the\s+)?(.+?)(?:\s+to|\s+for|\s+at|$)/i);
+            let match = text.match(new RegExp(`add\\s+(${namePattern})\\s+as\\s+(?:the\\s+)?(.+?)(?:\\s+to|\\s+for|\\s+at|$)`, 'i'));
             if (match) {
                 args.name = match[1].trim();
                 args.title = match[2].trim();
@@ -1754,7 +1765,7 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             
             // Pattern: "add CEO John Smith"
             if (!args.name) {
-                match = text.match(/add\s+(?:a\s+)?(?:the\s+)?(ceo|cfo|cto|coo|vp|president|director|manager|executive|chief\s+\w+\s+officer)\s+(?:named\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+                match = text.match(new RegExp(`add\\s+(?:a\\s+)?(?:the\\s+)?(ceo|cfo|cto|coo|vp|president|director|manager|executive|chief\\s+\\w+\\s+officer)\\s+(?:named\\s+)?(${namePattern})`, 'i'));
                 if (match) {
                     args.title = match[1].trim();
                     args.name = match[2].trim();
@@ -1763,7 +1774,7 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             
             // Pattern: extract name with "named [Name]"
             if (!args.name) {
-                match = text.match(/named?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+                match = text.match(new RegExp(`named?\\s+(${namePattern})`, 'i'));
                 if (match) {
                     args.name = match[1].trim();
                 }
@@ -1783,8 +1794,8 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
                 args.email = emailMatch[1];
             }
             
-            // Extract "reports to" relationship
-            const reportsToMatch = text.match(/reports?\s+to\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+            // Extract "reports to" relationship - also use flexible name pattern
+            const reportsToMatch = text.match(new RegExp(`reports?\\s+to\\s+(${namePattern})`, 'i'));
             if (reportsToMatch) {
                 args.reportsTo = reportsToMatch[1].trim();
             }
