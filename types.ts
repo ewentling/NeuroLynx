@@ -192,6 +192,7 @@ export interface Company {
   leadScore?: number; // 0-100
   leadSource?: LeadSource;
   coordinates?: { lat: number; lng: number };
+  isInternal?: boolean; // True for internal organization entry
 }
 
 export interface Client { // Represents a Contact Person
@@ -236,6 +237,18 @@ export interface Product {
   billingTiming: 'immediate' | 'net_term';
   status: 'active' | 'inactive'; // Added Status
   recurringInterval?: 'one_time' | 'monthly' | 'yearly'; // New Field
+}
+
+export interface ProductRecommendation {
+  id: string;
+  companyId: string;
+  productId: string;
+  benefitScore: number; // 0-100 percentage
+  reasoning: string;
+  dataPoints: string[]; // What data influenced this recommendation
+  status: 'pending' | 'accepted' | 'dismissed' | 'converted';
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ContractItem {

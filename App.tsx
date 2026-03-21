@@ -27,7 +27,7 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
-import { Message, WorkspaceItem, MemoryEntry, Integration, Toast, ToolCallLog, Meeting, Client, Template, QuickLink, Product, Contract, ContractItem, Task, ClientNote, BattleCard, User, BillingRecord, Company, LicenseStatus, Deal, DealStage, AutomationRule, AutomationEvent, AuditLog, Notification, TestResult, ActivityEntry, SupportTicket, OnboardingChecklist, Project, Referral, KPIGoal, Quote, TimeEntry, Competitor, CSATResponse, EmailSequence, SequenceStep, Vendor, DocVersion, Expense, ComplianceItem, Invoice, OrgContact, EsignRequest, Asset, FeatureRequest, WikiPage, Partner, CustomField, CustomFieldValue } from './types';
+import { Message, WorkspaceItem, MemoryEntry, Integration, Toast, ToolCallLog, Meeting, Client, Template, QuickLink, Product, Contract, ContractItem, Task, ClientNote, BattleCard, User, BillingRecord, Company, LicenseStatus, Deal, DealStage, AutomationRule, AutomationEvent, AuditLog, Notification, TestResult, ActivityEntry, SupportTicket, OnboardingChecklist, Project, Referral, KPIGoal, Quote, TimeEntry, Competitor, CSATResponse, EmailSequence, SequenceStep, Vendor, DocVersion, Expense, ComplianceItem, Invoice, OrgContact, EsignRequest, Asset, FeatureRequest, WikiPage, Partner, CustomField, CustomFieldValue, ProductRecommendation } from './types';
 import { MOCK_WORKSPACE_DATA, MOCK_CLIENTS, MOCK_TEMPLATES, DEFAULT_QUICK_LINKS, MOCK_PRODUCTS, MOCK_CONTRACTS, SYSTEM_INSTRUCTION, MOCK_INTEGRATIONS, PLATFORM_OPTIONS, MOCK_MEETINGS, MOCK_TASKS, HELP_DOCS, MOCK_CLIENT_NOTES, MOCK_USERS, MOCK_COMPANIES, POPULAR_LLMS, APP_FEATURES, MOCK_DEALS, MOCK_AUDIT_LOGS, MOCK_NOTIFICATIONS, MOCK_ACTIVITIES, MOCK_TICKETS, DEFAULT_ONBOARDING_STEPS, MOCK_PROJECTS, MOCK_REFERRALS, MOCK_KPI_GOALS, MOCK_TIME_ENTRIES, MOCK_COMPETITORS, MOCK_CSAT, MOCK_SEQUENCES, MOCK_VENDORS, MOCK_DOC_VERSIONS, MOCK_EXPENSES, MOCK_COMPLIANCE, MOCK_INVOICES, MOCK_ORG_CONTACTS, MOCK_ESIGN_REQUESTS, MOCK_ASSETS, MOCK_FEATURE_REQUESTS, MOCK_WIKI_PAGES, MOCK_PARTNERS, MOCK_CUSTOM_FIELDS } from './constants';
 import { NeuroLynxService } from './services/geminiService';
 import { transcribeAudio } from './services/openaiService';
@@ -468,7 +468,10 @@ export const App: React.FC = () => {
     const [memories, setMemories] = useState<MemoryEntry[]>(MOCK_WORKSPACE_DATA.map(item => ({ id: item.id, key: item.title, value: item.snippet, timestamp: Date.now(), type: 'text', createdBy: 'user1' })));
     const [messages, setMessages] = useState<Message[]>([]);
     const [documents, setDocuments] = useState<any[]>([]);
-    const [selectedCompanyId, setSelectedCompanyId] = useState<string | 'all'>('all');
+    const [selectedCompanyId, _setSelectedCompanyId] = useState<string>('internal');
+    const setSelectedCompanyId = (value: string) => {
+        _setSelectedCompanyId(value === 'all' ? 'internal' : value);
+    };
     const [clientStatusFilter, setClientStatusFilter] = useState<'all' | 'active' | 'inactive' | 'lead'>('all');
     const [isWorkspaceMenuOpen, setIsWorkspaceMenuOpen] = useState(true);
     const [isInternalMgmtOpen, setIsInternalMgmtOpen] = useState(true);
@@ -549,6 +552,8 @@ export const App: React.FC = () => {
     const [esignRequests, setEsignRequests] = useState<EsignRequest[]>(MOCK_ESIGN_REQUESTS);
     const [assets, setAssets] = useState<Asset[]>(MOCK_ASSETS);
     const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>(MOCK_FEATURE_REQUESTS);
+    const [productRecommendations, setProductRecommendations] = useState<ProductRecommendation[]>([]);
+    const [lastRecommendationScan, setLastRecommendationScan] = useState<string>('');
     const [wikiPages, setWikiPages] = useState<WikiPage[]>(MOCK_WIKI_PAGES);
     const [partners, setPartners] = useState<Partner[]>(MOCK_PARTNERS);
     const [customFields, setCustomFields] = useState<CustomField[]>(MOCK_CUSTOM_FIELDS);
@@ -674,6 +679,16 @@ export const App: React.FC = () => {
     }, []);
 
     useEffect(() => { localStorage.setItem('neurolynx_biz_profile', JSON.stringify(businessProfile)); }, [businessProfile]);
+    // Sync businessProfile changes with internal company record in database
+    useEffect(() => {
+        setCompanies(prev => prev.map(c => c.isInternal ? {
+            ...c,
+            name: businessProfile.name,
+            address: businessProfile.address,
+            phone: businessProfile.phone,
+            website: businessProfile.website
+        } : c));
+    }, [businessProfile]);
     useEffect(() => {
         const saveModels = async () => {
             if (configuredModels.length > 0) {
@@ -862,13 +877,16 @@ export const App: React.FC = () => {
 
     // Helper function to ensure a company is selected when navigating to client workspace views
     const ensureClientSelected = useCallback(() => {
-        if (selectedCompanyId === 'all' && companies.length > 0) {
-            setSelectedCompanyId(companies[0].id);
+        // If internal org is selected, switch to first external client
+        const internalCompany = companies.find(c => c.isInternal);
+        if (selectedCompanyId === 'internal' || selectedCompanyId === internalCompany?.id) {
+            const firstClient = companies.find(c => !c.isInternal);
+            if (firstClient) setSelectedCompanyId(firstClient.id);
         }
     }, [selectedCompanyId, companies]);
 
     const getMonthlyRunRate = useCallback((companyId: string) => {
-        const activeContracts = contracts.filter(c => c.status === 'active' && (companyId === 'all' || c.companyId === companyId));
+        const activeContracts = contracts.filter(c => c.status === 'active' && c.companyId === companyId);
         return activeContracts.reduce((sum, c) => sum + c.totalValue, 0);
     }, [contracts]);
 
@@ -935,12 +953,163 @@ export const App: React.FC = () => {
         addToast('success', 'Rule Deleted');
     };
 
+    // --- PRODUCT RECOMMENDATIONS ---
+    const runRecommendationScan = () => {
+        // Analyze client data and generate AI recommendations
+        const newRecommendations: ProductRecommendation[] = [];
+        const externalCompanies = companies.filter(c => !c.isInternal);
+        const activeProducts = products.filter(p => p.status === 'active');
+        
+        externalCompanies.forEach(company => {
+            // Get company's existing contracts to avoid recommending what they already have
+            const companyContracts = contracts.filter(c => c.companyId === company.id);
+            const existingProductIds = companyContracts.flatMap(c => c.items.map(i => i.productId));
+            
+            // Get company's meetings and tasks for context
+            const companyMeetings = meetings.filter(m => m.clientId === company.id);
+            const companyTasks = tasks.filter(t => t.clientId === company.id);
+            const companyDeals = deals.filter(d => d.companyId === company.id);
+            
+            // Analyze each product for potential fit
+            activeProducts.forEach(product => {
+                // Skip if company already has this product
+                if (existingProductIds.includes(product.id)) return;
+                
+                // Calculate benefit score based on various factors
+                let score = 50; // Base score
+                const dataPoints: string[] = [];
+                
+                // Industry alignment (simple heuristic)
+                if (company.industry?.toLowerCase().includes('tech') && product.category === 'software') {
+                    score += 15;
+                    dataPoints.push('Industry aligned with software solutions');
+                }
+                if (company.industry?.toLowerCase().includes('tech') && product.category === 'service') {
+                    score += 10;
+                    dataPoints.push('Tech companies benefit from professional services');
+                }
+                
+                // Revenue-based scoring - higher revenue = more likely to afford premium products
+                if (company.revenue > 1000000 && product.price > 5000) {
+                    score += 10;
+                    dataPoints.push(`Company revenue ($${(company.revenue / 1000000).toFixed(1)}M) supports premium pricing`);
+                }
+                
+                // Active engagement scoring
+                if (companyMeetings.length > 2) {
+                    score += 8;
+                    dataPoints.push(`High engagement: ${companyMeetings.length} meetings recorded`);
+                }
+                
+                // Open tasks indicate active project work
+                const openTasks = companyTasks.filter(t => t.status !== 'done').length;
+                if (openTasks > 3) {
+                    score += 5;
+                    dataPoints.push(`${openTasks} active tasks show ongoing collaboration`);
+                }
+                
+                // Deal pipeline activity
+                const activeDeals = companyDeals.filter(d => !['closed_won', 'closed_lost'].includes(d.stage));
+                if (activeDeals.length > 0) {
+                    score += 12;
+                    dataPoints.push(`${activeDeals.length} active deals in pipeline`);
+                }
+                
+                // Lead score consideration
+                if (company.leadScore && company.leadScore > 70) {
+                    score += 10;
+                    dataPoints.push(`High lead score: ${company.leadScore}/100`);
+                }
+                
+                // Cap score at 95 to indicate there's always room for human judgment
+                score = Math.min(95, score);
+                
+                // Only recommend if score is above threshold and we have supporting data
+                if (score >= 55 && dataPoints.length >= 2) {
+                    // Generate reasoning with safe array access
+                    const primaryReason = dataPoints[0] || '';
+                    const additionalReasons = dataPoints.length > 1 ? ` Additionally, ${dataPoints.slice(1).join('. ')}.` : '';
+                    const reasoning = `Based on ${company.name}'s profile and engagement data, ${product.name} would provide significant value. ${primaryReason}.${additionalReasons}`;
+                    
+                    newRecommendations.push({
+                        id: `rec_${Date.now()}_${company.id}_${product.id}`,
+                        companyId: company.id,
+                        productId: product.id,
+                        benefitScore: score,
+                        reasoning,
+                        dataPoints,
+                        status: 'pending',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+            });
+        });
+        
+        // Merge with existing recommendations (don't duplicate)
+        const existingKeys = new Set(productRecommendations.map(r => `${r.companyId}_${r.productId}`));
+        const uniqueNew = newRecommendations.filter(r => !existingKeys.has(`${r.companyId}_${r.productId}`));
+        
+        setProductRecommendations(prev => [...prev, ...uniqueNew]);
+        
+        const addedCount = uniqueNew.length;
+        setLastRecommendationScan(new Date().toISOString());
+        addToast('success', `Analysis complete. Found ${addedCount} new recommendation${addedCount === 1 ? '' : 's'}.`);
+    };
+
+    const acceptRecommendation = (id: string) => {
+        setProductRecommendations(prev => prev.map(r => 
+            r.id === id ? { ...r, status: 'accepted', updatedAt: new Date().toISOString() } : r
+        ));
+        addToast('success', 'Recommendation accepted');
+    };
+
+    const dismissRecommendation = (id: string) => {
+        setProductRecommendations(prev => prev.map(r => 
+            r.id === id ? { ...r, status: 'dismissed', updatedAt: new Date().toISOString() } : r
+        ));
+    };
+
+    const convertRecommendationToDeal = (rec: ProductRecommendation) => {
+        const product = products.find(p => p.id === rec.productId);
+        const company = companies.find(c => c.id === rec.companyId);
+        
+        if (!product || !company) {
+            addToast('error', 'Could not find product or company');
+            return;
+        }
+        
+        // Create a new deal from the recommendation
+        const newDeal: Deal = {
+            id: `deal_${Date.now()}`,
+            title: `${product.name} for ${company.name}`,
+            companyId: rec.companyId,
+            value: product.price,
+            stage: 'qualification',
+            probability: Math.min(rec.benefitScore, 80),
+            expectedCloseDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            notes: `Created from AI recommendation.\n\nReasoning: ${rec.reasoning}\n\nData Points:\n${rec.dataPoints.map(dp => `• ${dp}`).join('\n')}`,
+            lastUpdated: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+        };
+        
+        setDeals(prev => [...prev, newDeal]);
+        
+        // Mark recommendation as converted
+        setProductRecommendations(prev => prev.map(r => 
+            r.id === rec.id ? { ...r, status: 'converted', updatedAt: new Date().toISOString() } : r
+        ));
+        
+        addToast('success', `Deal created: ${newDeal.title}`);
+    };
+
     // --- HEALTH SCORE CALCULATION ---
     // Using the standalone service
     const clientHealth = useMemo(() => {
-        if (!selectedCompanyId || selectedCompanyId === 'all') return { score: 0, trend: 'stable' as const };
+        const internalCompany = companies.find(c => c.isInternal);
+        if (!selectedCompanyId || selectedCompanyId === 'internal' || selectedCompanyId === internalCompany?.id) return { score: 0, trend: 'stable' as const };
         return calculateClientHealth(selectedCompanyId, meetings, billingRecords, contracts);
-    }, [selectedCompanyId, meetings, billingRecords, contracts]);
+    }, [selectedCompanyId, meetings, billingRecords, contracts, companies]);
 
     // --- CONTRACT & DOC GENERATION ---
     const openContractBuilder = (contract?: Contract) => {
@@ -1007,11 +1176,12 @@ export const App: React.FC = () => {
 
         // Find existing deal to preserve createdAt if editing
         const existingDeal = isEdit ? deals.find(d => d.id === modalData.id) : null;
+        const firstClient = companies.find(c => !c.isInternal);
 
         const newDeal: Deal = {
             id: modalData.id || Date.now().toString(),
             title: modalData.title,
-            companyId: modalData.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : companies[0].id),
+            companyId: modalData.companyId || (selectedCompanyId !== 'internal' ? selectedCompanyId : (firstClient?.id || 'internal')),
             value: Number(modalData.value) || 0,
             stage: stage,
             probability: probability,
@@ -1390,14 +1560,17 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
 
     const runMcpTool = (toolId: string, payload: any, clientContext?: string): { result: string, log: ToolCallLog } => {
         const queued = dispatchMcpEnvelope(toolId, payload);
+        const isInternal = clientContext === 'internal';
 
         if (toolId === 'create_task') {
             const title = payload?.title || 'Follow up';
             const priority = payload?.priority || 'high';
             const dueDate = payload?.dueDate || new Date(Date.now() + 86400000).toISOString().split('T')[0];
-            const newTask: Task = { id: `task-${Date.now()}`, title, description: payload?.description || '', status: 'todo', priority, dueDate, clientId: clientContext };
+            // For internal context, use 'internal' company ID to store in same database
+            const newTask: Task = { id: `task-${Date.now()}`, title, description: payload?.description || '', status: 'todo', priority, dueDate, clientId: isInternal ? 'internal' : clientContext };
             setTasks(prev => [newTask, ...prev]);
-            return { result: `Task created: "${title}" due ${dueDate}`, log: { ...queued, status: 'success' } };
+            const contextLabel = isInternal ? ' (Internal Organization)' : '';
+            return { result: `Task created${contextLabel}: "${title}" due ${dueDate}`, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'complete_task') {
             const keyword = (payload?.title || payload?.keyword || '').toLowerCase();
@@ -1413,7 +1586,9 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             return { result: resultText, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'list_tasks') {
-            const buckets = tasks.reduce((acc: Record<string, string[]>, t) => {
+            // When in internal context, show tasks for internal org (includes legacy tasks without clientId for backward compatibility)
+            const relevantTasks = isInternal ? tasks.filter(t => t.clientId === 'internal' || !t.clientId) : (clientContext ? tasks.filter(t => t.clientId === clientContext) : tasks);
+            const buckets = relevantTasks.reduce((acc: Record<string, string[]>, t) => {
                 acc[t.status] = acc[t.status] || [];
                 acc[t.status].push(t.title);
                 return acc;
@@ -1422,23 +1597,25 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             return { result: `Tasks overview -> ${summary || 'no tasks yet'}`, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'schedule_meeting') {
-            const title = payload?.title || 'Client Sync';
+            const title = payload?.title || (isInternal ? 'Team Sync' : 'Client Sync');
             const start = payload?.date ? new Date(payload.date).getTime() : Date.now() + 3600000;
             const newMeeting: Meeting = {
                 id: `meet-${Date.now()}`,
                 title,
                 date: start,
                 duration: payload?.duration || 30,
-                summary: payload?.agenda || 'Quick sync',
+                summary: payload?.agenda || (isInternal ? 'Internal team sync' : 'Quick sync'),
                 transcript: '',
                 status: 'scheduled',
                 attendees: payload?.attendees || [],
-                clientId: clientContext,
+                // For internal context, use 'internal' company ID to store in same database
+                clientId: isInternal ? 'internal' : clientContext,
                 link: payload?.link || 'https://meet.neurolynx.ai/room',
                 type: 'video'
             };
             setMeetings(prev => [newMeeting, ...prev]);
-            return { result: `Meeting scheduled: ${title} on ${new Date(start).toLocaleString()}`, log: { ...queued, status: 'success' } };
+            const contextLabel = isInternal ? ' (Internal Organization)' : '';
+            return { result: `Meeting scheduled${contextLabel}: ${title} on ${new Date(start).toLocaleString()}`, log: { ...queued, status: 'success' } };
         }
         if (toolId === 'summarize_client') {
             const comps = companies.map(c => `${c.name} (${c.status})`).join(', ');
@@ -1520,7 +1697,8 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
         if (!input.trim() || isLoading) return;
 
         // Derive client context from selected company (for MCP tool scoping)
-        const clientContext = selectedCompanyId !== 'all' ? selectedCompanyId : undefined;
+        // Use 'internal' for internal org, or the specific company ID
+        const clientContext = selectedCompanyId;
 
         // Add user message to chat
         setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: input, timestamp: Date.now(), type: 'text' }]);
@@ -1597,10 +1775,30 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             MAX_ITEMS_PER_SECTION, 'tickets'
         );
 
+        // Build internal organization context when in internal workspace mode
+        const internalCompany = companies.find(c => c.isInternal);
+        const internalOrgContext = (workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `
+INTERNAL ORGANIZATION CONTEXT:
+You are currently viewing the Internal Organization workspace. You can read/write to internal data.
+
+YOUR ORGANIZATION: ${internalCompany?.name || businessProfile.name}
+ADDRESS: ${internalCompany?.address || businessProfile.address}
+PHONE: ${internalCompany?.phone || businessProfile.phone}
+WEBSITE: ${internalCompany?.website || businessProfile.website}
+
+TEAM MEMBERS (${users.length} total):
+${users.map(u => `- ${u.name} (${u.role})`).join('\n')}
+
+AUTOMATION RULES (${automations.length} total):
+${automations.map(a => `- ${a.name}: ${a.event} trigger (${a.active ? 'Active' : 'Inactive'})`).join('\n')}
+
+CURRENT INTERNAL TAB: ${internalTab}
+` : '';
+
         let contextData = `
 [NEUROLYNX INTERNAL DATABASE]
 You have access to all company data. Base your answers strictly on this data.
-
+${internalOrgContext}
 COMPANIES/CLIENTS (${companies.length} total):
 ${allCompanies}
 
@@ -1628,6 +1826,10 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 - You can create tasks, schedule meetings, and more via natural language
 - You have access to Meeting Intelligence data including meeting summaries, action items, and sentiment analysis
 - You have access to Support Tickets data including priority, status, and category
+- Internal organization and external companies are all stored in the same database
+${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You are currently in the INTERNAL ORGANIZATION workspace and can read/write internal org data
+- You have access to team members, products/offerings, and automation rules
+- You can create internal tasks and meetings associated with your organization` : ''}
 - Be helpful, concise, and professional
 - If asked about "highest paying customer", use the Revenue figures
 - If the data doesn't contain the answer, say so honestly
@@ -1733,7 +1935,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
     // --- Real Document Generation ---
     const handleCreateDocument = (template: Template) => {
         const doc = new jsPDF();
-        const company = companies.find(c => c.id === (selectedCompanyId !== 'all' ? selectedCompanyId : companies[0].id));
+        const firstClient = companies.find(c => !c.isInternal);
+        const company = companies.find(c => c.id === (selectedCompanyId !== 'internal' ? selectedCompanyId : firstClient?.id));
         const clientName = clients.find(c => c.companyId === company?.id)?.name || 'Client Name';
         const companyName = company?.name || 'Company Name';
         const date = new Date().toLocaleDateString();
@@ -1935,8 +2138,8 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
     };
     const handleMeetingClick = (meeting: Meeting) => { setSelectedMeeting(meeting); setMeetingRecommendationsSelected(new Set()); setMeetingRecommendationDates({}); };
     const handleAddRecommendationsToTasks = () => { if (!selectedMeeting) return; const tasksToAdd: Task[] = Array.from(meetingRecommendationsSelected).map((recText: string) => ({ id: Date.now().toString() + Math.random(), title: recText, description: `Generated from meeting: ${selectedMeeting.title}`, status: 'todo', priority: 'medium', clientId: selectedMeeting.clientId || 'comp1', assignedTo: currentUser?.id, source: 'meeting', dueDate: meetingRecommendationDates[recText] })); setTasks(prev => [...prev, ...tasksToAdd]); addToast('success', `${tasksToAdd.length} tasks added`); setMeetingRecommendationsSelected(new Set()); setMeetingRecommendationDates({}); };
-    const handleMemoryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; const text = await extractTextFromPDF(file); setMemories(prev => [{ id: Date.now().toString(), key: file.name, value: text.substring(0, 200) + '...', timestamp: Date.now(), createdBy: currentUser?.name || 'User', type: 'file', fileName: file.name, clientId: selectedCompanyId !== 'all' ? selectedCompanyId : undefined }, ...prev]); addToast('success', 'Memory Uploaded'); };
-    const saveManualMemory = () => { if (!modalData.content) return; setMemories(prev => [{ id: Date.now().toString(), key: 'Manual Note', value: modalData.content, timestamp: Date.now(), createdBy: currentUser?.name || 'User', type: 'text', clientId: selectedCompanyId !== 'all' ? selectedCompanyId : undefined }, ...prev]); setActiveModal(null); addToast('success', 'Note Added'); };
+    const handleMemoryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (!file) return; const text = await extractTextFromPDF(file); setMemories(prev => [{ id: Date.now().toString(), key: file.name, value: text.substring(0, 200) + '...', timestamp: Date.now(), createdBy: currentUser?.name || 'User', type: 'file', fileName: file.name, clientId: selectedCompanyId }, ...prev]); addToast('success', 'Memory Uploaded'); };
+    const saveManualMemory = () => { if (!modalData.content) return; setMemories(prev => [{ id: Date.now().toString(), key: 'Manual Note', value: modalData.content, timestamp: Date.now(), createdBy: currentUser?.name || 'User', type: 'text', clientId: selectedCompanyId }, ...prev]); setActiveModal(null); addToast('success', 'Note Added'); };
 
     const calculateContractTotals = () => { const subtotal = contractBuilderItems.reduce((acc, i) => acc + (i.quantity * i.unitPrice), 0); const taxable = Math.max(0, subtotal - contractDiscount); const tax = taxable * contractTaxRate; const total = taxable + tax; return { subtotal, tax, total }; };
     const totals = calculateContractTotals();
@@ -2083,18 +2286,18 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             <SidebarSubItem active={view === 'assets'} label="IT Inventory" onClick={() => { setView('assets'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'wiki'} label="Brain / Wiki" onClick={() => { setView('wiki'); ensureClientSelected(); }} />
                                             <SidebarSubItem active={view === 'orgchart'} label="Org Viz" onClick={() => { setView('orgchart'); ensureClientSelected(); }} />
-                                            <SidebarSubItem active={view === 'roadmap'} label="Product Ops" onClick={() => { setView('roadmap'); ensureClientSelected(); }} />
+                                            <SidebarSubItem active={view === 'roadmap'} label="AI Recommendations" onClick={() => { setView('roadmap'); ensureClientSelected(); }} />
                                         </div>
                                     )}
                                     {/* Internal Mgmt - now below Client Workspace */}
                                     <SidebarGroupToggle isOpen={isInternalMgmtOpen} label="Internal Mgmt" onClick={() => setIsInternalMgmtOpen(!isInternalMgmtOpen)} isMainLabel={true} />
                                     {isInternalMgmtOpen && (
                                         <div className="space-y-1 mt-1 pl-2 transition-all submenu-glow-level-1">
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'offerings'} label="Offerings" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('offerings'); }} />
+                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'offerings'} label="Offerings" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('internal'); setInternalTab('offerings'); }} />
                                             {currentUser?.role === 'admin' && (
-                                                <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'team'} label="Team" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('team'); }} />
+                                                <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'team'} label="Team" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('internal'); setInternalTab('team'); }} />
                                             )}
-                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('all'); setInternalTab('automations'); }} />
+                                            <SidebarSubItem active={view === 'workspace' && workspaceMode === 'internal' && internalTab === 'automations'} label="Automations" onClick={() => { setView('workspace'); setWorkspaceMode('internal'); setSelectedCompanyId('internal'); setInternalTab('automations'); }} />
                                             <SidebarSubItem active={view === 'compliance'} label="Compliance" onClick={() => setView('compliance')} />
                                             <SidebarSubItem active={view === 'invoices'} label="Billing Core" onClick={() => setView('invoices')} />
                                             <SidebarSubItem active={view === 'partners'} label="Partner Net" onClick={() => setView('partners')} />
@@ -2289,7 +2492,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                 <header className={`h-20 border-b flex items-center justify-between px-8 flex-shrink-0 z-40 ${isDarkMode ? 'bg-slate-900/60 border-white/5 backdrop-blur-md' : 'bg-white/80 border-gray-200 backdrop-blur-md'}`}>
                     <div className="flex items-center gap-6 flex-1">
                         <div className="flex flex-col">
-                            <Breadcrumbs view={view} companyName={selectedCompanyId !== 'all' ? companies.find(c => c.id === selectedCompanyId)?.name : undefined} />
+                            <Breadcrumbs view={view} companyName={companies.find(c => c.id === selectedCompanyId)?.name} />
                             <h1 className="font-extrabold text-2xl neuro-text-gradient uppercase hidden md:block leading-tight">{getViewLabel(view)}</h1>
                         </div>
 
@@ -2349,11 +2552,11 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                         {CLIENT_WORKSPACE_VIEWS.includes(view) && (
                             <select
                                 value={selectedCompanyId}
-                                onChange={(e) => { setSelectedCompanyId(e.target.value); if (view === 'workspace') setWorkspaceMode(e.target.value === 'all' ? 'internal' : 'client'); }}
+                                onChange={(e) => { setSelectedCompanyId(e.target.value); if (view === 'workspace') setWorkspaceMode(e.target.value === 'internal' ? 'internal' : 'client'); }}
                                 className="bg-slate-800 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-500 max-w-[150px] truncate"
                             >
-                                <option value="all">Internal / All</option>
-                                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                <option value="internal">Internal Organization</option>
+                                {companies.filter(c => !c.isInternal).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         )}
                         <div className="relative">
@@ -2532,7 +2735,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     onSaveInvoice: (inv: any) => setInvoices(prev => [...prev, inv]),
                                     esignRequests,
                                     assets,
-                                    onAddAsset: () => { setModalData({ companyId: selectedCompanyId !== 'all' ? selectedCompanyId : '' }); setActiveModal('save_asset'); },
+                                    onAddAsset: () => { setModalData({ companyId: selectedCompanyId }); setActiveModal('save_asset'); },
                                     onEditAsset: (asset: Asset) => { setModalData({ ...asset }); setActiveModal('save_asset'); },
                                     onRemoveAsset: (assetId: string) => {
                                         setAssets(prev => prev.filter(a => a.id !== assetId));
@@ -2541,7 +2744,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     wikiPages,
                                     onCreateWikiPage: () => setActiveModal('create_wiki_page'),
                                     orgContacts,
-                                    onAddOrgContact: () => { setModalData({ companyId: selectedCompanyId !== 'all' ? selectedCompanyId : '' }); setActiveModal('add_org_contact'); },
+                                    onAddOrgContact: () => { setModalData({ companyId: selectedCompanyId }); setActiveModal('add_org_contact'); },
                                     onRemoveOrgContact: (contactId: string) => {
                                         setOrgContacts(prev => prev.filter(c => c.id !== contactId));
                                         addToast('success', 'Contact removed from organization');
@@ -2570,6 +2773,14 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     onRestoreVersion: (versionId: string) => addToast('info', `Restored version ${versionId}`),
                                     onAddExpense: () => setActiveModal('add_expense'),
                                     workspaceItems,
+                                    // Product Recommendations
+                                    productRecommendations,
+                                    lastRecommendationScan,
+                                    onAcceptRecommendation: acceptRecommendation,
+                                    onDismissRecommendation: dismissRecommendation,
+                                    onConvertRecommendationToDeal: convertRecommendationToDeal,
+                                    onRunRecommendationScan: runRecommendationScan,
+                                    products,
                                     // System configuration props for AI model dropdown
                                     mockIntegrations: MOCK_INTEGRATIONS,
                                     configuredModels,
@@ -2650,7 +2861,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                             />
                                         )}
 
-                                        {view === 'workspace' && workspaceMode === 'client' && selectedCompanyId !== 'all' && (
+                                        {view === 'workspace' && workspaceMode === 'client' && selectedCompanyId !== 'internal' && (
                                             <ManagementPanel
                                                 {...commonPanelProps}
                                                 view="workspace"
@@ -2708,7 +2919,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         )}
                                         {view === 'memory' && <MemoryView memory={memories} onMemoryUpload={handleMemoryUpload} onSetActiveModal={setActiveModal} />}
                                         {/* Client Workspace Tickets - filtered by selected company */}
-                                        {view === 'tickets' && <ManagementPanel view="tickets" tickets={selectedCompanyId !== 'all' ? tickets.filter(t => t.companyId === selectedCompanyId) : tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
+                                        {view === 'tickets' && <ManagementPanel view="tickets" tickets={tickets.filter(t => t.companyId === selectedCompanyId)} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
                                         {/* Global Tickets - shows all tickets across all clients */}
                                         {view === 'alltickets' && <ManagementPanel view="tickets" tickets={tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
                                         {['forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'].includes(view) && (
@@ -2790,7 +3001,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="text-xs text-slate-500 uppercase mb-1 block">Client</label>
-                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : '')} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
+                                            <select className="w-full p-3 bg-black/20 rounded border border-white/10 text-slate-300" value={modalData.companyId || selectedCompanyId} onChange={e => setModalData({ ...modalData, companyId: e.target.value })}>
                                                 <option value="">Select Client...</option>
                                                 {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                             </select>
@@ -3207,9 +3418,9 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                         </select>
                                         <textarea className="w-full p-3 bg-black/20 rounded border border-white/10 h-20 resize-none" placeholder="Notes (optional)" value={modalData.notes || ''} onChange={e => setModalData({ ...modalData, notes: e.target.value })} />
                                         <button 
-                                            disabled={!modalData.companyId && selectedCompanyId === 'all'}
+                                            disabled={!modalData.companyId && !selectedCompanyId}
                                             onClick={() => {
-                                                const companyId = modalData.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : '');
+                                                const companyId = modalData.companyId || selectedCompanyId;
                                                 if (!companyId) {
                                                     addToast('error', 'Please select a company');
                                                     return;
@@ -3232,7 +3443,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                                 setActiveModal(null);
                                                 setModalData({});
                                                 addToast('success', `Asset ${modalData.id ? 'updated' : 'created'} successfully`);
-                                        }} className={`w-full py-3 rounded font-bold text-white ${!modalData.companyId && selectedCompanyId === 'all' ? 'bg-slate-600 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500'}`}>Save Asset</button>
+                                        }} className={`w-full py-3 rounded font-bold text-white ${!modalData.companyId && !selectedCompanyId ? 'bg-slate-600 cursor-not-allowed' : 'bg-cyan-600 hover:bg-cyan-500'}`}>Save Asset</button>
                                     </div>
                                 )
                             }
@@ -3321,7 +3532,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
                                     <ContractBuilder
                                         isOpen={true}
                                         onClose={() => setActiveModal(null)}
-                                        selectedCompanyId={selectedCompanyId !== 'all' ? selectedCompanyId : 'unknown'}
+                                        selectedCompanyId={selectedCompanyId}
                                         companies={companies}
                                         products={products}
                                         businessProfile={businessProfile}

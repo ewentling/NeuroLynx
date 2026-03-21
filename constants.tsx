@@ -124,6 +124,17 @@ export const HELP_DOCS = [
 
 export const MOCK_COMPANIES: Company[] = [
     {
+        id: 'internal',
+        name: 'NeuroSyntax Media',
+        address: '100 Innovation Drive, Philadelphia, PA 19104',
+        phone: '555-0199',
+        website: 'www.neurosyntax.media',
+        industry: 'Technology',
+        status: 'active',
+        revenue: 0,
+        isInternal: true
+    },
+    {
         id: 'comp1',
         name: 'Acme Innovations Ltd.',
         address: '123 Innovation Dr, San Francisco, CA',
