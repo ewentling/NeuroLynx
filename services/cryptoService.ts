@@ -98,7 +98,8 @@ export class CryptoService {
       return JSON.parse(dec.decode(decrypted));
     } catch (e) {
       console.error("Decryption failed", e);
-      return null;
+      // Return special error marker so caller can handle appropriately
+      return { __decryptionError: true, originalData: dataStr };
     }
   }
 }

@@ -664,10 +664,33 @@ export const App: React.FC = () => {
             const savedModels = localStorage.getItem('neurolynx_models');
             if (savedModels) {
                 const decrypted = await cryptoService.current.decrypt(savedModels);
-                if (decrypted && typeof decrypted !== 'string') {
+                // Handle decryption error - preserve data and notify user
+                if (decrypted && decrypted.__decryptionError) {
+                    console.error('Failed to decrypt API keys - data preserved in localStorage');
+                    // Try to load from backup if available
+                    const backup = localStorage.getItem('neurolynx_models_backup');
+                    if (backup) {
+                        try {
+                            const backupData = JSON.parse(backup);
+                            if (Array.isArray(backupData) && backupData.length > 0) {
+                                setConfiguredModels(backupData);
+                                console.log('Restored API keys from backup');
+                                return;
+                            }
+                        } catch { }
+                    }
+                    return;
+                }
+                if (decrypted && typeof decrypted !== 'string' && Array.isArray(decrypted)) {
                     setConfiguredModels(decrypted);
+                    // Save unencrypted backup for recovery
+                    localStorage.setItem('neurolynx_models_backup', JSON.stringify(decrypted));
                 } else if (typeof decrypted === 'string') {
-                    try { setConfiguredModels(JSON.parse(decrypted)); } catch { }
+                    try { 
+                        const parsed = JSON.parse(decrypted);
+                        setConfiguredModels(parsed);
+                        localStorage.setItem('neurolynx_models_backup', JSON.stringify(parsed));
+                    } catch { }
                 }
             }
         };
@@ -694,6 +717,8 @@ export const App: React.FC = () => {
             if (configuredModels.length > 0) {
                 const encrypted = await cryptoService.current.encrypt(configuredModels);
                 localStorage.setItem('neurolynx_models', encrypted);
+                // Also save unencrypted backup for recovery
+                localStorage.setItem('neurolynx_models_backup', JSON.stringify(configuredModels));
             }
         };
         saveModels();
@@ -1634,6 +1659,55 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             const csv = openDeals.map(d => `${escapeCsv(d.title)},${escapeCsv(d.value)},${escapeCsv(d.stage)}`).join('\n');
             return { result: `Exported ${openDeals.length} deals:\n${csv}`, log: { ...queued, status: 'success' } };
         }
+        // Add org contact (for org viz / organization chart)
+        if (toolId === 'add_org_contact') {
+            const name = payload?.name;
+            const title = payload?.title;
+            const companyId = payload?.companyId || clientContext;
+            
+            if (!name) {
+                return { result: 'Error: Name is required to add an org contact', log: { ...queued, status: 'error' } };
+            }
+            if (!title) {
+                return { result: 'Error: Title/Position is required to add an org contact', log: { ...queued, status: 'error' } };
+            }
+            if (!companyId || companyId === 'internal') {
+                return { result: 'Error: Please select a client company first (org contacts are for client organizations)', log: { ...queued, status: 'error' } };
+            }
+            
+            // Find manager if specified by name
+            let reportsToId: string | undefined;
+            if (payload?.reportsTo) {
+                const managerName = payload.reportsTo.toLowerCase();
+                const manager = orgContacts.find(c => 
+                    c.companyId === companyId && 
+                    c.name.toLowerCase().includes(managerName)
+                );
+                if (manager) {
+                    reportsToId = manager.id;
+                }
+            }
+            
+            const newContact: OrgContact = {
+                id: `org-${Date.now()}`,
+                companyId,
+                name,
+                title,
+                email: payload?.email,
+                phone: payload?.phone,
+                department: payload?.department,
+                reportsToId,
+                isDecisionMaker: payload?.isDecisionMaker || title.toLowerCase().includes('ceo') || title.toLowerCase().includes('chief') || title.toLowerCase().includes('president') || title.toLowerCase().includes('vp') || title.toLowerCase().includes('director')
+            };
+            
+            setOrgContacts(prev => [...prev, newContact]);
+            const company = companies.find(c => c.id === companyId);
+            const companyName = company?.name || 'selected company';
+            return { 
+                result: `Added ${name} (${title}) to ${companyName}'s organization chart${reportsToId ? ` reporting to ${orgContacts.find(c => c.id === reportsToId)?.name}` : ' as a top-level contact'}`, 
+                log: { ...queued, status: 'success' } 
+            };
+        }
         return { result: 'Unknown tool', log: { ...queued, status: 'error' } };
     };
 
@@ -1662,6 +1736,62 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
         }
         if (lower.includes('export') && lower.includes('deal')) {
             return { toolId: 'export_deals', args: {} };
+        }
+        // Detect intent to add org contact / CEO / executive to org chart
+        if ((lower.includes('add') || lower.includes('create')) && 
+            (lower.includes('org') || lower.includes('organization') || lower.includes('ceo') || lower.includes('executive') || 
+             lower.includes('contact') || lower.includes('person') || lower.includes('employee') || lower.includes('staff'))) {
+            // Parse "add [Name] as [Title]" or "add [Title] [Name]" patterns
+            const args: { name?: string; title?: string; email?: string; department?: string; reportsTo?: string } = {};
+            
+            // Try to extract name and title from common patterns
+            // Pattern: "add John Smith as CEO"
+            let match = text.match(/add\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+as\s+(?:the\s+)?(.+?)(?:\s+to|\s+for|\s+at|$)/i);
+            if (match) {
+                args.name = match[1].trim();
+                args.title = match[2].trim();
+            }
+            
+            // Pattern: "add CEO John Smith"
+            if (!args.name) {
+                match = text.match(/add\s+(?:a\s+)?(?:the\s+)?(ceo|cfo|cto|coo|vp|president|director|manager|executive|chief\s+\w+\s+officer)\s+(?:named\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+                if (match) {
+                    args.title = match[1].trim();
+                    args.name = match[2].trim();
+                }
+            }
+            
+            // Pattern: extract name with "named [Name]"
+            if (!args.name) {
+                match = text.match(/named?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+                if (match) {
+                    args.name = match[1].trim();
+                }
+            }
+            
+            // Pattern: extract title if standalone
+            if (!args.title) {
+                match = text.match(/(ceo|cfo|cto|coo|vp|president|director|manager|chief\s+\w+\s+officer|vice\s+president)/i);
+                if (match) {
+                    args.title = match[1].trim();
+                }
+            }
+            
+            // Extract email if provided
+            const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+            if (emailMatch) {
+                args.email = emailMatch[1];
+            }
+            
+            // Extract "reports to" relationship
+            const reportsToMatch = text.match(/reports?\s+to\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+            if (reportsToMatch) {
+                args.reportsTo = reportsToMatch[1].trim();
+            }
+            
+            if (args.name || args.title) {
+                return { toolId: 'add_org_contact', args };
+            }
         }
         return null;
     };
