@@ -44,6 +44,7 @@ import { OfflineService } from './services/offlineService';
 import { EsignService } from './services/esignService';
 import { VoiceService } from './services/voiceService';
 import { VisualizationService } from './services/vizService';
+import { ChatHistoryService } from './services/chatHistoryService';
 
 import LicenseScreen from './components/LicenseScreen';
 import LoginScreen from './components/LoginScreen';
@@ -699,6 +700,13 @@ export const App: React.FC = () => {
         const savedFeatures = localStorage.getItem('neurolynx_features'); if (savedFeatures) setFeatureMapping(JSON.parse(savedFeatures));
         const savedAutomations = localStorage.getItem('neurolynx_automations'); if (savedAutomations) setAutomationRules(JSON.parse(savedAutomations));
         const savedKpiGoals = localStorage.getItem('neurolynx_kpi_goals'); if (savedKpiGoals) setKpiGoals(JSON.parse(savedKpiGoals));
+        
+        // Load chat history for infinite conversation memory
+        const savedChatHistory = ChatHistoryService.loadMessages();
+        if (savedChatHistory.length > 0) {
+            setMessages(savedChatHistory);
+            console.log(`Loaded ${savedChatHistory.length} messages from chat history`);
+        }
     }, []);
 
     useEffect(() => { localStorage.setItem('neurolynx_biz_profile', JSON.stringify(businessProfile)); }, [businessProfile]);
@@ -727,6 +735,13 @@ export const App: React.FC = () => {
     useEffect(() => { localStorage.setItem('neurolynx_automations', JSON.stringify(automationRules)); }, [automationRules]);
     useEffect(() => { localStorage.setItem('neurolynx_kpi_goals', JSON.stringify(kpiGoals)); }, [kpiGoals]);
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+    
+    // Persist chat messages for infinite conversation memory
+    useEffect(() => {
+        if (messages.length > 0) {
+            ChatHistoryService.saveAllMessages(messages);
+        }
+    }, [messages]);
 
     const addToast = (type: Toast['type'], message: string) => {
         const id = Date.now().toString(); setToasts(prev => [...prev, { id, type, message }]); setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
@@ -1696,7 +1711,7 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             };
             
             const newContact: OrgContact = {
-                id: `org-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                id: `org-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
                 companyId,
                 name,
                 title,
@@ -1936,10 +1951,17 @@ ${automations.map(a => `- ${a.name}: ${a.event} trigger (${a.active ? 'Active' :
 CURRENT INTERNAL TAB: ${internalTab}
 ` : '';
 
+        // Get recent conversation history for context continuity
+        const conversationHistory = ChatHistoryService.getConversationContext(10);
+
         let contextData = `
 [NEUROLYNX INTERNAL DATABASE]
 You have access to all company data. Base your answers strictly on this data.
 ${internalOrgContext}
+${conversationHistory ? `
+RECENT CONVERSATION HISTORY:
+${conversationHistory}
+` : ''}
 COMPANIES/CLIENTS (${companies.length} total):
 ${allCompanies}
 
@@ -1968,6 +1990,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 - You have access to Meeting Intelligence data including meeting summaries, action items, and sentiment analysis
 - You have access to Support Tickets data including priority, status, and category
 - Internal organization and external companies are all stored in the same database
+- You have access to CONVERSATION HISTORY - use it to maintain context and remember previous requests
 ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You are currently in the INTERNAL ORGANIZATION workspace and can read/write internal org data
 - You have access to team members, products/offerings, and automation rules
 - You can create internal tasks and meetings associated with your organization` : ''}
