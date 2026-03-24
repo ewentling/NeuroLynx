@@ -2920,6 +2920,18 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                         setTickets(prev => [...prev, newTicket]);
                                         addToast('success', 'Support ticket submitted successfully');
                                     },
+                                    onSendTicketEmail: (ticketId: string, noteContent: string, clientEmail: string) => {
+                                        // Find the ticket for context
+                                        const ticket = tickets.find(t => t.id === ticketId);
+                                        if (!ticket) return;
+                                        
+                                        // In production, this would send via email service
+                                        // For now, simulate email sending with mailto link
+                                        const subject = encodeURIComponent(`Status Update: ${ticket.title}`);
+                                        const body = encodeURIComponent(`Dear ${ticket.reportedBy},\n\nHere is a status update for your support ticket:\n\nTicket: ${ticket.title}\nStatus: ${ticket.status.replace('_', ' ').toUpperCase()}\n\n--- Update ---\n${noteContent}\n\nBest regards,\nSupport Team`);
+                                        window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`, '_blank');
+                                        addToast('info', `Email client opened for ${clientEmail}`);
+                                    },
                                     kpiGoals,
                                     onUpdateKpiGoal: (id: string, current: number) => setKpiGoals(prev => prev.map(g => g.id === id ? { ...g, current } : g)),
                                     onAddKpiGoal: (goal: KPIGoal) => {

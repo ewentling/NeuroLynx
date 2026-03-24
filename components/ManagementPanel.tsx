@@ -463,8 +463,10 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                     tickets={props.tickets || []}
                     companies={props.companies || []}
                     users={props.users || []}
+                    currentUser={props.currentUser}
                     onCreateTicket={() => props.onSetActiveModal?.('save_ticket')}
                     onUpdateTicket={props.onUpdateTicket || (() => {})}
+                    onSendTicketEmail={props.onSendTicketEmail}
                 />
             )}
 

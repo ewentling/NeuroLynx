@@ -346,12 +346,21 @@ export interface ActivityEntry {
 export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
 export type TicketStatus = 'open' | 'in_progress' | 'waiting' | 'resolved' | 'closed';
 
+export interface TicketStatusNote {
+  id: string;
+  content: string;
+  createdBy: string;
+  createdAt: number;
+  emailedToClient: boolean;
+}
+
 export interface SupportTicket {
   id: string;
   title: string;
   description: string;
   companyId: string;
   reportedBy: string;
+  reportedByEmail?: string; // Client email for notifications
   assignedTo?: string;
   priority: TicketPriority;
   status: TicketStatus;
@@ -359,6 +368,7 @@ export interface SupportTicket {
   createdAt: number;
   resolvedAt?: number;
   category: 'bug' | 'feature_request' | 'access' | 'infrastructure' | 'consulting' | 'other';
+  statusNotes?: TicketStatusNote[]; // Status notes history
 }
 
 // --- Feature 5: Onboarding Checklist ---
