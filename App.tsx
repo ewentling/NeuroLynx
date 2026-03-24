@@ -610,7 +610,10 @@ export const App: React.FC = () => {
                 if (status.isRunning && status.models.length > 0) {
                     console.log(`Ollama detected with ${status.models.length} models: ${status.models.map(m => m.name).join(', ')}`);
                     // If the default model is Ollama but no specific model is set, use first available
-                    if (configuredModels.length === 1 && configuredModels[0].provider === 'Ollama' && !configuredModels[0].apiKey) {
+                    const isDefaultOllamaConfig = configuredModels.length === 1 
+                        && configuredModels[0].provider === 'Ollama' 
+                        && !configuredModels[0].apiKey;
+                    if (isDefaultOllamaConfig) {
                         const firstModel = status.models[0].name;
                         setConfiguredModels([{
                             id: 'default',

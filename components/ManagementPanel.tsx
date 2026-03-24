@@ -656,7 +656,8 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                                 <h4 className="text-sm font-medium text-slate-400 mb-2">Available Local Models ({(props.availableOllamaModels || []).length})</h4>
                                 <div className="space-y-2 max-h-48 overflow-y-auto">
                                     {(props.availableOllamaModels || []).map((model: any) => {
-                                        const sizeGB = model.size ? (model.size / 1024 / 1024 / 1024).toFixed(1) : '?';
+                                        const BYTES_TO_GB = 1024 ** 3;
+                                        const sizeGB = model.size ? (model.size / BYTES_TO_GB).toFixed(1) : '?';
                                         return (
                                             <div key={model.name} className="flex justify-between items-center p-3 bg-black/20 rounded border border-white/5">
                                                 <div>
