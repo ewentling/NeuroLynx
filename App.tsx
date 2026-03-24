@@ -45,6 +45,7 @@ import { EsignService } from './services/esignService';
 import { VoiceService } from './services/voiceService';
 import { VisualizationService } from './services/vizService';
 import { ChatHistoryService } from './services/chatHistoryService';
+import { getOllamaService, OllamaModel, OllamaStatus } from './services/ollamaService';
 
 import LicenseScreen from './components/LicenseScreen';
 import LoginScreen from './components/LoginScreen';
@@ -420,10 +421,14 @@ export const App: React.FC = () => {
 
     // Business Settings
     const [businessProfile, setBusinessProfile] = useState({ name: 'NeuroSyntax Media', address: '100 Innovation Drive, Philadelphia, PA 19104', phone: '555-0199', website: 'www.neurosyntax.media' });
-    const [configuredModels, setConfiguredModels] = useState<ConnectedModel[]>([{ id: 'default', name: 'Gemini 3.0 Flash (System)', modelId: 'gemini-3-flash-preview', provider: 'Google', apiKey: '' }]);
+    const [configuredModels, setConfiguredModels] = useState<ConnectedModel[]>([{ id: 'default', name: 'Ollama - Local LLM (System)', modelId: 'ollama:llama3.3', provider: 'Ollama', apiKey: '' }]);
     const [featureMapping, setFeatureMapping] = useState<{ [key: string]: string }>({ 'chat': 'default', 'meetings': 'default', 'contracts': 'default', 'coding': 'default', 'search': 'default' });
     const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]
     );
+    
+    // Ollama Status and Models
+    const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus>({ isRunning: false, models: [], baseUrl: 'http://localhost:11434' });
+    const [availableOllamaModels, setAvailableOllamaModels] = useState<OllamaModel[]>([]);
 
     // NEW FEATURES STATE
     const [auditLogs, setAuditLogs] = useState<AuditLog[]>(MOCK_AUDIT_LOGS);
@@ -454,7 +459,7 @@ export const App: React.FC = () => {
     const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
     const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
-    const [newModelSelection, setNewModelSelection] = useState(POPULAR_LLMS[1].id); // Use index 1 (gemini flash preview) as default
+    const [newModelSelection, setNewModelSelection] = useState(POPULAR_LLMS[0].id); // Default to first Ollama model
     const [newModelKey, setNewModelKey] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [adminPasswordInput, setAdminPasswordInput] = useState('');
@@ -591,6 +596,42 @@ export const App: React.FC = () => {
             }
         };
         checkLicense();
+    }, []);
+
+    // Check Ollama status on startup
+    useEffect(() => {
+        const checkOllamaStatus = async () => {
+            try {
+                const ollamaService = getOllamaService();
+                const status = await ollamaService.checkStatus();
+                setOllamaStatus(status);
+                setAvailableOllamaModels(status.models);
+                
+                if (status.isRunning && status.models.length > 0) {
+                    console.log(`Ollama detected with ${status.models.length} models: ${status.models.map(m => m.name).join(', ')}`);
+                    // If the default model is Ollama but no specific model is set, use first available
+                    if (configuredModels.length === 1 && configuredModels[0].provider === 'Ollama' && !configuredModels[0].apiKey) {
+                        const firstModel = status.models[0].name;
+                        setConfiguredModels([{
+                            id: 'default',
+                            name: `Ollama - ${firstModel} (Local)`,
+                            modelId: `ollama:${firstModel}`,
+                            provider: 'Ollama',
+                            apiKey: '' // Ollama doesn't need an API key
+                        }]);
+                    }
+                } else {
+                    console.log('Ollama not running or no models installed');
+                }
+            } catch (error) {
+                console.log('Error checking Ollama status:', error);
+            }
+        };
+        checkOllamaStatus();
+        
+        // Refresh Ollama status every 30 seconds
+        const interval = setInterval(checkOllamaStatus, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleActivation = async (rawKey: string) => {
@@ -2957,6 +2998,20 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                     onSetNewModelKey: setNewModelKey,
                                     onRemoveModel: removeModel,
                                     onAddModel: handleAddModel,
+                                    // Ollama status and models
+                                    ollamaStatus,
+                                    availableOllamaModels,
+                                    onRefreshOllamaModels: async () => {
+                                        const ollamaService = getOllamaService();
+                                        const status = await ollamaService.checkStatus();
+                                        setOllamaStatus(status);
+                                        setAvailableOllamaModels(status.models);
+                                        if (status.isRunning) {
+                                            addToast('success', `Ollama connected with ${status.models.length} models available`);
+                                        } else {
+                                            addToast('warning', 'Ollama is not running. Please start Ollama with: ollama serve');
+                                        }
+                                    },
                                     maxUsers,
                                     onAddUser: () => setActiveModal('save_user'),
                                     onUnlockUser: unlockUser,

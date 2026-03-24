@@ -630,31 +630,111 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                 <div className="space-y-6">
                     <h2 className="text-2xl font-bold">AI Configuration</h2>
                     
+                    {/* Ollama Status Section */}
                     <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
-                        <h3 className="font-bold mb-4">AI Models</h3>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold">Local AI (Ollama)</h3>
+                            <button 
+                                onClick={props.onRefreshOllamaModels}
+                                className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 rounded text-xs font-bold flex items-center gap-2"
+                            >
+                                <i className="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className={`w-3 h-3 rounded-full ${props.ollamaStatus?.isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                            <span className={`text-sm font-medium ${props.ollamaStatus?.isRunning ? 'text-green-400' : 'text-red-400'}`}>
+                                {props.ollamaStatus?.isRunning ? `Connected (${props.ollamaStatus?.version || 'running'})` : 'Not Running'}
+                            </span>
+                            {!props.ollamaStatus?.isRunning && (
+                                <span className="text-xs text-slate-500">Start with: <code className="bg-black/30 px-2 py-1 rounded">ollama serve</code></span>
+                            )}
+                        </div>
+                        
+                        {props.ollamaStatus?.isRunning && (props.availableOllamaModels || []).length > 0 && (
+                            <div>
+                                <h4 className="text-sm font-medium text-slate-400 mb-2">Available Local Models ({(props.availableOllamaModels || []).length})</h4>
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                    {(props.availableOllamaModels || []).map((model: any) => {
+                                        const sizeGB = model.size ? (model.size / 1024 / 1024 / 1024).toFixed(1) : '?';
+                                        return (
+                                            <div key={model.name} className="flex justify-between items-center p-3 bg-black/20 rounded border border-white/5">
+                                                <div>
+                                                    <div className="font-bold text-sm">{model.name}</div>
+                                                    <div className="text-xs text-slate-500">
+                                                        {model.details?.parameter_size || 'Unknown size'} • {sizeGB}GB
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => {
+                                                        // Add this Ollama model as a configured model
+                                                        const newModel = {
+                                                            id: `ollama_${model.name}_${Date.now()}`,
+                                                            name: `Ollama - ${model.name} (Local)`,
+                                                            modelId: `ollama:${model.name}`,
+                                                            provider: 'Ollama',
+                                                            apiKey: '' // No API key needed for Ollama
+                                                        };
+                                                        props.onAddModel?.(newModel);
+                                                        props.onAddToast?.('success', `Added ${model.name} as a chat model option`);
+                                                    }}
+                                                    className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-xs font-bold"
+                                                >
+                                                    <i className="fas fa-plus mr-1"></i>Use
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {props.ollamaStatus?.isRunning && (props.availableOllamaModels || []).length === 0 && (
+                            <div className="text-center py-6 bg-black/20 rounded border border-white/5">
+                                <p className="text-slate-400 mb-2">No models installed</p>
+                                <p className="text-xs text-slate-500">Pull a model with: <code className="bg-black/30 px-2 py-1 rounded">ollama pull llama3.3</code></p>
+                            </div>
+                        )}
+                        
+                        <div className="mt-4 p-3 bg-cyan-900/20 border border-cyan-500/20 rounded">
+                            <p className="text-xs text-cyan-400">
+                                <i className="fas fa-shield-alt mr-1"></i>
+                                <strong>Privacy:</strong> Ollama runs 100% locally. Your data never leaves your machine.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
+                        <h3 className="font-bold mb-4">Configured AI Models</h3>
                         <div className="space-y-2">
                             {(props.configuredModels || []).map((m: any) => (
                                 <div key={m.id} className="flex justify-between items-center p-3 bg-black/20 rounded">
-                                    <div>
-                                        <div className="font-bold text-sm">{m.name}</div>
-                                        <div className="text-xs text-slate-500">{m.modelId}</div>
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-2 h-2 rounded-full ${m.provider === 'Ollama' ? 'bg-green-500' : (m.apiKey ? 'bg-cyan-500' : 'bg-yellow-500')}`}></div>
+                                        <div>
+                                            <div className="font-bold text-sm">{m.name}</div>
+                                            <div className="text-xs text-slate-500">{m.modelId} • {m.provider}</div>
+                                        </div>
                                     </div>
                                     <button onClick={() => props.onRemoveModel?.(m.id)} className="text-red-400 hover:text-white"><i className="fas fa-trash"></i></button>
                                 </div>
                             ))}
                         </div>
-                        <div className="mt-4 pt-4 border-t border-white/5 flex gap-2">
-                            <select className="flex-1 bg-black/20 p-2 rounded border border-white/10 text-sm" value={props.newModelSelection || ''} onChange={e => props.onSetNewModelSelection?.(e.target.value)}>
-                                {(props.popularLlms || []).map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                            </select>
-                            <input className="flex-1 bg-black/20 p-2 rounded border border-white/10 text-sm" placeholder="API Key" value={props.newModelKey || ''} onChange={e => props.onSetNewModelKey?.(e.target.value)} type="password" />
-                            <button onClick={props.onAddModel} className="px-4 bg-green-600 rounded text-xs font-bold">Add</button>
+                        <div className="mt-4 pt-4 border-t border-white/5">
+                            <h4 className="text-sm font-medium text-slate-400 mb-3">Add Cloud Model (requires API key)</h4>
+                            <div className="flex gap-2">
+                                <select className="flex-1 bg-black/20 p-2 rounded border border-white/10 text-sm" value={props.newModelSelection || ''} onChange={e => props.onSetNewModelSelection?.(e.target.value)}>
+                                    {(props.popularLlms || []).filter((m: any) => m.provider !== 'Ollama').map((m: any) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
+                                <input className="flex-1 bg-black/20 p-2 rounded border border-white/10 text-sm" placeholder="API Key" value={props.newModelKey || ''} onChange={e => props.onSetNewModelKey?.(e.target.value)} type="password" />
+                                <button onClick={props.onAddModel} className="px-4 bg-green-600 rounded text-xs font-bold">Add</button>
+                            </div>
                         </div>
                     </div>
 
                     <div className="p-6 bg-slate-800 rounded-xl border border-white/10">
                         <h3 className="font-bold mb-4">Chat Model Assignment</h3>
-                        <p className="text-sm text-slate-400 mb-4">Select which AI model to use for the chat feature. The chat will automatically use the first model with a valid API key if "Auto-select" is chosen.</p>
+                        <p className="text-sm text-slate-400 mb-4">Select which AI model to use for the chat feature. Ollama models run locally for maximum privacy.</p>
                         <div className="flex items-center gap-3">
                             <label className="text-sm text-slate-400">Chat Model:</label>
                             <select 
@@ -662,9 +742,9 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                                 value={(props.featureMapping || {})['chat'] || 'default'}
                                 onChange={e => props.onSetFeatureMapping?.({ ...(props.featureMapping || {}), chat: e.target.value })}
                             >
-                                <option value="default">Auto-select (first with API key)</option>
-                                {(props.configuredModels || []).filter((m: any) => m.apiKey && m.apiKey.trim() !== '').map((m: any) => (
-                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                <option value="default">Auto-select (prefer Ollama if available)</option>
+                                {(props.configuredModels || []).map((m: any) => (
+                                    <option key={m.id} value={m.id}>{m.name}{m.provider === 'Ollama' ? ' 🔒 Local' : ''}</option>
                                 ))}
                             </select>
                         </div>
@@ -672,6 +752,12 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                             <div className="mt-2 text-xs text-green-400">
                                 <i className="fas fa-check-circle mr-1"></i>
                                 Using: {(props.configuredModels || []).find((m: any) => m.id === (props.featureMapping || {})['chat'])?.name || 'Unknown'}
+                            </div>
+                        )}
+                        {(props.featureMapping || {})['chat'] === 'default' && (
+                            <div className="mt-2 text-xs text-cyan-400">
+                                <i className="fas fa-info-circle mr-1"></i>
+                                Currently using: {(props.configuredModels || [])[0]?.name || 'No model configured'}
                             </div>
                         )}
                     </div>

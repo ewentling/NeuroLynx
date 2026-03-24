@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../constants";
+import { getOllamaService, OllamaService } from "./ollamaService";
 
 const DEFAULT_MODEL = 'gemini-3-flash-preview';
 
@@ -18,6 +19,7 @@ export const searchWorkspaceDeclaration: FunctionDeclaration = {
 export class NeuroLynxService {
   private chat: any = null;
   private ai: GoogleGenAI | null = null;
+  private ollamaService: OllamaService | null = null;
   private currentConfig: { provider: string, model: string, apiKey: string } | null = null;
   private history: any[] = []; // Manual history for non-Google providers
 
@@ -29,7 +31,11 @@ export class NeuroLynxService {
   async configure(config: { provider: string, model: string, apiKey: string, systemInstruction?: string }) {
       this.currentConfig = config;
       
-      if (config.provider === 'Google') {
+      if (config.provider === 'Ollama') {
+          // Initialize Ollama service for local LLM
+          this.ollamaService = getOllamaService();
+          this.ollamaService.configure(config.systemInstruction || SYSTEM_INSTRUCTION);
+      } else if (config.provider === 'Google') {
           // Use config key if provided, otherwise fallback to system key.
           const finalApiKey = config.apiKey && config.apiKey.length > 0 ? config.apiKey : process.env.API_KEY;
           
@@ -62,7 +68,14 @@ export class NeuroLynxService {
       // Prepend context data to the prompt if provided
       const finalPrompt = contextData ? `[CONTEXTUAL DATA START]\n${contextData}\n[CONTEXTUAL DATA END]\n\nUser Query: ${text}` : text;
 
-      if (this.currentConfig?.provider === 'Google' && this.chat) {
+      if (this.currentConfig?.provider === 'Ollama' && this.ollamaService) {
+          // Use local Ollama for privacy-focused local inference
+          // Model format is "ollama:modelname" - extract the actual model name
+          const modelName = this.currentConfig.model.startsWith('ollama:') 
+              ? this.currentConfig.model.substring(7) 
+              : this.currentConfig.model;
+          return this.ollamaService.sendMessage(modelName, text, contextData);
+      } else if (this.currentConfig?.provider === 'Google' && this.chat) {
           try {
               const response = await this.chat.sendMessage({ message: finalPrompt });
               return { text: response.text };
@@ -76,7 +89,7 @@ export class NeuroLynxService {
           return this.callOpenAI(finalPrompt);
       }
       else {
-          return { text: `[System] The provider ${this.currentConfig?.provider} is not fully integrated yet. Please switch to Google Gemini or OpenAI.` };
+          return { text: `[System] The provider ${this.currentConfig?.provider} is not fully integrated yet. Please switch to Ollama, Google Gemini, or OpenAI.` };
       }
   }
 
