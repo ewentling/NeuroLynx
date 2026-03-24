@@ -44,6 +44,8 @@ import { OfflineService } from './services/offlineService';
 import { EsignService } from './services/esignService';
 import { VoiceService } from './services/voiceService';
 import { VisualizationService } from './services/vizService';
+import { ChatHistoryService } from './services/chatHistoryService';
+import { getOllamaService, OllamaModel, OllamaStatus } from './services/ollamaService';
 
 import LicenseScreen from './components/LicenseScreen';
 import LoginScreen from './components/LoginScreen';
@@ -419,10 +421,14 @@ export const App: React.FC = () => {
 
     // Business Settings
     const [businessProfile, setBusinessProfile] = useState({ name: 'NeuroSyntax Media', address: '100 Innovation Drive, Philadelphia, PA 19104', phone: '555-0199', website: 'www.neurosyntax.media' });
-    const [configuredModels, setConfiguredModels] = useState<ConnectedModel[]>([{ id: 'default', name: 'Gemini 3.0 Flash (System)', modelId: 'gemini-3-flash-preview', provider: 'Google', apiKey: '' }]);
+    const [configuredModels, setConfiguredModels] = useState<ConnectedModel[]>([{ id: 'default', name: 'Ollama - Local LLM (System)', modelId: 'ollama:llama3.3', provider: 'Ollama', apiKey: 'LOCAL_OLLAMA' }]);
     const [featureMapping, setFeatureMapping] = useState<{ [key: string]: string }>({ 'chat': 'default', 'meetings': 'default', 'contracts': 'default', 'coding': 'default', 'search': 'default' });
     const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]
     );
+    
+    // Ollama Status and Models
+    const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus>({ isRunning: false, models: [], baseUrl: 'http://localhost:11434' });
+    const [availableOllamaModels, setAvailableOllamaModels] = useState<OllamaModel[]>([]);
 
     // NEW FEATURES STATE
     const [auditLogs, setAuditLogs] = useState<AuditLog[]>(MOCK_AUDIT_LOGS);
@@ -453,7 +459,10 @@ export const App: React.FC = () => {
     const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
     const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
-    const [newModelSelection, setNewModelSelection] = useState(POPULAR_LLMS[1].id); // Use index 1 (gemini flash preview) as default
+    // Default to first non-Ollama model for the cloud model dropdown
+    const defaultNewModel = POPULAR_LLMS.find(model => model.provider !== 'Ollama');
+    const defaultNewModelId = defaultNewModel ? defaultNewModel.id : (POPULAR_LLMS[0]?.id ?? '');
+    const [newModelSelection, setNewModelSelection] = useState(defaultNewModelId);
     const [newModelKey, setNewModelKey] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [adminPasswordInput, setAdminPasswordInput] = useState('');
@@ -592,6 +601,49 @@ export const App: React.FC = () => {
         checkLicense();
     }, []);
 
+    // Check Ollama status on startup
+    useEffect(() => {
+        const checkOllamaStatus = async () => {
+            try {
+                const ollamaService = getOllamaService();
+                const status = await ollamaService.checkStatus();
+                setOllamaStatus(status);
+                setAvailableOllamaModels(status.models);
+                
+                if (status.isRunning && status.models.length > 0) {
+                    console.log(`Ollama detected with ${status.models.length} models: ${status.models.map(m => m.name).join(', ')}`);
+                    // Use functional update to avoid stale closure issue
+                    setConfiguredModels(curr => {
+                        // Check if using default Ollama config
+                        const isDefaultOllamaConfig = curr.length === 1 
+                            && curr[0].provider === 'Ollama' 
+                            && curr[0].apiKey === 'LOCAL_OLLAMA';
+                        if (!isDefaultOllamaConfig) {
+                            return curr;
+                        }
+                        const firstModel = status.models[0].name;
+                        return [{
+                            id: 'default',
+                            name: `Ollama - ${firstModel} (Local)`,
+                            modelId: `ollama:${firstModel}`,
+                            provider: 'Ollama',
+                            apiKey: 'LOCAL_OLLAMA' // Sentinel value for local Ollama
+                        }];
+                    });
+                } else {
+                    console.log('Ollama not running or no models installed');
+                }
+            } catch (error) {
+                console.log('Error checking Ollama status:', error);
+            }
+        };
+        checkOllamaStatus();
+        
+        // Refresh Ollama status every 30 seconds
+        const interval = setInterval(checkOllamaStatus, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
     const handleActivation = async (rawKey: string) => {
         setLicenseStatus('checking');
         try {
@@ -664,10 +716,33 @@ export const App: React.FC = () => {
             const savedModels = localStorage.getItem('neurolynx_models');
             if (savedModels) {
                 const decrypted = await cryptoService.current.decrypt(savedModels);
-                if (decrypted && typeof decrypted !== 'string') {
+                // Handle decryption error - preserve data and notify user
+                if (decrypted && decrypted.__decryptionError) {
+                    console.error('Failed to decrypt API keys - data preserved in localStorage');
+                    // Try to load from backup if available
+                    const backup = localStorage.getItem('neurolynx_models_backup');
+                    if (backup) {
+                        try {
+                            const backupData = JSON.parse(backup);
+                            if (Array.isArray(backupData) && backupData.length > 0) {
+                                setConfiguredModels(backupData);
+                                console.log('Restored API keys from backup');
+                                return;
+                            }
+                        } catch { }
+                    }
+                    return;
+                }
+                if (decrypted && typeof decrypted !== 'string' && Array.isArray(decrypted)) {
                     setConfiguredModels(decrypted);
+                    // Save unencrypted backup for recovery
+                    localStorage.setItem('neurolynx_models_backup', JSON.stringify(decrypted));
                 } else if (typeof decrypted === 'string') {
-                    try { setConfiguredModels(JSON.parse(decrypted)); } catch { }
+                    try { 
+                        const parsed = JSON.parse(decrypted);
+                        setConfiguredModels(parsed);
+                        localStorage.setItem('neurolynx_models_backup', JSON.stringify(parsed));
+                    } catch { }
                 }
             }
         };
@@ -676,6 +751,13 @@ export const App: React.FC = () => {
         const savedFeatures = localStorage.getItem('neurolynx_features'); if (savedFeatures) setFeatureMapping(JSON.parse(savedFeatures));
         const savedAutomations = localStorage.getItem('neurolynx_automations'); if (savedAutomations) setAutomationRules(JSON.parse(savedAutomations));
         const savedKpiGoals = localStorage.getItem('neurolynx_kpi_goals'); if (savedKpiGoals) setKpiGoals(JSON.parse(savedKpiGoals));
+        
+        // Load chat history for infinite conversation memory
+        const savedChatHistory = ChatHistoryService.loadMessages();
+        if (savedChatHistory.length > 0) {
+            setMessages(savedChatHistory);
+            console.log(`Loaded ${savedChatHistory.length} messages from chat history`);
+        }
     }, []);
 
     useEffect(() => { localStorage.setItem('neurolynx_biz_profile', JSON.stringify(businessProfile)); }, [businessProfile]);
@@ -694,6 +776,8 @@ export const App: React.FC = () => {
             if (configuredModels.length > 0) {
                 const encrypted = await cryptoService.current.encrypt(configuredModels);
                 localStorage.setItem('neurolynx_models', encrypted);
+                // Also save unencrypted backup for recovery
+                localStorage.setItem('neurolynx_models_backup', JSON.stringify(configuredModels));
             }
         };
         saveModels();
@@ -702,6 +786,13 @@ export const App: React.FC = () => {
     useEffect(() => { localStorage.setItem('neurolynx_automations', JSON.stringify(automationRules)); }, [automationRules]);
     useEffect(() => { localStorage.setItem('neurolynx_kpi_goals', JSON.stringify(kpiGoals)); }, [kpiGoals]);
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+    
+    // Persist chat messages for infinite conversation memory
+    useEffect(() => {
+        if (messages.length > 0) {
+            ChatHistoryService.saveAllMessages(messages);
+        }
+    }, [messages]);
 
     const addToast = (type: Toast['type'], message: string) => {
         const id = Date.now().toString(); setToasts(prev => [...prev, { id, type, message }]); setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
@@ -1634,6 +1725,63 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
             const csv = openDeals.map(d => `${escapeCsv(d.title)},${escapeCsv(d.value)},${escapeCsv(d.stage)}`).join('\n');
             return { result: `Exported ${openDeals.length} deals:\n${csv}`, log: { ...queued, status: 'success' } };
         }
+        // Add org contact (for org viz / organization chart)
+        if (toolId === 'add_org_contact') {
+            const name = payload?.name;
+            const title = payload?.title;
+            const companyId = payload?.companyId || clientContext;
+            
+            if (!name) {
+                return { result: 'Error: Name is required to add an org contact', log: { ...queued, status: 'error' } };
+            }
+            if (!title) {
+                return { result: 'Error: Title/Position is required to add an org contact', log: { ...queued, status: 'error' } };
+            }
+            if (!companyId || companyId === 'internal') {
+                return { result: 'Error: Please select a client company first (org contacts are for client organizations)', log: { ...queued, status: 'error' } };
+            }
+            
+            // Find manager if specified by name
+            let reportsToId: string | undefined;
+            if (payload?.reportsTo) {
+                const managerName = payload.reportsTo.toLowerCase();
+                const manager = orgContacts.find(c => 
+                    c.companyId === companyId && 
+                    c.name.toLowerCase().includes(managerName)
+                );
+                if (manager) {
+                    reportsToId = manager.id;
+                }
+            }
+            
+            // Helper to check if a title indicates a decision maker
+            const isDecisionMakerTitle = (t: string): boolean => {
+                const lower = t.toLowerCase();
+                const decisionMakerKeywords = ['ceo', 'chief', 'president', 'vp', 'vice president', 'director', 'head of', 'senior'];
+                return decisionMakerKeywords.some(keyword => lower.includes(keyword));
+            };
+            
+            const newContact: OrgContact = {
+                id: `org-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+                companyId,
+                name,
+                title,
+                email: payload?.email,
+                phone: payload?.phone,
+                department: payload?.department,
+                reportsToId,
+                isDecisionMaker: payload?.isDecisionMaker || isDecisionMakerTitle(title)
+            };
+            
+            setOrgContacts(prev => [...prev, newContact]);
+            const company = companies.find(c => c.id === companyId);
+            const companyName = company?.name || 'selected company';
+            const managerName = reportsToId ? orgContacts.find(c => c.id === reportsToId)?.name : null;
+            return { 
+                result: `Added ${name} (${title}) to ${companyName}'s organization chart${managerName ? ` reporting to ${managerName}` : ' as a top-level contact'}`, 
+                log: { ...queued, status: 'success' } 
+            };
+        }
         return { result: 'Unknown tool', log: { ...queued, status: 'error' } };
     };
 
@@ -1662,6 +1810,65 @@ ${score === 100 ? '✅ Ready for audit - all controls compliant' : `🎯 Target:
         }
         if (lower.includes('export') && lower.includes('deal')) {
             return { toolId: 'export_deals', args: {} };
+        }
+        // Detect intent to add org contact / CEO / executive to org chart
+        if ((lower.includes('add') || lower.includes('create')) && 
+            (lower.includes('org') || lower.includes('organization') || lower.includes('ceo') || lower.includes('executive') || 
+             lower.includes('contact') || lower.includes('person') || lower.includes('employee') || lower.includes('staff'))) {
+            // Parse "add [Name] as [Title]" or "add [Title] [Name]" patterns
+            const args: { name?: string; title?: string; email?: string; department?: string; reportsTo?: string } = {};
+            
+            // Flexible name pattern: matches capitalized words (supports 1-4 word names like "Mary Jane Watson" or "Dr. John Smith Jr.")
+            const namePattern = '[A-Z][a-z]+(?:\\s+(?:[A-Z][a-z]+|Jr\\.|Sr\\.|III|II|IV))*';
+            
+            // Try to extract name and title from common patterns
+            // Pattern: "add John Smith as CEO"
+            let match = text.match(new RegExp(`add\\s+(${namePattern})\\s+as\\s+(?:the\\s+)?(.+?)(?:\\s+to|\\s+for|\\s+at|$)`, 'i'));
+            if (match) {
+                args.name = match[1].trim();
+                args.title = match[2].trim();
+            }
+            
+            // Pattern: "add CEO John Smith"
+            if (!args.name) {
+                match = text.match(new RegExp(`add\\s+(?:a\\s+)?(?:the\\s+)?(ceo|cfo|cto|coo|vp|president|director|manager|executive|chief\\s+\\w+\\s+officer)\\s+(?:named\\s+)?(${namePattern})`, 'i'));
+                if (match) {
+                    args.title = match[1].trim();
+                    args.name = match[2].trim();
+                }
+            }
+            
+            // Pattern: extract name with "named [Name]"
+            if (!args.name) {
+                match = text.match(new RegExp(`named?\\s+(${namePattern})`, 'i'));
+                if (match) {
+                    args.name = match[1].trim();
+                }
+            }
+            
+            // Pattern: extract title if standalone
+            if (!args.title) {
+                match = text.match(/(ceo|cfo|cto|coo|vp|president|director|manager|chief\s+\w+\s+officer|vice\s+president)/i);
+                if (match) {
+                    args.title = match[1].trim();
+                }
+            }
+            
+            // Extract email if provided
+            const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+            if (emailMatch) {
+                args.email = emailMatch[1];
+            }
+            
+            // Extract "reports to" relationship - also use flexible name pattern
+            const reportsToMatch = text.match(new RegExp(`reports?\\s+to\\s+(${namePattern})`, 'i'));
+            if (reportsToMatch) {
+                args.reportsTo = reportsToMatch[1].trim();
+            }
+            
+            if (args.name || args.title) {
+                return { toolId: 'add_org_contact', args };
+            }
         }
         return null;
     };
@@ -1795,10 +2002,17 @@ ${automations.map(a => `- ${a.name}: ${a.event} trigger (${a.active ? 'Active' :
 CURRENT INTERNAL TAB: ${internalTab}
 ` : '';
 
+        // Get recent conversation history for context continuity
+        const conversationHistory = ChatHistoryService.getConversationContext(10);
+
         let contextData = `
 [NEUROLYNX INTERNAL DATABASE]
 You have access to all company data. Base your answers strictly on this data.
 ${internalOrgContext}
+${conversationHistory ? `
+RECENT CONVERSATION HISTORY:
+${conversationHistory}
+` : ''}
 COMPANIES/CLIENTS (${companies.length} total):
 ${allCompanies}
 
@@ -1827,6 +2041,7 @@ You are NeuroLynx, an AI assistant with 500+ skills for business operations.
 - You have access to Meeting Intelligence data including meeting summaries, action items, and sentiment analysis
 - You have access to Support Tickets data including priority, status, and category
 - Internal organization and external companies are all stored in the same database
+- You have access to CONVERSATION HISTORY - use it to maintain context and remember previous requests
 ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You are currently in the INTERNAL ORGANIZATION workspace and can read/write internal org data
 - You have access to team members, products/offerings, and automation rules
 - You can create internal tasks and meetings associated with your organization` : ''}
@@ -2712,6 +2927,28 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                         setTickets(prev => [...prev, newTicket]);
                                         addToast('success', 'Support ticket submitted successfully');
                                     },
+                                    onSendTicketEmail: (ticketId: string, noteContent: string, clientEmail: string) => {
+                                        // Find the ticket for context
+                                        const ticket = tickets.find(t => t.id === ticketId);
+                                        if (!ticket) return;
+                                        
+                                        // Basic email validation to avoid malformed / injected mailto addresses
+                                        const emailPattern = /^[^\s@?&]+@[^\s@?&]+\.[^\s@?&]+$/;
+                                        if (!emailPattern.test(clientEmail)) {
+                                            addToast('error', 'Cannot open email client: invalid recipient email address.');
+                                            return;
+                                        }
+
+                                        // Ensure the address part of the mailto link cannot contain query delimiters
+                                        const safeEmail = clientEmail.split(/[?&]/)[0];
+                                        
+                                        // In production, this would send via email service
+                                        // For now, open email client with mailto link
+                                        const subject = encodeURIComponent(`Status Update: ${ticket.title}`);
+                                        const body = encodeURIComponent(`Dear ${ticket.reportedBy},\n\nHere is a status update for your support ticket:\n\nTicket: ${ticket.title}\nStatus: ${ticket.status.replace('_', ' ').toUpperCase()}\n\n--- Update ---\n${noteContent}\n\nBest regards,\nSupport Team`);
+                                        window.location.href = `mailto:${safeEmail}?subject=${subject}&body=${body}`;
+                                        addToast('info', `Email client opened for ${safeEmail}`);
+                                    },
                                     kpiGoals,
                                     onUpdateKpiGoal: (id: string, current: number) => setKpiGoals(prev => prev.map(g => g.id === id ? { ...g, current } : g)),
                                     onAddKpiGoal: (goal: KPIGoal) => {
@@ -2793,6 +3030,23 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                     onSetNewModelKey: setNewModelKey,
                                     onRemoveModel: removeModel,
                                     onAddModel: handleAddModel,
+                                    // Ollama status and models
+                                    ollamaStatus,
+                                    availableOllamaModels,
+                                    onRefreshOllamaModels: async () => {
+                                        const ollamaService = getOllamaService();
+                                        const status = await ollamaService.checkStatus();
+                                        setOllamaStatus(status);
+                                        setAvailableOllamaModels(status.models);
+                                        if (status.isRunning) {
+                                            addToast('success', `Ollama connected with ${status.models.length} models available`);
+                                        } else {
+                                            addToast('warning', 'Ollama is not running. Please start Ollama with: ollama serve');
+                                        }
+                                    },
+                                    onAddConfiguredModel: (model: ConnectedModel) => {
+                                        setConfiguredModels(prev => [...prev, model]);
+                                    },
                                     maxUsers,
                                     onAddUser: () => setActiveModal('save_user'),
                                     onUnlockUser: unlockUser,
@@ -2919,9 +3173,9 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                         )}
                                         {view === 'memory' && <MemoryView memory={memories} onMemoryUpload={handleMemoryUpload} onSetActiveModal={setActiveModal} />}
                                         {/* Client Workspace Tickets - filtered by selected company */}
-                                        {view === 'tickets' && <ManagementPanel view="tickets" tickets={tickets.filter(t => t.companyId === selectedCompanyId)} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
+                                        {view === 'tickets' && <ManagementPanel {...commonPanelProps} view="tickets" tickets={tickets.filter(t => t.companyId === selectedCompanyId)} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} />}
                                         {/* Global Tickets - shows all tickets across all clients */}
-                                        {view === 'alltickets' && <ManagementPanel view="tickets" tickets={tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} {...commonPanelProps} />}
+                                        {view === 'alltickets' && <ManagementPanel {...commonPanelProps} view="tickets" tickets={tickets} onSaveTicket={(t) => { setModalData(t); setActiveModal('save_ticket'); }} setInternalTab={setInternalTab} />}
                                         {['forecast', 'alerts', 'winloss', 'kpis', 'velocity', 'profitability', 'utilization', 'csat'].includes(view) && (
                                             <ManagementPanel
                                                 {...commonPanelProps}

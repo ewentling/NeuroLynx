@@ -69,7 +69,15 @@ export const SYSTEM_INSTRUCTION = `You are "NeuroLynx," an advanced, autonomous 
 3.  Synthesis: Combine data for a holistic answer.
 4.  Response: Tailored to input mode.`;
 
+// Note: Ollama models are loaded dynamically from the local Ollama instance.
+// POPULAR_LLMS contains both local Ollama models (no API key required) and cloud-based LLMs (API key required).
+// The UI filters this list appropriately for each context.
 export const POPULAR_LLMS = [
+    { id: 'ollama:llama3.3', name: 'Ollama - Llama 3.3 (Local)', provider: 'Ollama' },
+    { id: 'ollama:mistral', name: 'Ollama - Mistral (Local)', provider: 'Ollama' },
+    { id: 'ollama:phi3', name: 'Ollama - Phi-3 (Local)', provider: 'Ollama' },
+    { id: 'ollama:gemma2', name: 'Ollama - Gemma 2 (Local)', provider: 'Ollama' },
+    { id: 'ollama:qwen2.5', name: 'Ollama - Qwen 2.5 (Local)', provider: 'Ollama' },
     { id: 'gemini-3-pro-preview', name: 'Google Gemini 3.0 Pro', provider: 'Google' },
     { id: 'gemini-3-flash-preview', name: 'Google Gemini 3.0 Flash', provider: 'Google' },
     { id: 'gpt-4o', name: 'OpenAI GPT-4o', provider: 'OpenAI' },
