@@ -421,7 +421,7 @@ export const App: React.FC = () => {
 
     // Business Settings
     const [businessProfile, setBusinessProfile] = useState({ name: 'NeuroSyntax Media', address: '100 Innovation Drive, Philadelphia, PA 19104', phone: '555-0199', website: 'www.neurosyntax.media' });
-    const [configuredModels, setConfiguredModels] = useState<ConnectedModel[]>([{ id: 'default', name: 'Ollama - Local LLM (System)', modelId: 'ollama:llama3.3', provider: 'Ollama', apiKey: '' }]);
+    const [configuredModels, setConfiguredModels] = useState<ConnectedModel[]>([{ id: 'default', name: 'Ollama - Local LLM (System)', modelId: 'ollama:llama3.3', provider: 'Ollama', apiKey: 'LOCAL_OLLAMA' }]);
     const [featureMapping, setFeatureMapping] = useState<{ [key: string]: string }>({ 'chat': 'default', 'meetings': 'default', 'contracts': 'default', 'coding': 'default', 'search': 'default' });
     const [automationRules, setAutomationRules] = useState<AutomationRule[]>([]
     );
@@ -459,7 +459,10 @@ export const App: React.FC = () => {
     const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
     const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
-    const [newModelSelection, setNewModelSelection] = useState(POPULAR_LLMS[0].id); // Default to first Ollama model
+    // Default to first non-Ollama model for the cloud model dropdown
+    const defaultNewModel = POPULAR_LLMS.find(model => model.provider !== 'Ollama');
+    const defaultNewModelId = defaultNewModel ? defaultNewModel.id : (POPULAR_LLMS[0]?.id ?? '');
+    const [newModelSelection, setNewModelSelection] = useState(defaultNewModelId);
     const [newModelKey, setNewModelKey] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [adminPasswordInput, setAdminPasswordInput] = useState('');
@@ -609,20 +612,24 @@ export const App: React.FC = () => {
                 
                 if (status.isRunning && status.models.length > 0) {
                     console.log(`Ollama detected with ${status.models.length} models: ${status.models.map(m => m.name).join(', ')}`);
-                    // If the default model is Ollama but no specific model is set, use first available
-                    const isDefaultOllamaConfig = configuredModels.length === 1 
-                        && configuredModels[0].provider === 'Ollama' 
-                        && !configuredModels[0].apiKey;
-                    if (isDefaultOllamaConfig) {
+                    // Use functional update to avoid stale closure issue
+                    setConfiguredModels(curr => {
+                        // Check if using default Ollama config
+                        const isDefaultOllamaConfig = curr.length === 1 
+                            && curr[0].provider === 'Ollama' 
+                            && curr[0].apiKey === 'LOCAL_OLLAMA';
+                        if (!isDefaultOllamaConfig) {
+                            return curr;
+                        }
                         const firstModel = status.models[0].name;
-                        setConfiguredModels([{
+                        return [{
                             id: 'default',
                             name: `Ollama - ${firstModel} (Local)`,
                             modelId: `ollama:${firstModel}`,
                             provider: 'Ollama',
-                            apiKey: '' // Ollama doesn't need an API key
-                        }]);
-                    }
+                            apiKey: 'LOCAL_OLLAMA' // Sentinel value for local Ollama
+                        }];
+                    });
                 } else {
                     console.log('Ollama not running or no models installed');
                 }
@@ -2925,12 +2932,22 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                         const ticket = tickets.find(t => t.id === ticketId);
                                         if (!ticket) return;
                                         
+                                        // Basic email validation to avoid malformed / injected mailto addresses
+                                        const emailPattern = /^[^\s@?&]+@[^\s@?&]+\.[^\s@?&]+$/;
+                                        if (!emailPattern.test(clientEmail)) {
+                                            addToast('error', 'Cannot open email client: invalid recipient email address.');
+                                            return;
+                                        }
+
+                                        // Ensure the address part of the mailto link cannot contain query delimiters
+                                        const safeEmail = clientEmail.split(/[?&]/)[0];
+                                        
                                         // In production, this would send via email service
                                         // For now, open email client with mailto link
                                         const subject = encodeURIComponent(`Status Update: ${ticket.title}`);
                                         const body = encodeURIComponent(`Dear ${ticket.reportedBy},\n\nHere is a status update for your support ticket:\n\nTicket: ${ticket.title}\nStatus: ${ticket.status.replace('_', ' ').toUpperCase()}\n\n--- Update ---\n${noteContent}\n\nBest regards,\nSupport Team`);
-                                        window.location.href = `mailto:${clientEmail}?subject=${subject}&body=${body}`;
-                                        addToast('info', `Email client opened for ${clientEmail}`);
+                                        window.location.href = `mailto:${safeEmail}?subject=${subject}&body=${body}`;
+                                        addToast('info', `Email client opened for ${safeEmail}`);
                                     },
                                     kpiGoals,
                                     onUpdateKpiGoal: (id: string, current: number) => setKpiGoals(prev => prev.map(g => g.id === id ? { ...g, current } : g)),
@@ -3026,6 +3043,9 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                         } else {
                                             addToast('warning', 'Ollama is not running. Please start Ollama with: ollama serve');
                                         }
+                                    },
+                                    onAddConfiguredModel: (model: ConnectedModel) => {
+                                        setConfiguredModels(prev => [...prev, model]);
                                     },
                                     maxUsers,
                                     onAddUser: () => setActiveModal('save_user'),

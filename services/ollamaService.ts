@@ -26,6 +26,8 @@ export interface OllamaStatus {
     baseUrl: string;
 }
 
+const MAX_HISTORY_TURNS = 20; // Limit conversation history to prevent prompt growth
+
 export class OllamaService {
     private baseUrl: string;
     private history: { role: string; content: string }[] = [];
@@ -36,14 +38,37 @@ export class OllamaService {
     }
 
     /**
+     * Create an AbortSignal that times out after the given number of milliseconds.
+     * Uses AbortSignal.timeout when available, and falls back to AbortController + setTimeout.
+     */
+    private createTimeoutSignal(timeoutMs: number): AbortSignal | undefined {
+        // Prefer native AbortSignal.timeout if available
+        if (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal) {
+            return (AbortSignal as any).timeout(timeoutMs);
+        }
+
+        // Fallback for environments without AbortSignal.timeout
+        if (typeof AbortController !== 'undefined') {
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), timeoutMs);
+            return controller.signal;
+        }
+
+        // As a last resort, return undefined and perform the request without a timeout
+        return undefined;
+    }
+
+    /**
      * Check if Ollama is running and get its status
      */
     async checkStatus(): Promise<OllamaStatus> {
         try {
+            const timeoutSignal = this.createTimeoutSignal(3000); // 3 second timeout
+
             // Check if Ollama is responding
             const response = await fetch(`${this.baseUrl}/api/version`, {
                 method: 'GET',
-                signal: AbortSignal.timeout(3000) // 3 second timeout
+                ...(timeoutSignal ? { signal: timeoutSignal } : {})
             });
             
             if (!response.ok) {
@@ -72,9 +97,10 @@ export class OllamaService {
      */
     async listModels(): Promise<OllamaModel[]> {
         try {
+            const timeoutSignal = this.createTimeoutSignal(5000);
             const response = await fetch(`${this.baseUrl}/api/tags`, {
                 method: 'GET',
-                signal: AbortSignal.timeout(5000)
+                ...(timeoutSignal ? { signal: timeoutSignal } : {})
             });
             
             if (!response.ok) {
@@ -102,12 +128,26 @@ export class OllamaService {
      * Send a message to Ollama and get a response
      */
     async sendMessage(model: string, prompt: string, contextData?: string): Promise<{ text: string }> {
+        // Build the full prompt with context for this request only
         const fullPrompt = contextData 
             ? `[CONTEXTUAL DATA START]\n${contextData}\n[CONTEXTUAL DATA END]\n\nUser Query: ${prompt}` 
             : prompt;
 
-        // Add user message to history
-        this.history.push({ role: 'user', content: fullPrompt });
+        // Store only the raw user prompt in history (not the contextual wrapper)
+        // to prevent rapid prompt growth
+        this.history.push({ role: 'user', content: prompt });
+
+        // Trim history to prevent unbounded growth (keep last N turns)
+        if (this.history.length > MAX_HISTORY_TURNS * 2) {
+            this.history = this.history.slice(-MAX_HISTORY_TURNS * 2);
+        }
+
+        // Build messages for this request with full context only for the current message
+        const messagesForRequest = [
+            ...(this.systemPrompt ? [{ role: 'system', content: this.systemPrompt }] : []),
+            ...this.history.slice(0, -1), // Previous history (raw prompts)
+            { role: 'user', content: fullPrompt } // Current message with context
+        ];
 
         try {
             const response = await fetch(`${this.baseUrl}/api/chat`, {
@@ -117,10 +157,7 @@ export class OllamaService {
                 },
                 body: JSON.stringify({
                     model: model,
-                    messages: [
-                        ...(this.systemPrompt ? [{ role: 'system', content: this.systemPrompt }] : []),
-                        ...this.history
-                    ],
+                    messages: messagesForRequest,
                     stream: false
                 })
             });

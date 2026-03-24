@@ -69,8 +69,9 @@ export const SYSTEM_INSTRUCTION = `You are "NeuroLynx," an advanced, autonomous 
 3.  Synthesis: Combine data for a holistic answer.
 4.  Response: Tailored to input mode.`;
 
-// Note: Ollama models are loaded dynamically from the local Ollama instance
-// The POPULAR_LLMS list is for cloud-based LLMs that require API keys
+// Note: Ollama models are loaded dynamically from the local Ollama instance.
+// POPULAR_LLMS contains both local Ollama models (no API key required) and cloud-based LLMs (API key required).
+// The UI filters this list appropriately for each context.
 export const POPULAR_LLMS = [
     { id: 'ollama:llama3.3', name: 'Ollama - Llama 3.3 (Local)', provider: 'Ollama' },
     { id: 'ollama:mistral', name: 'Ollama - Mistral (Local)', provider: 'Ollama' },

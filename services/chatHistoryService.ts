@@ -1,6 +1,6 @@
 /**
  * Chat History Service
- * Persists chat messages to localStorage for infinite conversation memory
+ * Persists chat messages to localStorage with bounded storage (max 1000 messages)
  */
 
 import { Message } from '../types';

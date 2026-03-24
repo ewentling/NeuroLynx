@@ -273,11 +273,35 @@ const TicketView: React.FC<TicketViewProps> = ({ tickets, companies, users, curr
                                                     className="rounded bg-slate-700 border-white/20 text-cyan-500 focus:ring-cyan-500"
                                                     disabled={!ticket.reportedByEmail}
                                                 />
-                                                <span className={!ticket.reportedByEmail ? 'line-through opacity-50' : ''}>
-                                                    <i className="fas fa-envelope mr-1"></i>
-                                                    Email copy to client
-                                                    {!ticket.reportedByEmail && <span className="text-yellow-500 ml-1">(no email on file)</span>}
-                                                </span>
+                                                {ticket.reportedByEmail ? (
+                                                    <span>
+                                                        <i className="fas fa-envelope mr-1"></i>
+                                                        Email copy to client
+                                                        <span className="text-slate-500 ml-1">({ticket.reportedByEmail})</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="line-through opacity-50">
+                                                            <i className="fas fa-envelope mr-1"></i>
+                                                            Email copy to client
+                                                        </span>
+                                                        <span className="text-yellow-500">(no email on file)</span>
+                                                        <button
+                                                            type="button"
+                                                            className="underline text-yellow-400 hover:text-yellow-300"
+                                                            onClick={e => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                const email = window.prompt('Enter client email address:');
+                                                                if (email && email.trim()) {
+                                                                    onUpdateTicket(ticket.id, { reportedByEmail: email.trim() });
+                                                                }
+                                                            }}
+                                                        >
+                                                            Add email
+                                                        </button>
+                                                    </span>
+                                                )}
                                             </label>
                                             <button 
                                                 onClick={() => handleAddNote(ticket.id)}

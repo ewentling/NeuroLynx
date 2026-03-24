@@ -7,8 +7,9 @@ import {
     WikiPage, OrgContact, FeatureRequest, Partner, CustomField,
     ActivityEntry, OnboardingChecklist, EmailSequence, Vendor,
     BillingRecord, Expense, ComplianceItem, DocVersion, CSATResponse,
-    Project, TimeEntry, ProductRecommendation
+    Project, TimeEntry, ProductRecommendation, ConnectedModel
 } from '../types';
+import { OllamaStatus, OllamaModel } from '../services/ollamaService';
 
 // Sub-components for better organization
 import PipelineView from './ManagementPanel/PipelineView';
@@ -180,6 +181,14 @@ interface ManagementPanelProps {
     onSaveTicket?: (ticket: SupportTicket) => void;
     onUpdateTicket?: (id: string, updates: Partial<SupportTicket>) => void;
     onCreateTicketFromPortal?: (ticket: Omit<SupportTicket, 'id' | 'createdAt'>) => void;
+    onSendTicketEmail?: (ticketId: string, noteContent: string, clientEmail: string) => void;
+    
+    // Ollama props
+    ollamaStatus?: OllamaStatus;
+    availableOllamaModels?: OllamaModel[];
+    onRefreshOllamaModels?: () => void;
+    onAddConfiguredModel?: (model: ConnectedModel) => void;
+    
     kpiGoals?: KPIGoal[];
     onUpdateKpiGoal?: (id: string, current: number) => void;
     onAddKpiGoal?: (goal: KPIGoal) => void;
@@ -671,14 +680,14 @@ const ManagementPanel: React.FC<ManagementPanelProps> = (props) => {
                                                 <button 
                                                     onClick={() => {
                                                         // Add this Ollama model as a configured model
-                                                        const newModel = {
+                                                        const newModel: ConnectedModel = {
                                                             id: `ollama_${model.name}_${Date.now()}`,
                                                             name: `Ollama - ${model.name} (Local)`,
                                                             modelId: `ollama:${model.name}`,
                                                             provider: 'Ollama',
-                                                            apiKey: '' // No API key needed for Ollama
+                                                            apiKey: 'LOCAL_OLLAMA' // Sentinel value for local Ollama
                                                         };
-                                                        props.onAddModel?.(newModel);
+                                                        props.onAddConfiguredModel?.(newModel);
                                                         props.onAddToast?.('success', `Added ${model.name} as a chat model option`);
                                                     }}
                                                     className="px-3 py-1 bg-green-600 hover:bg-green-500 rounded text-xs font-bold"
