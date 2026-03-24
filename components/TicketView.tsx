@@ -57,7 +57,7 @@ const TicketView: React.FC<TicketViewProps> = ({ tickets, companies, users, curr
         if (!ticket) return;
 
         const newNote: TicketStatusNote = {
-            id: `note_${Date.now()}`,
+            id: `note_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
             content: newNoteContent.trim(),
             createdBy: currentUser?.name || 'System',
             createdAt: Date.now(),
@@ -229,14 +229,17 @@ const TicketView: React.FC<TicketViewProps> = ({ tickets, companies, users, curr
                                                                     <span><i className="fas fa-user mr-1"></i>{note.createdBy}</span>
                                                                     <span><i className="fas fa-clock mr-1"></i>{new Date(note.createdAt).toLocaleString()}</span>
                                                                     {note.emailedToClient && (
-                                                                        <span className="text-green-400"><i className="fas fa-envelope-check mr-1"></i>Emailed</span>
+                                                                        <span className="text-green-400" aria-label="Note was emailed to client" title="Emailed to client">
+                                                                            <i className="fas fa-envelope-check mr-1" aria-hidden="true"></i>Emailed
+                                                                        </span>
                                                                     )}
                                                                 </div>
                                                                 <button 
                                                                     onClick={() => startEditNote(note)}
                                                                     className="text-cyan-400 hover:text-cyan-300"
+                                                                    aria-label="Edit note"
                                                                 >
-                                                                    <i className="fas fa-edit"></i>
+                                                                    <i className="fas fa-edit" aria-hidden="true"></i>
                                                                 </button>
                                                             </div>
                                                         </>

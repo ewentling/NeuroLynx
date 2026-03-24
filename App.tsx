@@ -2926,10 +2926,10 @@ ${(workspaceMode === 'internal' || selectedCompanyId === 'internal') ? `- You ar
                                         if (!ticket) return;
                                         
                                         // In production, this would send via email service
-                                        // For now, simulate email sending with mailto link
+                                        // For now, open email client with mailto link
                                         const subject = encodeURIComponent(`Status Update: ${ticket.title}`);
                                         const body = encodeURIComponent(`Dear ${ticket.reportedBy},\n\nHere is a status update for your support ticket:\n\nTicket: ${ticket.title}\nStatus: ${ticket.status.replace('_', ' ').toUpperCase()}\n\n--- Update ---\n${noteContent}\n\nBest regards,\nSupport Team`);
-                                        window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`, '_blank');
+                                        window.location.href = `mailto:${clientEmail}?subject=${subject}&body=${body}`;
                                         addToast('info', `Email client opened for ${clientEmail}`);
                                     },
                                     kpiGoals,
